@@ -13,7 +13,7 @@ import (
 // transcodeCmd represents the transcode command
 var transcodeCmd = &cobra.Command{
 	Use:   "transcode",
-	Short: "ffmpeg wrapper for transcoding audio and video",
+	Short: "ffmpeg wrapper for transcoding audio and video.",
 	Long: `You can transcode audio and video using any anything supported by ffmpeg.
 	Right now it only supports transcoding audio. because most of the var are hard coded for now.`,
 	Run: func(cmd *cobra.Command, args []string) {
