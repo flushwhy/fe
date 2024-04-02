@@ -66,9 +66,6 @@ func convertWAVToOGG(inputFile, outputFile string) error {
 	if wavDecoder == nil {
 		return fmt.Errorf("Failed to create WAV decoder")
 	}
-	if wavDecoder.WavAudioFormat == nil {
-		return fmt.Errorf("No audio format found in the WAV file")
-	}
 	sampleRate = int(wavDecoder.SampleRate)
 
 	// Create output file
