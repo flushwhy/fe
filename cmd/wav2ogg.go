@@ -23,7 +23,6 @@ import (
 
 	"github.com/go-audio/wav"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 	"mccoy.space/g/ogg"
 )
 
@@ -35,9 +34,13 @@ var wav2oggCmd = &cobra.Command{
 	--input <input file>.wav --output <output file>.ogg`,
 
 	Run: func(cmd *cobra.Command, args []string) {
-        fmt.Println(viper.GetString("inputFile"))
-		if err := convertWAVToOGG(viper.GetString("inputFile"), viper.GetString("outputFile")); err != nil {
+		inputFile := cmd.Flag("inputFile").Value.String()
+		outputFile := cmd.Flag("outputFile").Value.String()
+
+		if err := convertWAVToOGG(inputFile, outputFile); err != nil {
+			fmt.Println(inputFile)
 			fmt.Println(err)
+
 			os.Exit(1)
 		}
 	},
@@ -46,7 +49,7 @@ var wav2oggCmd = &cobra.Command{
 func init() {
 	audioCmd.AddCommand(wav2oggCmd)
 
-	wav2oggCmd.Flags().String("inputFile", "", "input file")
+	wav2oggCmd.Flags().String("inputFile", "jump.wav", "input file")
 	wav2oggCmd.Flags().String("outputFile", "You_forgot_to_specify_an_output_file.ogg", "output file")
 }
 
@@ -63,7 +66,7 @@ func convertWAVToOGG(inputFile, outputFile string) error {
 	if wavDecoder == nil {
 		return fmt.Errorf("Failed to create WAV decoder")
 	}
-	if wavDecoder.WavAudioFormat == 0 {
+	if wavDecoder.WavAudioFormat == nil {
 		return fmt.Errorf("No audio format found in the WAV file")
 	}
 	sampleRate = int(wavDecoder.SampleRate)
