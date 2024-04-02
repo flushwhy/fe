@@ -16,3 +16,9 @@
 
 # Go workspace file
 go.work
+
+# audio files
+*.wav
+*.mp3
+*.ogg
+go.sum
