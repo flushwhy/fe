@@ -18,12 +18,9 @@ package cmd
 
 import (
 	"fmt"
-	"io"
-	"os"
 
-	"github.com/go-audio/wav"
 	"github.com/spf13/cobra"
-	"mccoy.space/g/ogg"
+	ffmpeg "github.com/u2takey/ffmpeg-go"
 )
 
 // wav2oggCmd represents the wav2ogg command
@@ -37,11 +34,12 @@ var wav2oggCmd = &cobra.Command{
 		inputFile := cmd.Flag("inputFile").Value.String()
 		outputFile := cmd.Flag("outputFile").Value.String()
 
-		if err := convertWAVToOGG(inputFile, outputFile); err != nil {
-			fmt.Println(inputFile)
-			fmt.Println(err)
+		err := ffmpeg.Input(inputFile).
+			Output(outputFile, ffmpeg.KwArgs{"c:v": "libx265"}).
+			OverWriteOutput().ErrorToStdOut().Run()
 
-			os.Exit(1)
+		if err != nil {
+			fmt.Printf("Error converting wav to ogg: %v", err)
 		}
 	},
 }
@@ -51,46 +49,4 @@ func init() {
 
 	wav2oggCmd.Flags().String("inputFile", "jump.wav", "input file")
 	wav2oggCmd.Flags().String("outputFile", "You_forgot_to_specify_an_output_file.ogg", "output file")
-}
-
-func convertWAVToOGG(inputFile, outputFile string) error {
-	var sampleRate int
-	input, err := os.Open(inputFile)
-	if err != nil {
-		return err
-	}
-	defer input.Close()
-
-	// Parse WAV header to get sample rate
-	wavDecoder := wav.NewDecoder(input)
-	if wavDecoder == nil {
-		return fmt.Errorf("Failed to create WAV decoder")
-	}
-	sampleRate = int(wavDecoder.SampleRate)
-
-	// Create output file
-	output, err := os.Create(outputFile)
-	if err != nil {
-		return err
-	}
-	defer output.Close()
-
-	// Initialize OGG encoder with sample rate
-	encoder := ogg.NewEncoder(uint32(sampleRate), output) // 2 channels for stereo
-
-	// Read input data and write to OGG encoder
-	buffer := make([]byte, 4096)
-	for {
-		n, err := input.Read(buffer)
-		if err != nil && err != io.EOF {
-			return err
-		}
-		if n == 0 {
-			break
-		}
-		if err := encoder.Encode(int64(n), [][]byte{buffer[:n]}); err != nil {
-			return err
-		}
-	}
-	return nil
 }
