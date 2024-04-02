@@ -27,13 +27,13 @@ You will need to add fe to your PATH. If you don't put into the same directory a
 ## Usage
 
 ```bash
-fe transcode -i <input> -o <output>
+fe transcode --inputFile <input> -outputFile <output>
 ```
 
 or
 
 ```powershell
-fe.exe transcode -i <input> -o <output>
+fe.exe transcode --inputFile <input> -outputFile <output>
 ```
 
 ## Plan
