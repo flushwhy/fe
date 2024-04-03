@@ -13,28 +13,25 @@ import (
 // bmpCmd represents the bmp command
 var bmpCmd = &cobra.Command{
 	Use:   "bmp",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "BMP is a wrapper for itchio's bulter tool.",
+	Long: `BMP is a wrapper for itchio's bulter tool. It allows you to push all of your exports to itch.io. With one Command
+    Just call BMP in the root directory of your export folder and it will push all folders to your itchio project.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+    You do have to be signed into the CLI inorder for this to work.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("bmp called")
+
+        username := cmd.Flag("username").Value.String()
+        game := cmd.Flag("game").Value.String()
+        directory := cmd.Flag("directory").Value.String()
+        fmt.Print(username, game, directory)
+
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(bmpCmd)
 
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// bmpCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// bmpCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	bmpCmd.Flags().String("username", "", "itch.io username")
+    bmpCmd.Flags().String("game", "", "itch.io game")
+    bmpCmd.Flags().String("directory", "", "Directory to export folder")
 }
