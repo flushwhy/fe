@@ -25,13 +25,13 @@ var transcodeCmd = &cobra.Command{
 			OverWriteOutput().ErrorToStdOut().Run()
 
 		if err != nil {
-			fmt.Printf("Error converting wav to ogg: %v", err)
+			fmt.Printf("Error converting %s to %s: %v", inputFile, outputFile, err)
 		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(transcodeCmd)
-	transcodeCmd.Flags().String("inputFile", "jump.wav", "input file")
+	transcodeCmd.Flags().String("inputFile", "", "input file")
 	transcodeCmd.Flags().String("outputFile", "You_forgot_to_specify_an_output_file.ogg", "output file")
 }
