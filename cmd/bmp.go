@@ -22,7 +22,10 @@ var bmpCmd = &cobra.Command{
     Just call BMP in the root directory of your export folder and it will push all folders to your itchio project.
     
     You have to itchio butler installed(You should use the itch.io desktop client) and make sure you add your path.
-    You do have to be signed into the CLI in order for this to work.`,
+    You do have to be signed into the CLI in order for this to work.
+	
+	This tool is very experimental. It only supports the base butler push command. "butler push <dir> <username>/<game>:<platform>".
+	`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		username := cmd.Flag("username").Value.String()
