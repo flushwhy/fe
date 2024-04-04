@@ -3,6 +3,7 @@
 ---
 fe is cli to help with with gamedev.
 
+This is still a work in progress!!!
 
 ## Installation
 
