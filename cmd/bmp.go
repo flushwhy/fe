@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -19,7 +20,7 @@ var bmpCmd = &cobra.Command{
 	Long: `BMP is a wrapper for itchio's bulter tool. It allows you to push all of your exports to itch.io. With one Command
     Just call BMP in the root directory of your export folder and it will push all folders to your itchio project.
     
-    You have to itchio buter installed and in your path.
+    You have to itchio buter installed(You should use the itch.io desktop client) and make sure you add your path.
     You do have to be signed into the CLI in order for this to work.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -52,8 +53,9 @@ func bulter_pusher(username, game, directory string) {
 
 	for _, f := range files {
 		log.Printf("Checking for %s\n", f.Name())
-		switch f.Name() {
-		case "Linux", "Windows", "Macos", "Win", "linux", "windows", "macos", "win":
+		fnameLower := strings.ToLower(f.Name())
+		switch fnameLower {
+		case "linux", "windows", "macos", "win":
 			subFiles, err := os.ReadDir(filepath.Join(directory, f.Name()))
 			if err != nil {
 				log.Println("Could not read subdirectory:", err)
