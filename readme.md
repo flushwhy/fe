@@ -42,7 +42,7 @@ fe.exe transcode --inputFile <input> -outputFile <output>
 ---
 
 - [x] add audio conversion
-- [] add bulk pusher to itchio's bulter
+- [x] add bulk pusher to itchio's bulter
 - [] add sprite sheet compression
 - [] add vector to TTF converter
 - [] more stuff

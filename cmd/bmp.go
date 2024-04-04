@@ -68,7 +68,7 @@ func bulter_pusher(username, game, directory string) {
 				switch subF.Name() {
 				case "x32", "x64", "arm64", "arm32", "32", "64":
 					//  fmt.Printf("Pushing to %s/%s:%s\n", username, game, f.Name(), subF.Name())
-					cmd := exec.Command("butler", "push", directory, username+"/"+game+":"+f.Name()+"-"+subF.Name())
+					cmd := exec.Command("butler", "push", directory, username+"/"+game+":"+f.Name()+subF.Name())
 					err := cmd.Run()
 					if err != nil {
 						fmt.Println("Could not push: ", err)
