@@ -5,9 +5,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"   
-    "log"
-	
+	"log"
+	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -40,18 +40,35 @@ func init() {
 
 	bmpCmd.Flags().String("username", "", "itch.io username")
 	bmpCmd.Flags().String("game", "", "itch.io game")
-	bmpCmd.Flags().String("directory", "", "Directory to export folder")
+	bmpCmd.Flags().String("directory", "export", "Directory to export folder")
 }
 
 func bulter_pusher(username, game, directory string) {
-    
+
 	files, err := os.ReadDir(directory)
 	if err != nil {
 		log.Fatal("Could not read directory: ", err)
 	}
 
 	for _, f := range files {
-       fmt.Println("Pushing  to " + username + "/" + game + ":" + directory + "-" + f.Name())
-	}
+		log.Printf("Checking for %s\n", f.Name())
+		switch f.Name() {
+		case "Linux", "Windows", "Macos", "Win", "linux", "windows", "macos", "win":
+			subFiles, err := os.ReadDir(filepath.Join(directory, f.Name()))
+			if err != nil {
+				log.Println("Could not read subdirectory:", err)
+				continue
+			}
 
+			for _, subF := range subFiles {
+				log.Printf("Checking for %s\n", subF.Name())
+				switch subF.Name() {
+				case "x32", "x64", "arm64", "arm32", "32", "64":
+					fmt.Printf("Pushing to %s/%s:%s-%s\n", username, game, f.Name(), subF.Name())
+				case "win-x32", "win-x64", "win-arm64", "win-arm32":
+					fmt.Printf("Pushing to %s/%s:%s\n", username, game, subF.Name())
+				}
+			}
+		}
+	}
 }
