@@ -16,3 +16,10 @@
 
 # Go workspace file
 go.work
+
+# audio files && test files
+*.wav
+*.mp3
+*.ogg
+go.sum
+export/*
