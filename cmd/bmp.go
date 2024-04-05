@@ -80,12 +80,12 @@ func bulter_pusher(username, game, directory string) {
 					architecture = subF.Name()
 				}
 				cmd := exec.Command("butler", "push", directory+"/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+architecture)
-				fmt.Println(cmd)
-				/*		err := cmd.Run()
+				//fmt.Println(cmd)
+                     err := cmd.Run()
 						if err != nil {
 							fmt.Println("Could not push: ", err)
 							return
-						} */
+						} 
 			}
 		}
 	}
