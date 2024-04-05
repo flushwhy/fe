@@ -15,7 +15,7 @@ This is still a work in progress!!!
 
 ## Installation
 
-You need FFmpeg, and itch.io's butler installed. Then you need to add the path to the ffmpeg and butler to your PATH. You can test by running the following into CMD, PowerShell, or Bash:
+You need FFmpeg, and itch.io's butler installed. Then you need to add ffmpeg and butler to your PATH. You can test by running the following into CMD, PowerShell, or Bash:
 
 ```bash
 ffmpeg
