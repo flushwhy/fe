@@ -31,12 +31,13 @@ var bmpCmd = &cobra.Command{
 		username := cmd.Flag("username").Value.String()
 		game := cmd.Flag("game").Value.String()
 		directory := cmd.Flag("directory").Value.String()
+        userversion := cmd.Flag("userversion").Value.String()
 
 		if directory == "" {
 			directory, _ = os.Getwd()
 		}
 
-		bulter_pusher(username, game, directory)
+		bulter_pusher(username, game, directory, userversion)
 	},
 }
 
@@ -46,9 +47,10 @@ func init() {
 	bmpCmd.Flags().String("username", "", "itch.io username")
 	bmpCmd.Flags().String("game", "", "itch.io game")
 	bmpCmd.Flags().String("directory", "export", "Directory to export folder")
+    bmpCmd.Flags().String("userversion", "", "--userversion")
 }
 
-func bulter_pusher(username, game, directory string) {
+func bulter_pusher(username, game, directory string, userversion string) {
 
 	files, err := os.ReadDir(directory)
 	if err != nil {
@@ -79,13 +81,24 @@ func bulter_pusher(username, game, directory string) {
 					//fmt.Printf("Pushing to %s/%s:%s\n", username, game, subF.Name())
 					architecture = subF.Name()
 				}
-				cmd := exec.Command("butler", "push", directory+"/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+architecture)
-				//fmt.Println(cmd)
-                     err := cmd.Run()
-						if err != nil {
-							fmt.Println("Could not push: ", err)
-							return
-						} 
+
+                if userversion == "" {
+                    cmd := exec.Command("butler", "push", directory+"/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+architecture)
+                   // fmt.Println(cmd)
+                    err := cmd.Run()
+                    if err != nil {
+                        fmt.Println("Could not push: ", err)
+                        return
+                    } 
+                } else {
+                    cmd := exec.Command("butler", "push", directory+"/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+architecture, "--userversion ", userversion)
+                   // fmt.Println(cmd)
+                    err := cmd.Run()
+                    if err != nil {
+                        fmt.Println("Could not push: ", err)
+                        return
+                    }
+                }			
 			}
 		}
 	}
