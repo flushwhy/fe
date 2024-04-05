@@ -59,7 +59,7 @@ func bulter_pusher(username, game, directory string) {
 		log.Printf("Checking for %s\n", f.Name())
 		fnameLower := strings.ToLower(f.Name())
 		switch fnameLower {
-		case "linux", "windows", "macos", "win":
+		case "linux", "windows", "macos", "win", "mac", "osx":
 			subFiles, err := os.ReadDir(filepath.Join(directory, f.Name()))
 			if err != nil {
 				log.Println("Could not read subdirectory:", err)
@@ -70,16 +70,17 @@ func bulter_pusher(username, game, directory string) {
 				log.Printf("Checking for %s\n", subF.Name())
 				switch subF.Name() {
 				case "x32", "x64", "arm64", "arm32", "32", "64":
-					//  fmt.Printf("Pushing to %s/%s:%s\n", username, game, f.Name(), subF.Name())
-					cmd := exec.Command("butler", "push", directory, username+"/"+game+":"+f.Name()+subF.Name())
-					err := cmd.Run()
+					//fmt.Printf("Pushing to %s/%s:%s\n", username, game, f.Name(), subF.Name())
+					cmd := exec.Command("butler", "push", directory + "/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+subF.Name())
+					//fmt.Println(cmd)
+                    err := cmd.Run()
 					if err != nil {
 						fmt.Println("Could not push: ", err)
 						return
 					}
 				case "win-x32", "win-x64", "win-arm64", "win-arm32":
-					fmt.Printf("Pushing to %s/%s:%s\n", username, game, subF.Name())
-					cmd := exec.Command("butler", "push", directory, username+"/"+game+":"+subF.Name())
+					//fmt.Printf("Pushing to %s/%s:%s\n", username, game, subF.Name())
+					cmd := exec.Command("butler", "push", directory + "/"+f.Name()+"/"+subF.Name() , username+"/"+game+":"+f.Name())
 					err := cmd.Run()
 					if err != nil {
 						fmt.Println("Could not push: ", err)
