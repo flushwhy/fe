@@ -56,6 +56,8 @@ func bulter_pusher(username, game, directory string) {
 	}
 
 	for _, f := range files {
+
+		architecture := ""
 		log.Printf("Checking for %s\n", f.Name())
 		fnameLower := strings.ToLower(f.Name())
 		switch fnameLower {
@@ -71,22 +73,19 @@ func bulter_pusher(username, game, directory string) {
 				switch subF.Name() {
 				case "x32", "x64", "arm64", "arm32", "32", "64":
 					//fmt.Printf("Pushing to %s/%s:%s\n", username, game, f.Name(), subF.Name())
-					cmd := exec.Command("butler", "push", directory + "/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+subF.Name())
-					//fmt.Println(cmd)
-                    err := cmd.Run()
-					if err != nil {
-						fmt.Println("Could not push: ", err)
-						return
-					}
+					architecture = subF.Name()
+
 				case "win-x32", "win-x64", "win-arm64", "win-arm32":
 					//fmt.Printf("Pushing to %s/%s:%s\n", username, game, subF.Name())
-					cmd := exec.Command("butler", "push", directory + "/"+f.Name()+"/"+subF.Name() , username+"/"+game+":"+f.Name())
-					err := cmd.Run()
-					if err != nil {
-						fmt.Println("Could not push: ", err)
-						return
-					}
+					architecture = subF.Name()
 				}
+				cmd := exec.Command("butler", "push", directory+"/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+architecture)
+				fmt.Println(cmd)
+				/*		err := cmd.Run()
+						if err != nil {
+							fmt.Println("Could not push: ", err)
+							return
+						} */
 			}
 		}
 	}

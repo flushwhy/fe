@@ -1,5 +1,5 @@
 /*
-Copyright © 2024 NAME HERE <EMAIL ADDRESS>
+Copyright © 2024 Ryan Flush <roflush@pm.me>
 */
 package cmd
 
