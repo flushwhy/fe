@@ -50,7 +50,7 @@ var bmpCmd = &cobra.Command{
 			directory, _ = os.Getwd()
 		}
 
-		bulter_pusher(username, game, directory, userversion)
+		Butler_pusher(username, game, directory, userversion)
 	},
 }
 
@@ -63,56 +63,62 @@ func init() {
 	bmpCmd.Flags().String("userversion", "", "--userversion")
 }
 
-func bulter_pusher(username, game, directory string, userversion string) {
+func Butler_pusher(username, game, directory string, userversion string) {
+	log.Printf("Starting to push to %s/%s\n", username, game)
+	log.Printf("Directory: %s\n", directory)
+	log.Printf("Userversion: %s\n", userversion)
 
 	files, err := os.ReadDir(directory)
 	if err != nil {
-		log.Fatal("Could not read directory: ", err)
+		log.Fatalf("Could not read directory: %s", err)
 	}
 
 	for _, f := range files {
+		if f == nil {
+			log.Println("Skipping nil file")
+			continue
+		}
+		log.Printf("Checking for %s\n", f.Name())
 
 		architecture := ""
-		log.Printf("Checking for %s\n", f.Name())
 		fnameLower := strings.ToLower(f.Name())
+		log.Printf("Lowercase: %s\n", fnameLower)
 		switch fnameLower {
 		case "linux", "windows", "macos", "win", "mac", "osx":
 			subFiles, err := os.ReadDir(filepath.Join(directory, f.Name()))
 			if err != nil {
-				log.Println("Could not read subdirectory:", err)
+				log.Printf("Could not read subdirectory: %s", err)
 				continue
 			}
 
 			for _, subF := range subFiles {
+				if subF == nil {
+					log.Println("Skipping nil subfile")
+					continue
+				}
 				log.Printf("Checking for %s\n", subF.Name())
 				switch subF.Name() {
 				case "x32", "x64", "arm64", "arm32", "32", "64":
-					//fmt.Printf("Pushing to %s/%s:%s\n", username, game, f.Name(), subF.Name())
-					architecture = subF.Name()
-
-				case "win-x32", "win-x64", "win-arm64", "win-arm32":
-					//fmt.Printf("Pushing to %s/%s:%s\n", username, game, subF.Name())
-					architecture = subF.Name()
+					architecture = f.Name()+subF.Name()
+				case "win-x32", "win-x64", "win-arm64", "win-arm32", "linux32":
+                    architecture = subF.Name()
+				default:
+					log.Printf("Skipping %s as it isn't a valid architecture\n", subF.Name())
+					continue
 				}
 
-				if userversion == "" {
-					cmd := exec.Command("butler", "push", directory+"/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+architecture)
-					// fmt.Println(cmd)
-					err := cmd.Run()
-					if err != nil {
-						fmt.Println("Could not push: ", err)
-						return
-					}
-				} else {
-					cmd := exec.Command("butler", "push", directory+"/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+architecture, "--userversion ", userversion)
-					// fmt.Println(cmd)
-					err := cmd.Run()
-					if err != nil {
-						fmt.Println("Could not push: ", err)
-						return
-					}
+				cmd := exec.Command("butler", "push", filepath.Join(directory, f.Name(), subF.Name()), fmt.Sprintf("%s/%s:%s", username, game, architecture))
+				if userversion != "" {
+					cmd.Args = append(cmd.Args, "--userversion", userversion)
 				}
+				log.Printf("Running: %s\n", cmd.String())
+				if err := cmd.Run(); err != nil {
+					log.Fatalf("Could not push: %s", err)
+				}
+				log.Println("Pushed successfully")
 			}
+		default:
+			log.Printf("Skipping %s as it isn't a valid platform\n", f.Name())
 		}
 	}
 }
