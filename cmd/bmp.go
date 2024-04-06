@@ -1,5 +1,18 @@
 /*
 Copyright © 2024 Ryan Flush <roflush@pm.me>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program. If not, see <http://www.gnu.org/licenses/>.
 */
 package cmd
 
@@ -31,7 +44,7 @@ var bmpCmd = &cobra.Command{
 		username := cmd.Flag("username").Value.String()
 		game := cmd.Flag("game").Value.String()
 		directory := cmd.Flag("directory").Value.String()
-        userversion := cmd.Flag("userversion").Value.String()
+		userversion := cmd.Flag("userversion").Value.String()
 
 		if directory == "" {
 			directory, _ = os.Getwd()
@@ -47,7 +60,7 @@ func init() {
 	bmpCmd.Flags().String("username", "", "itch.io username")
 	bmpCmd.Flags().String("game", "", "itch.io game")
 	bmpCmd.Flags().String("directory", "export", "Directory to export folder")
-    bmpCmd.Flags().String("userversion", "", "--userversion")
+	bmpCmd.Flags().String("userversion", "", "--userversion")
 }
 
 func bulter_pusher(username, game, directory string, userversion string) {
@@ -82,23 +95,23 @@ func bulter_pusher(username, game, directory string, userversion string) {
 					architecture = subF.Name()
 				}
 
-                if userversion == "" {
-                    cmd := exec.Command("butler", "push", directory+"/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+architecture)
-                   // fmt.Println(cmd)
-                    err := cmd.Run()
-                    if err != nil {
-                        fmt.Println("Could not push: ", err)
-                        return
-                    } 
-                } else {
-                    cmd := exec.Command("butler", "push", directory+"/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+architecture, "--userversion ", userversion)
-                   // fmt.Println(cmd)
-                    err := cmd.Run()
-                    if err != nil {
-                        fmt.Println("Could not push: ", err)
-                        return
-                    }
-                }			
+				if userversion == "" {
+					cmd := exec.Command("butler", "push", directory+"/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+architecture)
+					// fmt.Println(cmd)
+					err := cmd.Run()
+					if err != nil {
+						fmt.Println("Could not push: ", err)
+						return
+					}
+				} else {
+					cmd := exec.Command("butler", "push", directory+"/"+f.Name()+"/"+subF.Name(), username+"/"+game+":"+f.Name()+architecture, "--userversion ", userversion)
+					// fmt.Println(cmd)
+					err := cmd.Run()
+					if err != nil {
+						fmt.Println("Could not push: ", err)
+						return
+					}
+				}
 			}
 		}
 	}
