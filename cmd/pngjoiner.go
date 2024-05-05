@@ -26,17 +26,34 @@ import (
 var pngjoinerCmd = &cobra.Command{
 	Use:   "pngjoiner",
 	Short: "This takes multiple PNGs and combines them into a single PNG.",
-	Long: `This takes multiple PNGs and combines them into a single PNG.`,
+	Long:  `This takes multiple PNGs and combines them into a single PNG.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println("pngjoiner called")
+		inputFile, _ := cmd.Flags().GetString("input")
+		outputFile, _ := cmd.Flags().GetString("output")
+		rows, _ := cmd.Flags().GetInt("rows")
+		cols, _ := cmd.Flags().GetInt("cols")
+
+		if inputFile == "" || outputFile == "" || rows == 0 || cols == 0 {
+			cmd.Help()
+			return
+		}
+
+		err := PngJoiner(inputFile, outputFile, rows, cols)
+		if err != nil {
+			fmt.Println("Error:", err)
+		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(pngjoinerCmd)
 
-    pngjoinerCmd.Flags().String("output", "you_forgot_to_specify_an_output_file.png", "output file")
-    pngjoinerCmd.Flags().String("input", "", "input file(s) or directory")
-    pngjoinerCmd.Flags().String("rows", "5", "rows")
-    pngjoinerCmd.Flags().String("cols", "5", "cols")
+	pngjoinerCmd.Flags().String("output", "you_forgot_to_specify_an_output_file.png", "output file")
+	pngjoinerCmd.Flags().String("input", "", "input file(s) or directory")
+	pngjoinerCmd.Flags().Int("rows", 0, "rows")
+	pngjoinerCmd.Flags().Int("cols", 0, "cols")
+}
+
+func PngJoiner(inputFile string, outputFile string, rows int, cols int) error {
+	return nil
 }
