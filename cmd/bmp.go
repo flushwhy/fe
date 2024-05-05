@@ -63,7 +63,7 @@ func init() {
 	bmpCmd.Flags().String("userversion", "", "--userversion")
 }
 
-func Butler_pusher(username, game, directory string, userversion string) {
+func Butler_pusher(username, game, directory string, userversion string) error {
 	log.Printf("Starting to push to %s/%s\n", username, game)
 	log.Printf("Directory: %s\n", directory)
 	log.Printf("Userversion: %s\n", userversion)
@@ -99,9 +99,9 @@ func Butler_pusher(username, game, directory string, userversion string) {
 				log.Printf("Checking for %s\n", subF.Name())
 				switch subF.Name() {
 				case "x32", "x64", "arm64", "arm32", "32", "64":
-					architecture = f.Name()+subF.Name()
+					architecture = f.Name() + subF.Name()
 				case "win-x32", "win-x64", "win-arm64", "win-arm32", "linux32":
-                    architecture = subF.Name()
+					architecture = subF.Name()
 				default:
 					log.Printf("Skipping %s as it isn't a valid architecture\n", subF.Name())
 					continue
@@ -121,4 +121,5 @@ func Butler_pusher(username, game, directory string, userversion string) {
 			log.Printf("Skipping %s as it isn't a valid platform\n", f.Name())
 		}
 	}
+	return nil
 }
