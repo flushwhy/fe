@@ -18,6 +18,12 @@ package cmd
 
 import (
 	"fmt"
+	"image"
+	"image/draw"
+	"image/png"
+	"os"
+	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -33,7 +39,7 @@ var pngjoinerCmd = &cobra.Command{
 		rows, _ := cmd.Flags().GetInt("rows")
 		cols, _ := cmd.Flags().GetInt("cols")
 
-		if inputFile == "" || outputFile == "" || rows == 0 || cols == 0 {
+		if inputFile == "" || outputFile == "you_forgot_to_specify_an_output_file.png" || rows == 0 || cols == 0 {
 			cmd.Help()
 			return
 		}
@@ -55,5 +61,75 @@ func init() {
 }
 
 func PngJoiner(inputFile string, outputFile string, rows int, cols int) error {
+
+	imageFiles := []string{}
+	if strings.HasSuffix(strings.ToLower(inputFile), ".png") {
+		imageFiles = append(imageFiles, inputFile)
+	} else {
+		files, err := filepath.Glob(filepath.Join(inputFile, "*.png"))
+		if err != nil {
+			return err
+		}
+		imageFiles = append(imageFiles, files...)
+	}
+
+	img, err := LoadImageFromFiles(imageFiles)
+	if err != nil {
+		return err
+	}
+
+	err = SaveImage(outputFile, img, rows, cols)
+	if err != nil {
+		return err
+	}
+
 	return nil
+}
+
+func LoadImageFromFiles(files []string) (image.Image, error) {
+	var images []image.Image
+	for _, file := range files {
+		img, err := readImage(file)
+		if err != nil {
+			return nil, err
+		}
+		images = append(images, img)
+	}
+	bounds := images[0].Bounds()
+	for _, img := range images {
+		if !img.Bounds().Eq(bounds) {
+			return nil, fmt.Errorf("different bounds")
+		}
+	}
+	return images[0], nil
+}
+
+func readImage(file string) (image.Image, error) {
+	f, err := os.Open(file)
+	if err != nil {
+		return nil, err
+	}
+	defer f.Close()
+	img, _, err := image.Decode(f)
+	return img, err
+}
+
+func SaveImage(outputFile string, img image.Image, rows int, cols int) error {
+	bounds := img.Bounds()
+	dx := bounds.Dx() / cols
+	dy := bounds.Dy() / rows
+	newImg := image.NewRGBA(image.Rect(0, 0, dx*cols, dy*rows))
+	for y := 0; y < rows; y++ {
+		for x := 0; x < cols; x++ {
+			r := image.NewRGBA(image.Rect(0, 0, dx, dy))
+			draw.Draw(r, r.Bounds(), img, image.Point{dx * x, dy * y}, draw.Src)
+			draw.Draw(newImg, newImg.Bounds(), r, image.Point{dx * x, dy * y}, draw.Over)
+		}
+	}
+	f, err := os.Create(outputFile)
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	return png.Encode(f, newImg)
 }
