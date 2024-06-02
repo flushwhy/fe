@@ -60,7 +60,7 @@ func init() {
 	bmpCmd.Flags().String("username", "", "itch.io username")
 	bmpCmd.Flags().String("game", "", "itch.io game")
 	bmpCmd.Flags().String("directory", "export", "Directory to export folder")
-	bmpCmd.Flags().String("userversion", "", "--userversion")
+	bmpCmd.Flags().String("userversion", "", "This is only needed if you want to use your own versioning, default itch versioning still works")
 }
 
 func Butler_pusher(username, game, directory string, userversion string) error {
