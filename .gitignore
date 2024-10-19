@@ -23,3 +23,4 @@ go.work
 *.ogg
 export/*
 */testdata/*
+*.jpeg
