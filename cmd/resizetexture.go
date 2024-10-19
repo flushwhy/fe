@@ -6,7 +6,6 @@ package cmd
 import (
 	"fmt"
 	"image"
-	"image/jpeg"
 
 	"image/png"
 
@@ -18,7 +17,7 @@ import (
 
 // resizetextureCmd represents the resizetexture command
 var resizetextureCmd = &cobra.Command{
-	Use:   "resizetexture",
+	Use:   "resize",
 	Short: "Take your textures from 16k to 2k.",
 	Long:  `This command is used to resize textures from everything from 16k to 2k. You can only go down not up.`,
 	Run: func(cmd *cobra.Command, args []string) {
@@ -70,18 +69,18 @@ func init() {
 }
 
 func ResizeTexture(img image.Image, outputFile string, rangeValue int) error {
-	res := []int{2, 4, 6, 8, 12, 16}
+	res := map[int]int{2: 2000, 4: 4000, 6: 6000, 8: 8000, 12: 12000, 16: 16000}
 
-	for i := range res {
-		if res[i] <= rangeValue {
+	for key, val := range res {
+		if res[key] <= rangeValue {
 
-			newImg := resize.Resize(uint(res[i]), uint(res[i]), img, resize.Bilinear)
+			newImg := resize.Resize(uint(res[val]), uint(res[val]), img, resize.Bilinear)
 			f, err := os.Create(outputFile)
 			if err != nil {
 				return err
 			}
 			defer f.Close()
-			return jpeg.Encode(f, newImg, nil)
+			return png.Encode(f, newImg)
 		}
 	}
 
