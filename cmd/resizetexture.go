@@ -15,7 +15,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// resizetextureCmd represents the resizetexture command
+// TODO: Add a thing for resizing to square.
+// TODO: Add support for other file types like Jpg, and so on.
+// TODO: Add support for allowing input file to be a directory, and resizing everything in the directory.
+// TODO: Add compression support.
+
 var resizetextureCmd = &cobra.Command{
 	Use:   "resize",
 	Short: "Take your textures from 16k to 2k.",
@@ -31,6 +35,7 @@ var resizetextureCmd = &cobra.Command{
 			return
 		}
 
+		// Checking for values with in range and even.
 		if rangeValue > 16 || rangeValue < 2 || rangeValue%2 != 0 {
 			panic("Range value must be between 2 and 16 and must be even")
 		}
@@ -71,6 +76,9 @@ func init() {
 func ResizeTexture(img image.Image, outputFile string, rangeValue int) error {
 	res := map[int]int{2: 2000, 4: 4000, 6: 6000, 8: 8000, 12: 12000, 16: 16000}
 
+	// Checking for values with in range.
+	// rangeValue is the range we are resizing from.
+	// Tries all values in the map to the max defined.
 	for key, val := range res {
 		if res[key] <= rangeValue {
 
