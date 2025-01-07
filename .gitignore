@@ -22,4 +22,9 @@ go.work
 *.mp3
 *.ogg
 export/*
+<<<<<<< HEAD
 */testdata/*
+=======
+*/testdata/*
+*.jpeg
+>>>>>>> flush_dev
