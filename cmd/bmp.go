@@ -60,17 +60,10 @@ func init() {
 	bmpCmd.Flags().String("username", "", "itch.io username")
 	bmpCmd.Flags().String("game", "", "itch.io game")
 	bmpCmd.Flags().String("directory", "export", "Directory to export folder")
-<<<<<<< HEAD
-	bmpCmd.Flags().String("userversion", "", "--userversion")
-}
-
-func Butler_pusher(username, game, directory string, userversion string) {
-=======
 	bmpCmd.Flags().String("userversion", "", "This is only needed if you want to use your own versioning, default itch versioning still works")
 }
 
 func Butler_pusher(username, game, directory string, userversion string) error {
->>>>>>> flush_dev
 	log.Printf("Starting to push to %s/%s\n", username, game)
 	log.Printf("Directory: %s\n", directory)
 	log.Printf("Userversion: %s\n", userversion)
@@ -106,15 +99,9 @@ func Butler_pusher(username, game, directory string, userversion string) error {
 				log.Printf("Checking for %s\n", subF.Name())
 				switch subF.Name() {
 				case "x32", "x64", "arm64", "arm32", "32", "64":
-<<<<<<< HEAD
-					architecture = f.Name()+subF.Name()
-				case "win-x32", "win-x64", "win-arm64", "win-arm32", "linux32":
-                    architecture = subF.Name()
-=======
 					architecture = f.Name() + subF.Name()
 				case "win-x32", "win-x64", "win-arm64", "win-arm32", "linux32":
 					architecture = subF.Name()
->>>>>>> flush_dev
 				default:
 					log.Printf("Skipping %s as it isn't a valid architecture\n", subF.Name())
 					continue
