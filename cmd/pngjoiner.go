@@ -31,20 +31,21 @@ import (
 // pngjoinerCmd represents the pngjoiner command
 var pngjoinerCmd = &cobra.Command{
 	Use:   "pngjoiner",
-	Short: "This takes multiple PNGs and combines them into a single PNG.",
-	Long:  `This takes multiple PNGs and combines them into a single PNG.`,
+	Short: "This takes multiple PNGs and JPEGs and combines them into a single PNG.",
+	Long:  `This takes multiple PNGs and JPEGs (JPG/JPEG) and combines them into a single PNG.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		inputFile, _ := cmd.Flags().GetString("input")
 		outputFile, _ := cmd.Flags().GetString("output")
 		rows, _ := cmd.Flags().GetInt("rows")
 		cols, _ := cmd.Flags().GetInt("cols")
 
+		compression, _ := cmd.Flags().GetInt("compression")
 		if inputFile == "" || outputFile == "you_forgot_to_specify_an_output_file.png" || rows == 0 || cols == 0 {
 			cmd.Help()
 			return
 		}
 
-		err := PngJoiner(inputFile, outputFile, rows, cols)
+		err := PngJoiner(inputFile, outputFile, rows, cols, compression)
 		if err != nil {
 			fmt.Println("Error:", err)
 		}
@@ -58,19 +59,25 @@ func init() {
 	pngjoinerCmd.Flags().String("input", "", "input file(s) or directory")
 	pngjoinerCmd.Flags().Int("rows", 0, "rows")
 	pngjoinerCmd.Flags().Int("cols", 0, "cols")
+	pngjoinerCmd.Flags().Int("compression", int(png.DefaultCompression), "PNG compression level: -3=Default, -2=NoCompression, -1=BestSpeed, 0=BestCompression, 1-9=level")
 }
 
-func PngJoiner(inputFile string, outputFile string, rows int, cols int) error {
+func PngJoiner(inputFile string, outputFile string, rows int, cols int, compression int) error {
 
 	imageFiles := []string{}
-	if strings.HasSuffix(strings.ToLower(inputFile), ".png") {
+	lowerInput := strings.ToLower(inputFile)
+	if strings.HasSuffix(lowerInput, ".png") || strings.HasSuffix(lowerInput, ".jpg") || strings.HasSuffix(lowerInput, ".jpeg") {
 		imageFiles = append(imageFiles, inputFile)
 	} else {
-		files, err := filepath.Glob(filepath.Join(inputFile, "*.png"))
-		if err != nil {
-			return err
+		// Gather PNG, JPG, and JPEG files from directory
+		patterns := []string{"*.png", "*.jpg", "*.jpeg"}
+		for _, pattern := range patterns {
+			files, err := filepath.Glob(filepath.Join(inputFile, pattern))
+			if err != nil {
+				return err
+			}
+			imageFiles = append(imageFiles, files...)
 		}
-		imageFiles = append(imageFiles, files...)
 	}
 
 	img, err := LoadImageFromFiles(imageFiles)
@@ -78,7 +85,7 @@ func PngJoiner(inputFile string, outputFile string, rows int, cols int) error {
 		return err
 	}
 
-	err = SaveImage(outputFile, img, rows, cols)
+	err = SaveImage(outputFile, img, rows, cols, compression)
 	if err != nil {
 		return err
 	}
@@ -114,7 +121,7 @@ func readImage(file string) (image.Image, error) {
 	return img, err
 }
 
-func SaveImage(outputFile string, img image.Image, rows int, cols int) error {
+func SaveImage(outputFile string, img image.Image, rows int, cols int, compression int) error {
 	bounds := img.Bounds()
 	dx := bounds.Dx() / cols
 	dy := bounds.Dy() / rows
@@ -131,5 +138,19 @@ func SaveImage(outputFile string, img image.Image, rows int, cols int) error {
 		return err
 	}
 	defer f.Close()
-	return png.Encode(f, newImg)
+	// Set PNG compression level
+	encoder := png.Encoder{}
+	switch compression {
+	case -3:
+		encoder.CompressionLevel = png.DefaultCompression
+	case -2:
+		encoder.CompressionLevel = png.NoCompression
+	case -1:
+		encoder.CompressionLevel = png.BestSpeed
+	case 0:
+		encoder.CompressionLevel = png.BestCompression
+	default:
+		encoder.CompressionLevel = png.CompressionLevel(compression)
+	}
+	return encoder.Encode(f, newImg)
 }

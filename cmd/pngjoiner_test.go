@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"image/png"
 	"os"
 	"path/filepath"
 	"testing"
@@ -18,7 +19,7 @@ func TestPngJoiner(t *testing.T) {
 	defer os.Remove(inputFilePath)
 
 	// Call the PngJoiner function
-	err := PngJoiner(inputFilePath, outputFile, rows, cols)
+	err := PngJoiner(inputFilePath, outputFile, rows, cols, int(png.DefaultCompression))
 	if err != nil {
 		t.Errorf("PngJoiner returned an error for single PNG input: %v", err)
 	}
@@ -42,7 +43,7 @@ func TestPngJoiner(t *testing.T) {
 	createTempFile(t, filepath.Join(inputDirPath, "test2.png"))
 
 	// Call the PngJoiner function
-	err = PngJoiner(inputDirPath, outputFile, rows, cols)
+	err = PngJoiner(inputDirPath, outputFile, rows, cols, int(png.DefaultCompression))
 	if err != nil {
 		t.Errorf("PngJoiner returned an error for multiple PNG files in a directory input: %v", err)
 	}
@@ -60,7 +61,7 @@ func TestPngJoiner(t *testing.T) {
 	cols = 2
 
 	// Call the PngJoiner function
-	err = PngJoiner(inputFile, outputFile, rows, cols)
+	err = PngJoiner(inputFile, outputFile, rows, cols, int(png.DefaultCompression))
 	if err == nil {
 		t.Errorf("PngJoiner did not return an error for invalid input file")
 	}
