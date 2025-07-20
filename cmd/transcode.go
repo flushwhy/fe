@@ -18,8 +18,10 @@ package cmd
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 	ffmpeg "github.com/u2takey/ffmpeg-go"
 )
 
@@ -30,41 +32,49 @@ var transcodeCmd = &cobra.Command{
 	Long: `You can transcode audio and video using any anything supported by ffmpeg.
 	Specify the input file, output file, codec, and more.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		inputFilename := cmd.Flag("inputFile").Value.String()
-		outputFilename := cmd.Flag("outputFile").Value.String()
-		ffmpegArgs := make([]string, 0)
+		// Get the main input/output files
+		inputFilename := viper.GetString("transcode.inputFile")
+		outputFilename := viper.GetString("transcode.outputFile")
 
-		addFfmpegArg := func(flagName, flagValue string) {
-			if flagValue != "" {
-				ffmpegArgs = append(ffmpegArgs, "-"+flagName, flagValue)
+		if inputFilename == "" {
+			log.Fatal("Error: --inputFile must be set via flag or config file.")
+		}
+
+		// Define the ffmpeg arguments by their proper names
+		ffmpegArgs := map[string]string{
+			"-c:v": viper.GetString("transcode.codec"),
+			"-b:v": viper.GetString("transcode.bitrate"),
+			"-ac":  viper.GetString("transcode.audioChannels"),
+			"-r":   viper.GetString("transcode.videoFrameRate"),
+			"-s":   viper.GetString("transcode.videoResolution"),
+			"-ss":  viper.GetString("transcode.startTime"),
+			"-t":   viper.GetString("transcode.endTime"),
+		}
+
+		// Build the final map for the ffmpeg-go library, skipping empty values
+		outputArgs := make(map[string]interface{})
+		for key, val := range ffmpegArgs {
+			if val != "" {
+				outputArgs[key] = val
 			}
 		}
 
-		addFfmpegArg("c:v", cmd.Flag("codec").Value.String())
-		addFfmpegArg("b:v", cmd.Flag("bitrate").Value.String())
-		addFfmpegArg("ac", cmd.Flag("audioChannels").Value.String())
-		addFfmpegArg("r", cmd.Flag("videoFrameRate").Value.String())
-		addFfmpegArg("s", cmd.Flag("videoResolution").Value.String())
-		addFfmpegArg("ss", cmd.Flag("startTime").Value.String())
-		addFfmpegArg("t", cmd.Flag("endTime").Value.String())
-
-		argsMap := make(map[string]interface{})
-		for i := 0; i < len(ffmpegArgs); i += 2 {
-			argsMap[ffmpegArgs[i]] = ffmpegArgs[i+1]
-		}
-
+		// Run the ffmpeg command
 		err := ffmpeg.Input(inputFilename).
-			Output(outputFilename, argsMap).
+			Output(outputFilename, outputArgs).
 			OverWriteOutput().ErrorToStdOut().Run()
 
 		if err != nil {
-			fmt.Printf("Error converting %s to %s: %v", inputFilename, outputFilename, err)
+			fmt.Printf("Error converting %s to %s: %v\n", inputFilename, outputFilename, err)
+		} else {
+			fmt.Printf("Successfully transcoded %s to %s\n", inputFilename, outputFilename)
 		}
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(transcodeCmd)
+
 	transcodeCmd.Flags().String("inputFile", "", "input file")
 	transcodeCmd.Flags().String("outputFile", "You_forgot_to_specify_an_output_file.ogg", "output file")
 	transcodeCmd.Flags().String("codec", "", "codec")
@@ -74,4 +84,14 @@ func init() {
 	transcodeCmd.Flags().String("videoResolution", "", "video resolution")
 	transcodeCmd.Flags().String("startTime", "", "start time")
 	transcodeCmd.Flags().String("endTime", "", "end time")
+
+	viper.BindPFlag("transcode.inputFile", transcodeCmd.Flags().Lookup("inputFile"))
+	viper.BindPFlag("transcode.outputFile", transcodeCmd.Flags().Lookup("outputFile"))
+	viper.BindPFlag("transcode.codec", transcodeCmd.Flags().Lookup("codec"))
+	viper.BindPFlag("transcode.bitrate", transcodeCmd.Flags().Lookup("bitrate"))
+	viper.BindPFlag("transcode.audioChannels", transcodeCmd.Flags().Lookup("audioChannels"))
+	viper.BindPFlag("transcode.videoFrameRate", transcodeCmd.Flags().Lookup("videoFrameRate"))
+	viper.BindPFlag("transcode.videoResolution", transcodeCmd.Flags().Lookup("videoResolution"))
+	viper.BindPFlag("transcode.startTime", transcodeCmd.Flags().Lookup("startTime"))
+	viper.BindPFlag("transcode.endTime", transcodeCmd.Flags().Lookup("endTime"))
 }

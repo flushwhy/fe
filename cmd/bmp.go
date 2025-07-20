@@ -25,6 +25,7 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // bmpCmd represents the bmp command
@@ -41,10 +42,10 @@ var bmpCmd = &cobra.Command{
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
 
-		username := cmd.Flag("username").Value.String()
-		game := cmd.Flag("game").Value.String()
-		directory := cmd.Flag("directory").Value.String()
-		userversion := cmd.Flag("userversion").Value.String()
+		username := viper.GetString("itchio.username")
+		game := viper.GetString("itchio.game")
+		directory := viper.GetString("butler.directory")
+		userversion := viper.GetString("butler.userversion")
 
 		if directory == "" {
 			directory, _ = os.Getwd()
@@ -57,10 +58,17 @@ var bmpCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(bmpCmd)
 
+	// Define Flags
 	bmpCmd.Flags().String("username", "", "itch.io username")
 	bmpCmd.Flags().String("game", "", "itch.io game")
 	bmpCmd.Flags().String("directory", "export", "Directory to export folder")
 	bmpCmd.Flags().String("userversion", "", "This is only needed if you want to use your own versioning, default itch versioning still works")
+
+	// Bind Flags to Viper
+	viper.BindPFlag("itchio.username", bmpCmd.Flags().Lookup("username"))
+	viper.BindPFlag("itchio.game", bmpCmd.Flags().Lookup("game"))
+	viper.BindPFlag("butler.directory", bmpCmd.Flags().Lookup("directory"))
+	viper.BindPFlag("butler.userversion", bmpCmd.Flags().Lookup("userversion"))
 }
 
 func Butler_pusher(username, game, directory string, userversion string) error {
