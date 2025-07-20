@@ -17,6 +17,7 @@ along with this program. If not, see <http://www.gnu.org/licenses/>.
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -25,49 +26,59 @@ import (
 	ffmpeg "github.com/u2takey/ffmpeg-go"
 )
 
-// transcodeCmd represents the transcode command
+type ffmpegRunnerFunc func(inputFile, outputFile string, args map[string]interface{}) error
+
+var ffmpegRunner ffmpegRunnerFunc = runFfmpeg
+
+func runFfmpeg(inputFile, outputFile string, args map[string]interface{}) error {
+	return ffmpeg.Input(inputFile).
+		Output(outputFile, args).
+		OverWriteOutput().ErrorToStdOut().Run()
+}
+
+func runTranscode(cmd *cobra.Command, args []string) error {
+	inputFilename := viper.GetString("transcode.inputFile")
+	outputFilename := viper.GetString("transcode.outputFile")
+
+	if inputFilename == "" {
+
+		return errors.New("--inputFile must be set via flag or config file")
+	}
+
+	ffmpegArgs := map[string]string{
+		"-c:v": viper.GetString("transcode.codec"),
+		"-b:v": viper.GetString("transcode.bitrate"),
+		"-ac":  viper.GetString("transcode.audioChannels"),
+		"-r":   viper.GetString("transcode.videoFrameRate"),
+		"-s":   viper.GetString("transcode.videoResolution"),
+		"-ss":  viper.GetString("transcode.startTime"),
+		"-t":   viper.GetString("transcode.endTime"),
+	}
+
+	outputArgs := make(map[string]interface{})
+	for key, val := range ffmpegArgs {
+		if val != "" {
+			outputArgs[key] = val
+		}
+	}
+
+	err := ffmpegRunner(inputFilename, outputFilename, outputArgs)
+	if err != nil {
+		return fmt.Errorf("error converting %s to %s: %w", inputFilename, outputFilename, err)
+	}
+
+	fmt.Printf("Successfully transcoded %s to %s\n", inputFilename, outputFilename)
+	return nil
+}
+
 var transcodeCmd = &cobra.Command{
 	Use:   "transcode",
 	Short: "ffmpeg wrapper for transcoding audio and video.",
 	Long: `You can transcode audio and video using any anything supported by ffmpeg.
 	Specify the input file, output file, codec, and more.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// Get the main input/output files
-		inputFilename := viper.GetString("transcode.inputFile")
-		outputFilename := viper.GetString("transcode.outputFile")
-
-		if inputFilename == "" {
-			log.Fatal("Error: --inputFile must be set via flag or config file.")
-		}
-
-		// Define the ffmpeg arguments by their proper names
-		ffmpegArgs := map[string]string{
-			"-c:v": viper.GetString("transcode.codec"),
-			"-b:v": viper.GetString("transcode.bitrate"),
-			"-ac":  viper.GetString("transcode.audioChannels"),
-			"-r":   viper.GetString("transcode.videoFrameRate"),
-			"-s":   viper.GetString("transcode.videoResolution"),
-			"-ss":  viper.GetString("transcode.startTime"),
-			"-t":   viper.GetString("transcode.endTime"),
-		}
-
-		// Build the final map for the ffmpeg-go library, skipping empty values
-		outputArgs := make(map[string]interface{})
-		for key, val := range ffmpegArgs {
-			if val != "" {
-				outputArgs[key] = val
-			}
-		}
-
-		// Run the ffmpeg command
-		err := ffmpeg.Input(inputFilename).
-			Output(outputFilename, outputArgs).
-			OverWriteOutput().ErrorToStdOut().Run()
-
-		if err != nil {
-			fmt.Printf("Error converting %s to %s: %v\n", inputFilename, outputFilename, err)
-		} else {
-			fmt.Printf("Successfully transcoded %s to %s\n", inputFilename, outputFilename)
+		if err := runTranscode(cmd, args); err != nil {
+			log.Fatal(err)
 		}
 	},
 }
@@ -76,7 +87,7 @@ func init() {
 	rootCmd.AddCommand(transcodeCmd)
 
 	transcodeCmd.Flags().String("inputFile", "", "input file")
-	transcodeCmd.Flags().String("outputFile", "You_forgot_to_specify_an_output_file.ogg", "output file")
+	transcodeCmd.Flags().String("outputFile", "output.ogg", "output file")
 	transcodeCmd.Flags().String("codec", "", "codec")
 	transcodeCmd.Flags().String("bitrate", "", "bitrate")
 	transcodeCmd.Flags().String("audioChannels", "", "audio channels")

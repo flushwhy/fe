@@ -33,15 +33,9 @@ var bmpCmd = &cobra.Command{
 	Use:   "bmp",
 	Short: "BMP is a wrapper for itchio's bulter tool.",
 	Long: `BMP is a wrapper for itchio's bulter tool. It allows you to push all of your exports to itch.io. With one Command
-    Just call BMP in the root directory of your export folder and it will push all folders to your itchio project.
-    
-    You have to itchio butler installed(You should use the itch.io desktop client) and make sure you add your path.
-    You do have to be signed into the CLI in order for this to work.
-	
-	This tool is very experimental. It only supports the base butler push command. "butler push <dir> <username>/<game>:<platform>".
+	Just call BMP in the root directory of your export folder and it will push all folders to your itchio project.
 	`,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		username := viper.GetString("itchio.username")
 		game := viper.GetString("itchio.game")
 		directory := viper.GetString("butler.directory")
@@ -51,7 +45,14 @@ var bmpCmd = &cobra.Command{
 			directory, _ = os.Getwd()
 		}
 
-		Butler_pusher(username, game, directory, userversion)
+		// Create a standard logger that writes to standard output.
+		logger := log.New(os.Stdout, "", log.LstdFlags)
+
+		// Pass the logger to Butler_pusher.
+		err := Butler_pusher(username, game, directory, userversion, exec.Command, logger)
+		if err != nil {
+			log.Fatalf("Butler push failed: %v", err)
+		}
 	},
 }
 
@@ -71,62 +72,77 @@ func init() {
 	viper.BindPFlag("butler.userversion", bmpCmd.Flags().Lookup("userversion"))
 }
 
-func Butler_pusher(username, game, directory string, userversion string) error {
-	log.Printf("Starting to push to %s/%s\n", username, game)
-	log.Printf("Directory: %s\n", directory)
-	log.Printf("Userversion: %s\n", userversion)
+type commandExecutor func(name string, arg ...string) *exec.Cmd
+
+// ★ FIX: Define the logger interface so it's visible within the package.
+type pusherLogger interface {
+	Printf(format string, v ...interface{})
+}
+
+// Butler_pusher now accepts the logger interface as an argument.
+func Butler_pusher(username, game, directory string, userversion string, executor commandExecutor, logger pusherLogger) error {
+	logger.Printf("Starting to push to %s/%s\n", username, game)
+	logger.Printf("Directory: %s\n", directory)
+	logger.Printf("Userversion: %s\n", userversion)
 
 	files, err := os.ReadDir(directory)
 	if err != nil {
-		log.Fatalf("Could not read directory: %s", err)
+		return fmt.Errorf("could not read directory %s: %w", directory, err)
 	}
 
 	for _, f := range files {
 		if f == nil {
-			log.Println("Skipping nil file")
+			logger.Printf("Skipping nil file")
 			continue
 		}
-		log.Printf("Checking for %s\n", f.Name())
+		logger.Printf("Checking for %s\n", f.Name())
 
 		architecture := ""
 		fnameLower := strings.ToLower(f.Name())
-		log.Printf("Lowercase: %s\n", fnameLower)
+		logger.Printf("Lowercase: %s\n", fnameLower)
 		switch fnameLower {
 		case "linux", "windows", "macos", "win", "mac", "osx":
 			subFiles, err := os.ReadDir(filepath.Join(directory, f.Name()))
 			if err != nil {
-				log.Printf("Could not read subdirectory: %s", err)
+				logger.Printf("Could not read subdirectory: %s", err)
 				continue
 			}
 
 			for _, subF := range subFiles {
 				if subF == nil {
-					log.Println("Skipping nil subfile")
+					logger.Printf("Skipping nil subfile")
 					continue
 				}
-				log.Printf("Checking for %s\n", subF.Name())
+				logger.Printf("Checking for %s\n", subF.Name())
 				switch subF.Name() {
 				case "x32", "x64", "arm64", "arm32", "32", "64":
 					architecture = f.Name() + subF.Name()
 				case "win-x32", "win-x64", "win-arm64", "win-arm32", "linux32":
 					architecture = subF.Name()
 				default:
-					log.Printf("Skipping %s as it isn't a valid architecture\n", subF.Name())
+					logger.Printf("Skipping %s as it isn't a valid architecture\n", subF.Name())
 					continue
 				}
 
-				cmd := exec.Command("butler", "push", filepath.Join(directory, f.Name(), subF.Name()), fmt.Sprintf("%s/%s:%s", username, game, architecture))
+				pushArgs := []string{
+					"push",
+					filepath.Join(directory, f.Name(), subF.Name()),
+					fmt.Sprintf("%s/%s:%s", username, game, architecture),
+				}
+
 				if userversion != "" {
-					cmd.Args = append(cmd.Args, "--userversion", userversion)
+					pushArgs = append(pushArgs, "--userversion", userversion)
 				}
-				log.Printf("Running: %s\n", cmd.String())
+
+				cmd := executor("butler", pushArgs...)
+				logger.Printf("Running: %s\n", cmd.String())
 				if err := cmd.Run(); err != nil {
-					log.Fatalf("Could not push: %s", err)
+					return fmt.Errorf("could not push %s: %w", architecture, err)
 				}
-				log.Println("Pushed successfully")
+				logger.Printf("Pushed successfully")
 			}
 		default:
-			log.Printf("Skipping %s as it isn't a valid platform\n", f.Name())
+			logger.Printf("Skipping %s as it isn't a valid platform\n", f.Name())
 		}
 	}
 	return nil

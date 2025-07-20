@@ -1,0 +1,22 @@
+version: 2.1
+
+jobs:
+
+  build-and-test:
+
+    docker:
+      - image: cimg/go:1.23.2 
+
+    steps:
+
+      - checkout
+
+      - run:
+          name: "Run Go Tests"
+          command: go test -v ./... | tee /dev/stderr
+
+
+workflows:
+  build_and_test_workflow:
+    jobs:
+      - build-and-test
