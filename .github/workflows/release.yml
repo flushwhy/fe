@@ -1,12 +1,11 @@
 name: Release Build and Upload
 
-# This workflow runs when a new release is published on GitHub.
 on:
   release:
     types: [published]
 
 jobs:
-  # The 'build' job compiles the application for different platforms.
+
   build:
     name: Build for ${{ matrix.goos }}-${{ matrix.goarch }}
     runs-on: ubuntu-latest
@@ -29,14 +28,12 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.23.2'
+          go-version: '1.22'
 
       - name: Set output binary name and extension
         id: vars
         run: |
-          # Set the base name for the binary.
           binary_name="fe"
-          # Add .exe extension for Windows builds.
           if [ "${{ matrix.goos }}" = "windows" ]; then
             echo "binary_name_ext=${binary_name}.exe" >> $GITHUB_OUTPUT
             echo "archive_name=${binary_name}-${{ matrix.goos }}-${{ matrix.goarch }}.zip" >> $GITHUB_OUTPUT
@@ -68,8 +65,10 @@ jobs:
   release:
     name: Upload Release Assets
     runs-on: ubuntu-latest
-
     needs: build
+
+    permissions:
+      contents: write
     
     steps:
       - name: Download all release artifacts
