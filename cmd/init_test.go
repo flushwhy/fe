@@ -72,7 +72,6 @@ func TestInitCommand(t *testing.T) {
 			t.Fatal("expected an error when directory exists, but got nil")
 		}
 
-		// ★ FIX: Removed the single quotes to match the actual error output.
 		expectedErrorMsg := "directory existing-project already exists"
 		if !strings.Contains(err.Error(), expectedErrorMsg) {
 			t.Errorf("expected error message to contain '%s', but got: '%s'", expectedErrorMsg, err.Error())

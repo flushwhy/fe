@@ -137,12 +137,32 @@ fe bmp
 
 ---
 
+### Init Game Project
+
+```bash 
+fe init MyNewGame
+```
+This build a file sturcture like:
+```
+MyNewGame/
+├── .fe.yaml          # Default configuration for fe
+├── assets/
+│   ├── audio/        # For raw audio files (.wav, .mp3)
+│   ├── fonts/        # For font files (.ttf, .otf)
+│   └── sprites/      # For individual sprite images (.png)
+├── builds/           # For your final, compiled game executables
+└── src/              # For your game's source code
+
+```
+---
+
 ## 🗺️ Roadmap
 
 - [x] Add audio/video transcoding  
 - [x] Add bulk pusher for itch.io’s Butler  
 - [x] Add texture packer (sprite sheet generator)  
 - [ ] Add vector (SVG) to TTF font converter  
-- [ ] Add project scaffolding (`fe init`)  
+- [x] Add project scaffolding (`fe init`)  
+- [ ] Add frameworks for things like Mesonbuild and raylib and so on to init. 
 - [ ] Add file watcher for auto asset processing (`fe watch`)  
 - [ ] More awesome stuff!

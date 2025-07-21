@@ -41,7 +41,6 @@ transcode:
   bitrate: "128k"
 `
 
-// initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
 	Short: "This builds/inits a game project with a standard structure.",
