@@ -24,6 +24,8 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"sync" // Import the sync package
+	"time"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -47,16 +49,33 @@ var packCmd = &cobra.Command{
 			log.Fatalf("Failed to create output directory: %v", err)
 		}
 
-		if err := os.RemoveAll(output); err != nil {
-			log.Fatalf("Failed to remove output file: %v", err)
+		var mu sync.Mutex
+		var attempts int = 0
+		const maxAttempts = 5
+
+		for attempts < maxAttempts {
+			mu.Lock()
+			defer mu.Unlock()
+
+			if err := os.RemoveAll(output); err != nil {
+				log.Printf("Attempt %d: Failed to remove output file: %v", attempts, err)
+				time.Sleep(1 * time.Second)
+				attempts++
+				continue
+			}
+
+			break
+		}
+
+		if attempts == maxAttempts {
+			log.Fatalf("Failed to remove output file after %d attempts", maxAttempts)
 		}
 
 		tempFile, err := os.CreateTemp(outputdir, "temp-write-test-*.tmp")
 		if err != nil {
 			log.Fatalf("No write permissions for output directory %s: %v", outputdir, err)
 		}
-
-		tempFile.Close()
+		defer tempFile.Close()
 		os.Remove(tempFile.Name())
 
 		files, err := os.ReadDir(inputdir)
