@@ -1,0 +1,7 @@
+{{.Name}}
+{{.Name}}.exe
+build/
+cmake-build-*/
+compile_commands.json
+*.o
+*.obj

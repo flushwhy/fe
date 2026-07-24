@@ -1,0 +1,3 @@
+{{.Name}}
+{{.Name}}.exe
+dist/

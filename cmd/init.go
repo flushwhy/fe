@@ -1,90 +1,69 @@
-/*
-Copyright © 2025 Ryan Flush <roflush@pm.me>
-
-This program is free software: you can redistribute it and/or modify
-it under the terms of the GNU General Public License as published by
-the Free Software Foundation, either version 3 of the License, or
-(at your option) any later version.
-
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-GNU General Public License for more details.
-
-You should have received a copy of the GNU General Public License
-along with this program. If not, see <http://www.gnu.org/licenses/>.
-*/
 package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
+	"strings"
 
+	"github.com/flushwhy/fe/internal/scaffold"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
-const defaultConfigContent = `
-# Settings for the 'bmp' (butler) command
-itchio:
-  username: "your-itch-username"
-  game: "your-itch-game-name"
-
-# Settings for the 'pack' command
-pack:
-  input: "./assets/sprites"
-  output: "./assets/spritesheet.png"
-
-# Default settings for the 'transcode' command
-transcode:
-  codec: "libvorbis"
-  bitrate: "128k"
-`
-
 var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "This builds/inits a game project with a standard structure.",
-	Long:  `This creates a file structure for a game project. That follows the standard fill structure.`,
-	Args:  cobra.ExactArgs(1),
+	Use:   "init <lang> --name <project>",
+	Short: "Scaffold a new project for a given language.",
+	Long: fmt.Sprintf(`Creates a new project directory with language-appropriate structure,
+build files, and editor/LSP config stubs.
+
+Supported languages: %s
+
+Examples:
+  fe init odin --name mygame
+  fe init c --name mylib
+  fe init cpp --name myengine
+  fe init zig --name mytool
+  fe init go --name myapp --module github.com/you/myapp
+
+Templates come from built-in defaults. To use your own templates instead,
+set templates.source in .fe.yaml:
+
+  templates:
+    source: "https://github.com/you/fe-templates"`, supportedLangs()),
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		projectName := args[0]
+		lang := scaffold.Lang(strings.ToLower(args[0]))
+		name, _ := cmd.Flags().GetString("name")
+		module, _ := cmd.Flags().GetString("module")
 
-		if _, err := os.Stat(projectName); !os.IsNotExist(err) {
-			return fmt.Errorf("directory %s already exists", projectName)
+		if name == "" {
+			name = string(lang) + "-project"
 		}
 
-		fmt.Printf("🚀 Initializing new project: %s\n", projectName)
+		// Remote URL from flag or config file.
+		remoteURL := viper.GetString("templates.source")
 
-		dirsToCreate := []string{
-			"assets/audio",
-			"assets/fonts",
-			"assets/sprites",
-			"builds",
-			"src",
-		}
-
-		for _, dir := range dirsToCreate {
-			fullPath := filepath.Join(projectName, dir)
-
-			if err := os.MkdirAll(fullPath, os.ModePerm); err != nil {
-				return fmt.Errorf("failed to create directory %s: %w", fullPath, err)
-			}
-			fmt.Printf("  ✓ Created directory: %s\n", fullPath)
-		}
-
-		configPath := filepath.Join(projectName, ".fe.yaml")
-
-		if err := os.WriteFile(configPath, []byte(defaultConfigContent), 0644); err != nil {
-			return fmt.Errorf("failed to write config file: %w", err)
-		}
-		fmt.Printf("  ✓ created config file: %s\n", configPath)
-
-		fmt.Printf("\n🎉 project '%s' initialization complete!", projectName)
-		return nil
-
+		return scaffold.Init(scaffold.Options{
+			Lang:      lang,
+			Name:      name,
+			Module:    module,
+			RemoteURL: remoteURL,
+		})
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(initCmd)
+
+	initCmd.Flags().String("name", "", "project name / directory to create")
+	initCmd.Flags().String("module", "", "Go module path (go only, e.g. github.com/you/myapp)")
+
+	viper.BindPFlag("templates.source", initCmd.Flags().Lookup("remote"))
+}
+
+func supportedLangs() string {
+	langs := make([]string, len(scaffold.SupportedLangs))
+	for i, l := range scaffold.SupportedLangs {
+		langs[i] = string(l)
+	}
+	return strings.Join(langs, ", ")
 }

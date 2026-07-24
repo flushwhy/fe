@@ -5,42 +5,73 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [Unreleased]
+
+---
+
+## [0.0.4]
+
+### Added
+- Full architectural rewrite — all business logic moved to `internal/` packages (`butler`, `transcode`, `pack`, `scaffold`, `build`, `config`, `tty`, `ui`, `tooling`, `doctor`). Cobra commands are now thin wiring only.
+- New `fe init <lang> --name <project>` command replacing the old `init`. Supports `odin`, `c`, `cpp`, `zig`, and `go` with per-language templates embedded directly in the binary via `go:embed`.
+- New `fe add <tool>` command for wiring up LSP and editor tooling without manual config. Supports `clangd`, `ols`, `zls`, and `gopls`.
+  - `fe add clangd` detects your build system (cmake vs bear/make), writes `.clangd` with the correct `CompilationDatabase` path, and creates a `compile_commands.json` stub so clangd starts without errors.
+  - `fe add ols` writes or patches `ols.json` for the Odin Language Server.
+  - `fe add zls` writes `zls.json` for the Zig Language Server.
+  - `fe add gopls` writes `.gopls.yaml` workspace settings for Go.
+- New `fe build` command — config-driven compiler wrapper. Define per-platform build commands in `.fe.yaml` under `build.targets`.
+- New `fe release` command — orchestrates the full pipeline: `build → pack → bmp` in one shot, with `--skip-build`, `--skip-pack`, `--skip-bmp` flags.
+- New `fe validate` command — pre-flight checker for config and paths, CI-safe (non-zero exit on failure).
+- New `fe doctor` command — auto-detects project language and checks binaries, LSP configs, `compile_commands.json` validity, and cmake flags. Prints fix hints for every failed check.
+- Shared `internal/ui` package providing spinners, step runners, styled output helpers (`OK`, `Fail`, `Warn`, `Dim`, `Title`, `Step`, `Hint`, `Elapsed`), and a `Confirm` prompt. Spinners degrade to plain log lines automatically in CI.
+- Spinners on every command. All long-running operations show a Bubble Tea spinner in interactive terminals.
+- Full Bubble Tea TUI (`fe tui`) with four tabs: Project, Ship, Doctor, Config. Supports keyboard navigation, inline project name prompts, per-command result views, and active config display. TTY-guarded — refuses to run in CI.
+- Typed config struct in `internal/config` loaded via `viper.Unmarshal`. Config priority: env vars > `.fe.yaml` > conventions > defaults.
+- CI-friendly env var overrides: `ITCHIO_USERNAME`, `ITCHIO_GAME`, `FE_USERVERSION`, `FE_BUILD_DIR`.
+- Convention-based defaults — `fe` works with zero config if your project follows the standard layout (`builds/`, `assets/sprites/`, etc.).
+- Remote template support — set `templates.source` in `.fe.yaml` to fetch `<lang>.tar.gz` from a custom URL, with automatic fallback to built-ins on failure.
+- `fe-templates` submodule linked at [github.com/flushwhy/fe-templates](https://github.com/flushwhy/fe-templates).
+- GitHub Actions workflows for building `fe` itself as a release binary across 5 platforms (linux-x64, linux-arm64, windows-x64, macos-x64, macos-arm64).
+- Butler push now supports both flat convention layout (`builds/windows-x64/`) and legacy two-level layout (`builds/windows/x64/`), with `CombinedOutput()` so errors from butler are visible.
+
+### Changed
+- `fe init` now takes a language argument (`fe init odin --name mygame`) instead of just a project name.
+- `fe bmp` now resolves platform channels from both flat and two-level directory structures.
+- All commands use `RunE` (returning errors) instead of `Run` + `log.Fatal` for proper error propagation.
+- `internal/transcode` ffmpeg-go arg keys corrected — no leading dash (e.g. `"c:v"` not `"-c:v"`).
+
+### Fixed
+- `pack.go` mutex-in-loop bug removed. File removal before write is now a clean single operation.
+- `fs.Sub` embed path now uses `path.Join` (forward slashes) instead of `filepath.Join`, fixing template resolution on Windows.
+- `compile_commands.json` stub written immediately on `fe init c/cpp` and `fe add clangd` so clangd never errors on startup before the first build.
+
+---
+
 ## [0.0.3]
 
 ### Added
-Started work on a TUI.
-Added [submod](https://github.com/flushwhy/fe-templates) that will be added to the Init command.
-
-### Changed
-
-### Deprecated
-
-### Removed
+- Started work on a TUI.
+- Added [fe-templates](https://github.com/flushwhy/fe-templates) submodule, to be integrated into the `init` command.
 
 ### Fixed
+- Fixed file access permissions and added thread safety to the `pack` command.
 
-### Security
-Fixed access to files, and added thread safety to pack and so on.
 ---
 
 ## [0.0.2]
 
 ### Added
-Viper support for .fe.yaml files.
-New Pack command that packs muliple PNGs into one PNG.
-New init command
+- Viper support for `.fe.yaml` config files.
+- New `pack` command that packs multiple PNGs into a single PNG.
+- New `init` command.
 
 ### Changed
-How Transcode works, and changed commands to it.
-
-### Deprecated
+- How `transcode` works; updated flags and options.
 
 ### Removed
-Resizetexture and PNGJoiner commands
+- `resizetexture` and `PNGJoiner` commands.
 
 ### Fixed
-Transcode and BMP commands
-
-### Security
+- `transcode` and `bmp` commands.
 
 ---

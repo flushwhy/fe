@@ -1,168 +1,140 @@
-<p align="center">
-  <img src="https://raw.githubusercontent.com/MariaLetta/free-gophers-pack/master/PNG/128x128/gopher-rocket-fly.png" alt="A gopher riding a rocket" width="150">
-</p>
+# fe
 
-<h1 align="center">Flush Exporter (fe)</h1>
+Local middleware CLI for game dev and software dev — the glue between your engine/compiler and actually shipping.
 
-<p align="center"><strong>A command-line tool to make the odd parts of game development easier.</strong></p>
-
-<p align="center">
-  <a href="https://dl.circleci.com/status-badge/redirect/gh/flushwhy/fe/tree/master"><img src="https://dl.circleci.com/status-badge/svg/gh/flushwhy/fe/tree/master" alt="CircleCI"></a>
-  <a href="https://github.com/flushwhy/fe/releases"><img src="https://img.shields.io/github/v/release/flushwhy/fe" alt="GitHub release"></a>
-  <a href="https://github.com/flushwhy/fe"><img src="https://img.shields.io/github/go-mod/go-version/flushwhy/fe" alt="Go version"></a>
-  <a href="https://github.com/flushwhy/fe/blob/master/LICENSE"><img src="https://img.shields.io/github/license/flushwhy/fe" alt="License"></a>
-  <a href="https://github.com/flushwhy/fe/stargazers"><img src="https://img.shields.io/github/stars/flushwhy/fe" alt="GitHub stars"></a>
-  <a href="https://github.com/flushwhy/fe/issues"><img src="https://img.shields.io/github/issues/flushwhy/fe" alt="GitHub issues"></a>
-</p>
-
----
-
-## 🚀 Overview
-
-**`fe`** is a CLI tool that streamlines tedious parts of game development—like asset processing and deployment—so you can focus on what matters: **making your game**.
-
----
-
-## 🔧 Installation
-
-### Prerequisites
-
-You must have these tools installed and available in your system's `PATH`:
-
-- [FFmpeg](https://ffmpeg.org): For audio/video transcoding.
-- [Butler](https://itch.io/docs/butler): For publishing builds to itch.io.
-
-To verify installation:
-
-```bash
-ffmpeg -version
-butler -V
+```
+fe init <name>    scaffold a new project
+fe build          compile for all configured platforms
+fe pack           pack sprites into a spritesheet
+fe transcode      convert audio/video via ffmpeg
+fe bmp            push builds to itch.io via butler
+fe release        build → pack → push in one shot
+fe validate       pre-flight config & path check
+fe tui            interactive terminal UI (local only)
 ```
 
-### Installing Dependencies
+## Install
 
-<details>
-  <summary><strong>Windows</strong></summary>
+Download the binary for your platform from the [releases page](https://github.com/flushwhy/fe/releases/latest):
 
-```bash
-# Install FFmpeg and Butler using winget
-winget install ffmpeg
+```sh
+# Linux x64
+curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-x64 -o fe
+chmod +x fe
+sudo mv fe /usr/local/bin/
 
-# Download and install Butler manually from itch.io
+# macOS arm64
+curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-macos-arm64 -o fe
+chmod +x fe
+sudo mv fe /usr/local/bin/
 ```
 
-</details>
-
-<details>
-  <summary><strong>Linux (Debian/Ubuntu)</strong></summary>
-
-```bash
-# Install FFmpeg using apt
-sudo apt update && sudo apt install ffmpeg
-
-# Download and install Butler manually from itch.io
+Or build from source:
+```sh
+go install github.com/flushwhy/fe@latest
 ```
 
-</details>
+## Quick start
 
-<details>
-  <summary><strong>macOS</strong></summary>
-
-```bash
-# Install FFmpeg using Homebrew
-brew install ffmpeg 
-
-# Download and install Butler manually from itch.io
+```sh
+fe init my-game
+cd my-game
+# edit .fe.yaml
+fe build
+fe release
 ```
 
-</details>
+## Config — `.fe.yaml`
 
-### Installing `fe`
-
-Download the latest binary from the [Releases Page](https://github.com/flushwhy/fe/releases) and place the executable in a directory that's in your system's `PATH`.
-
----
-
-## ⚙️ Configuration
-
-Create a `.fe.yaml` file in your project root for simplified usage.
-
-### Example `.fe.yaml`
+Config is optional. fe uses conventions when nothing is set.
 
 ```yaml
 itchio:
-  username: "your-itch-username"
-  game: "your-itch-game-name"
+  username: ""      # or env: ITCHIO_USERNAME
+  game: ""          # or env: ITCHIO_GAME
+
+butler:
+  directory: "builds"       # root folder with platform subdirs
+  userversion: ""           # or env: FE_USERVERSION
 
 pack:
-  input: "./assets/raw_sprites"
-  output: "./assets/spritesheet.png"
+  input: "assets/sprites"   # default convention
+  output: "assets/spritesheet.png"
 
 transcode:
   codec: "libvorbis"
   bitrate: "128k"
+
+build:
+  targets:
+    - platform: linux-x64
+      cmd: "gcc -o builds/linux-x64/game src/main.c"
+    - platform: windows-x64
+      cmd: "x86_64-w64-mingw32-gcc -o builds/windows-x64/game.exe src/main.c"
+    - platform: macos-arm64
+      cmd: "gcc -o builds/macos-arm64/game src/main.c"
 ```
 
----
-
-## 🎮 Usage
-
-### Transcode Audio/Video
-
-```bash
-# Transcode a single file
-fe transcode --inputFile sound.wav --outputFile sound.ogg --codec libvorbis
-
-# Use config preset
-fe transcode --inputFile assets/sounds/jump.wav --outputFile assets/sounds/jump.ogg
-```
-
----
-
-### Pack Sprites
-
-```bash
-# Pack PNGs into a spritesheet
-fe pack --input ./assets/player_frames/ --output ./assets/player_sheet.png
-```
-
----
-
-### Push to Itch.io
-
-```bash
-# Push builds using config
-fe bmp
-```
-
----
-
-### Init Game Project
-
-```bash 
-fe init MyNewGame
-```
-This build a file sturcture like:
-```
-MyNewGame/
-├── .fe.yaml          # Default configuration for fe
-├── assets/
-│   ├── audio/        # For raw audio files (.wav, .mp3)
-│   ├── fonts/        # For font files (.ttf, .otf)
-│   └── sprites/      # For individual sprite images (.png)
-├── builds/           # For your final, compiled game executables
-└── src/              # For your game's source code
+### Config priority
 
 ```
----
+env vars  >  .fe.yaml  >  conventions  >  defaults
+```
 
-## 🗺️ Roadmap
+| Env var            | Overrides               |
+|--------------------|-------------------------|
+| `ITCHIO_USERNAME`  | `itchio.username`       |
+| `ITCHIO_GAME`      | `itchio.game`           |
+| `FE_USERVERSION`   | `butler.userversion`    |
+| `FE_BUILD_DIR`     | `butler.directory`      |
 
-- [x] Add audio/video transcoding  
-- [x] Add bulk pusher for itch.io’s Butler  
-- [x] Add texture packer (sprite sheet generator)  
-- [ ] Add vector (SVG) to TTF font converter  
-- [x] Add project scaffolding (`fe init`)  
-- [ ] Add frameworks for things like Mesonbuild and raylib and so on to init. 
-- [ ] Add file watcher for auto asset processing (`fe watch`)  
-- [ ] More awesome stuff!
+## CI usage
+
+fe is designed to drop into any Git runner with zero extra config if you set the right secrets:
+
+```yaml
+# .github/workflows/release.yml
+- name: Download fe
+  run: |
+    curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-x64 -o fe
+    chmod +x fe
+
+- name: Release
+  run: ./fe release --userversion ${{ github.ref_name }}
+  env:
+    ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
+    ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
+    BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+```
+
+## Builds directory convention
+
+`fe bmp` and `fe release` look for platform folders inside `builds/`:
+
+```
+builds/
+├── windows-x64/    →  itch.io channel: windows-x64
+├── linux-x64/      →  itch.io channel: linux-x64
+└── macos-arm64/    →  itch.io channel: macos-arm64
+```
+
+Supported platforms: `windows`, `linux`, `macos`
+Supported arches: `x64`, `x32`, `arm64`, `arm32`
+
+## TUI
+
+`fe tui` opens an interactive Bubble Tea interface. It auto-detects whether you're in a real terminal and refuses to run in CI.
+
+## Dependencies
+
+fe wraps existing tools — you need them installed separately:
+
+| Command       | Requires         |
+|---------------|------------------|
+| `fe bmp`      | [butler](https://itch.io/docs/butler/) |
+| `fe transcode`| [ffmpeg](https://ffmpeg.org/)          |
+| `fe build`    | whatever compiler your targets use     |
+
+## License
+
+GPL-3.0

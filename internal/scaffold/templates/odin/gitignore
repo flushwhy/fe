@@ -1,0 +1,5 @@
+{{.Name}}
+{{.Name}}.exe
+*.o
+*.obj
+build/
