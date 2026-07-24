@@ -1,22 +1,67 @@
 version: 2.1
 
 jobs:
-
   build-and-test:
-
     docker:
-      - image: cimg/go:1.23.2 
-
+      - image: cimg/go:1.23.2
     steps:
-
       - checkout
-
       - run:
           name: "Run Go Tests"
           command: go test -v ./... | tee /dev/stderr
 
+  build-and-release:
+    docker:
+      - image: cimg/go:1.23.2
+    steps:
+      - checkout
+
+      - run:
+          name: "Install GitHub CLI"
+          command: |
+            type -p curl >/dev/null || (sudo apt update && sudo apt install curl -y)
+            curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
+            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list > /dev/null
+            sudo apt update
+            sudo apt install gh -y
+
+      - run:
+          name: "Cross-Compile Binaries"
+          command: |
+            mkdir -p dist
+
+            # Linux
+            CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -ldflags="-s -w" -o dist/fe-linux-x64 .
+            CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -ldflags="-s -w" -o dist/fe-linux-arm64 .
+
+            # Windows
+            CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -ldflags="-s -w" -o dist/fe-windows-x64.exe .
+
+            # macOS
+            CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -ldflags="-s -w" -o dist/fe-macos-x64 .
+            CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -ldflags="-s -w" -o dist/fe-macos-arm64 .
+
+      - run:
+          name: "Create GitHub Release"
+          command: |
+            gh release create "${CIRCLE_TAG}" dist/* --title "${CIRCLE_TAG}" --generate-notes
+          environment:
+            GITHUB_TOKEN: $GITHUB_TOKEN
 
 workflows:
   build_and_test_workflow:
     jobs:
-      - build-and-test
+      # Runs tests on every branch commit, but skips on tags
+      - build-and-test:
+          filters:
+            tags:
+              ignore: /.*/
+
+      # Runs tests AND builds release binaries when a v* tag is pushed
+      - build-and-release:
+          filters:
+            tags:
+              only: /^v.*/
+            branches:
+              ignore: /.*/
