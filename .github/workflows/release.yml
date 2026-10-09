@@ -78,6 +78,53 @@ jobs:
           generate_release_notes: true
           files: dist/*
 
+  chocolatey:
+    name: Package Fe for Chocolatey
+    needs: [binaries, github-release]
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: fe-windows-amd64.exe
+          path: dist
+
+      - name: Build Chocolatey package
+        shell: pwsh
+        run: |
+          $version = "${{ github.ref_name }}".TrimStart('v')
+          if ($version -notmatch '^\d+\.\d+\.\d+([.-][0-9A-Za-z.-]+)?$') {
+            throw "Tag must be a Chocolatey-compatible version like v1.2.3; got ${{ github.ref_name }}"
+          }
+          $binary = Resolve-Path "dist/fe-windows-amd64.exe"
+          $hash = (Get-FileHash $binary -Algorithm SHA256).Hash.ToLowerInvariant()
+          $stage = Join-Path $env:RUNNER_TEMP "fe-choco"
+          New-Item -ItemType Directory -Force -Path (Join-Path $stage "tools") | Out-Null
+          Copy-Item "packaging/chocolatey/fe.nuspec" (Join-Path $stage "fe.nuspec")
+          Copy-Item "packaging/chocolatey/tools/chocolateyInstall.ps1" (Join-Path $stage "tools/chocolateyInstall.ps1")
+          $nuspecPath = Join-Path $stage "fe.nuspec"
+          $nuspec = (Get-Content $nuspecPath -Raw).Replace("__VERSION__", $version)
+          Set-Content -Path $nuspecPath -Value $nuspec -NoNewline
+          $installPath = Join-Path $stage "tools/chocolateyInstall.ps1"
+          $install = (Get-Content $installPath -Raw).Replace("__VERSION__", $version).Replace("__SHA256__", $hash)
+          Set-Content -Path $installPath -Value $install -NoNewline
+          choco pack $nuspecPath --outputdirectory .
+          if (!(Test-Path "fe.$version.nupkg")) { throw "Chocolatey package was not created" }
+
+      - name: Attach Chocolatey package to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: fe.*.nupkg
+          fail_on_unmatched_files: true
+
+      - name: Publish to Chocolatey Community Repository
+        if: ${{ secrets.CHOCOLATEY_API_KEY != '' }}
+        shell: pwsh
+        env:
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+        run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
+
   # Keep the existing itch.io deployment, but build the CLI from this tag
   # instead of downloading the previous GitHub release's binary.
   itchio:
