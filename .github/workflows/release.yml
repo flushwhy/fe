@@ -82,6 +82,8 @@ jobs:
     name: Package Fe for Chocolatey
     needs: [binaries, github-release]
     runs-on: windows-latest
+    env:
+      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
     steps:
       - uses: actions/checkout@v4
 
@@ -119,10 +121,8 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: Publish to Chocolatey Community Repository
-        if: ${{ secrets.CHOCOLATEY_API_KEY != '' }}
+        if: env.CHOCOLATEY_API_KEY != ''
         shell: pwsh
-        env:
-          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
         run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
 
   # Keep the existing itch.io deployment, but build the CLI from this tag
