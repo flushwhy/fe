@@ -3,7 +3,6 @@
   "packages": {
     ".": {
       "release-type": "go",
-      "component": "fe",
       "changelog-path": "CHANGELOG.md"
     }
   }
