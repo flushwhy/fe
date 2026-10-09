@@ -5,6 +5,25 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.2.0](https://github.com/flushwhy/fe/compare/v0.1.0...v0.2.0) (2026-10-09)
+
+
+### Features
+
+* add Chocolatey package metadata ([365850f](https://github.com/flushwhy/fe/commit/365850fdd3b35c8bb52c54b538319078d4712fbd))
+* add Chocolatey package metadata ([80cfb11](https://github.com/flushwhy/fe/commit/80cfb1113fce5c12e162172bd7560b46e2a8bacb))
+* add Chocolatey package metadata ([f8e6f45](https://github.com/flushwhy/fe/commit/f8e6f45c552c45fec9e244aaf04826d367b9cec6))
+* add safe Odin repository installer ([103c12d](https://github.com/flushwhy/fe/commit/103c12d66ecf785488a714eb1a3f161b30ced62b))
+* automate Chocolatey packaging on releases ([f42c748](https://github.com/flushwhy/fe/commit/f42c7484b8026d925fb9ed947e721bc90e8e69a0))
+* expose install and get commands ([61a805a](https://github.com/flushwhy/fe/commit/61a805a00c34f8ef8ca2c40b6f23a4c6bf668dce))
+
+
+### Bug Fixes
+
+* build binaries and attach them to GitHub releases ([25c1b68](https://github.com/flushwhy/fe/commit/25c1b68fe95eccb94f971f240b99a79f90e0be6b))
+* conditionally publish Chocolatey package using secret ([b1ed148](https://github.com/flushwhy/fe/commit/b1ed1484ada18dd5fab1011a4e537140d5207c0d))
+* support release-please tag names in Chocolatey ([5d40001](https://github.com/flushwhy/fe/commit/5d4000111221c8610cebe483c9a9cd06128fcda8))
+
 ## [0.1.0](https://github.com/flushwhy/fe/compare/fe-v0.0.2...fe-v0.1.0) (2026-10-09)
 
 
