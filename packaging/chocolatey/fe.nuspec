@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2015/06/nuspec.xsd">
+  <metadata>
+    <id>fe</id>
+    <version>__VERSION__</version>
+    <title>Fe CLI</title>
+    <authors>flushwhy</authors>
+    <owners>flushwhy</owners>
+    <licenseUrl>https://github.com/flushwhy/fe/blob/master/LICENSE</licenseUrl>
+    <projectUrl>https://github.com/flushwhy/fe</projectUrl>
+    <projectSourceUrl>https://github.com/flushwhy/fe</projectSourceUrl>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Fe is a local CLI and CI-friendly middleware layer for project scaffolding and shipping workflows.</description>
+    <summary>Developer workflow CLI</summary>
+    <tags>cli developer-tools go</tags>
+  </metadata>
+  <files>
+    <file src="tools\**" target="tools" />
+  </files>
+</package>
