@@ -5,27 +5,104 @@ on:
     tags:
       - "v*"
 
+permissions:
+  contents: write
+
 jobs:
-  release:
+  binaries:
+    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
     runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+            asset: fe-linux-amd64
+          - goos: windows
+            goarch: amd64
+            asset: fe-windows-amd64.exe
+          - goos: darwin
+            goarch: amd64
+            asset: fe-macos-amd64
+          - goos: darwin
+            goarch: arm64
+            asset: fe-macos-arm64
 
     steps:
       - uses: actions/checkout@v4
 
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+          cache: true
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build binary
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: "0"
+        run: |
+          mkdir -p dist
+          go build -trimpath -ldflags="-s -w" -o "dist/${{ matrix.asset }}" .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.asset }}
+          path: dist/${{ matrix.asset }}
+          if-no-files-found: error
+          retention-days: 1
+
+  github-release:
+    name: Publish GitHub Release assets
+    needs: binaries
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Verify release assets
+        run: |
+          ls -lah dist
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 4
+
+      - name: Create release and upload binaries
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Fe ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/*
+
+  # Keep the existing itch.io deployment, but build the CLI from this tag
+  # instead of downloading the previous GitHub release's binary.
+  itchio:
+    name: Deploy configured game builds to itch.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.22.x"
+          cache: true
+
+      - name: Build Fe CLI
+        run: go build -trimpath -o ./fe .
+
       - name: Install butler
         run: |
-          curl -L https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default -o butler.zip
-          unzip butler.zip
+          curl -fsSL https://broth.itch.ovh/butler/linux-amd64/LATEST/archive/default -o butler.zip
+          unzip -q butler.zip
           chmod +x butler
           sudo mv butler /usr/local/bin/
 
       - name: Install ffmpeg
-        run: sudo apt-get install -y ffmpeg
-
-      - name: Download fe
-        run: |
-          curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-x64 -o fe
-          chmod +x fe
+        run: sudo apt-get update && sudo apt-get install -y ffmpeg
 
       - name: Validate config
         run: ./fe validate
@@ -33,8 +110,8 @@ jobs:
           ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
           ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
 
-      - name: Release
-        run: ./fe release --userversion ${{ github.ref_name }}
+      - name: Deploy to itch.io
+        run: ./fe release --userversion "${{ github.ref_name }}"
         env:
           ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
           ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
