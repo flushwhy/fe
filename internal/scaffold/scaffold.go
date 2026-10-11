@@ -146,7 +146,7 @@ func writeTemplate(src fs.FS, destRoot string, data TemplateData) error {
 		}
 		dest := filepath.Join(destRoot, path)
 		if d.IsDir() {
-			return os.MkdirAll(dest, os.ModePerm)
+			return os.MkdirAll(dest, 0750)
 		}
 		content, err := fs.ReadFile(src, path)
 		if err != nil {
@@ -160,10 +160,10 @@ func writeTemplate(src fs.FS, destRoot string, data TemplateData) error {
 		if err != nil {
 			return fmt.Errorf("rendering template %s: %w", path, err)
 		}
-		if err := os.MkdirAll(filepath.Dir(destPath), os.ModePerm); err != nil {
+		if err := os.MkdirAll(filepath.Dir(destPath), 0750); err != nil {
 			return err
 		}
-		return os.WriteFile(destPath, []byte(rendered), 0644)
+		return os.WriteFile(destPath, []byte(rendered), 0640)
 	})
 }
 
@@ -183,7 +183,7 @@ func postInit(opts Options, root string) error {
 	switch opts.Lang {
 	case LangC, LangCpp:
 		stub := filepath.Join(root, "compile_commands.json")
-		if err := os.WriteFile(stub, []byte("[]\n"), 0644); err != nil {
+		if err := os.WriteFile(stub, []byte("[]\n"), 0640); err != nil {
 			return fmt.Errorf("could not write compile_commands.json stub: %w", err)
 		}
 	}
