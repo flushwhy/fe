@@ -9,7 +9,7 @@ import (
 func TestPlatformDir(t *testing.T) {
 	tests := map[string]string{
 		"Windows Desktop": "windows-x64",
-		"Linux/X11": "",
+		"Linux/X11": "linux-x64",
 		"Linux": "linux-x64",
 		"macOS": "macos-arm64",
 	}
