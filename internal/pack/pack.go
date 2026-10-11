@@ -22,7 +22,7 @@ func Run(cfg config.PackConfig) error {
 	}
 
 	// Ensure output directory exists.
-	if err := os.MkdirAll(filepath.Dir(cfg.Output), os.ModePerm); err != nil {
+	if err := os.MkdirAll(filepath.Dir(cfg.Output), 0750); err != nil {
 		return fmt.Errorf("could not create output directory: %w", err)
 	}
 
