@@ -382,7 +382,12 @@ func (m tuiModel) runItem(item menuItem, extraArg string) (tuiModel, tea.Cmd) {
 		m.spinner.Tick,
 		func() tea.Msg {
 			// Re-run fe itself as a subprocess so the full command logic runs.
-			self, _ := os.Executable()
+			self, err := os.Executable()
+			if err != nil {
+				return cmdDoneMsg{err: fmt.Errorf("locating fe executable: %w", err), dur: time.Since(start)}
+			}
+			// feArgs is assembled from the fixed TUI menu plus the project name
+			// entered by the user; exec.Command passes each argument without a shell.
 			cmd := exec.Command(self, feArgs...)
 			out, err := cmd.CombinedOutput()
 			return cmdDoneMsg{
@@ -401,7 +406,10 @@ func (m tuiModel) runDoctor() (tuiModel, tea.Cmd) {
 	return m, tea.Batch(
 		m.spinner.Tick,
 		func() tea.Msg {
-			self, _ := os.Executable()
+			self, err := os.Executable()
+			if err != nil {
+				return cmdDoneMsg{err: fmt.Errorf("locating fe executable: %w", err), dur: time.Since(start)}
+			}
 			cmd := exec.Command(self, "doctor")
 			out, err := cmd.CombinedOutput()
 			return cmdDoneMsg{output: string(out), err: err, dur: time.Since(start)}
