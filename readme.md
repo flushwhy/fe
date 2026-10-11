@@ -5,6 +5,7 @@ Local middleware CLI for game dev and software dev — the glue between your eng
 ```
 fe init <name>    scaffold a new project
 fe build          compile for all configured platforms
+fe export         export all configured Godot presets
 fe pack           pack sprites into a spritesheet
 fe transcode      convert audio/video via ffmpeg
 fe bmp            push builds to itch.io via butler
@@ -41,6 +42,7 @@ fe init my-game
 cd my-game
 # edit .fe.yaml
 fe build
+fe export   # Godot projects: export all configured presets
 fe release
 ```
 
@@ -56,6 +58,10 @@ itchio:
 butler:
   directory: "builds"       # root folder with platform subdirs
   userversion: ""           # or env: FE_USERVERSION
+
+godot:
+  executable: "godot"
+  output_dir: "builds"
 
 pack:
   input: "assets/sprites"   # default convention
