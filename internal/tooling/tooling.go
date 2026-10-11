@@ -80,10 +80,10 @@ func addClangd(root string) error {
 	err = ui.RunSpinner("Ensuring compile_commands.json exists", func() error {
 		ccPath := filepath.Join(compileCommandsDir, "compile_commands.json")
 		if _, err := os.Stat(ccPath); os.IsNotExist(err) {
-			if err := os.MkdirAll(compileCommandsDir, os.ModePerm); err != nil {
+			if err := os.MkdirAll(compileCommandsDir, 0750); err != nil {
 				return err
 			}
-			return os.WriteFile(ccPath, []byte("[]\n"), 0644)
+			return os.WriteFile(ccPath, []byte("[]\n"), 0640)
 		}
 		return nil
 	})
@@ -190,7 +190,7 @@ func addOLS(root string) error {
 		if err != nil {
 			return err
 		}
-		if err := os.WriteFile(olsPath, append(data, '\n'), 0644); err != nil {
+		if err := os.WriteFile(olsPath, append(data, '\n'), 0640); err != nil {
 			return fmt.Errorf("writing ols.json: %w", err)
 		}
 		return nil
@@ -222,7 +222,7 @@ func patchOLS(path string) error {
 	if err != nil {
 		return err
 	}
-	return os.WriteFile(path, append(out, '\n'), 0644)
+	return os.WriteFile(path, append(out, '\n'), 0640)
 }
 
 // ── ZLS ───────────────────────────────────────────────────────────────────────
@@ -249,7 +249,7 @@ func addZLS(root string) error {
 		if err != nil {
 			return err
 		}
-		return os.WriteFile(zlsPath, append(data, '\n'), 0644)
+		return os.WriteFile(zlsPath, append(data, '\n'), 0640)
 	})
 }
 
@@ -283,7 +283,7 @@ ui:
   diagnostic:
     staticcheck: true
 `
-		return os.WriteFile(goplsPath, []byte(config), 0644)
+		return os.WriteFile(goplsPath, []byte(config), 0640)
 	})
 }
 
@@ -296,7 +296,7 @@ func writeFileWithBackup(path string, content []byte) error {
 			return fmt.Errorf("backing up %s: %w", path, err)
 		}
 	}
-	return os.WriteFile(path, content, 0644)
+	return os.WriteFile(path, content, 0640)
 }
 
 func fileExists(path string) bool {
