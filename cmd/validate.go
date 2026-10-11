@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"time"
+	"path/filepath"
 
 	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/ui"
@@ -33,11 +34,20 @@ Exit code 0 = all good. Non-zero = problems found.`,
 
 		var problems []string
 		err = ui.RunSpinner("Checking paths and credentials", func() error {
-			if _, err := os.Stat(cfg.Butler.Directory); os.IsNotExist(err) {
-				problems = append(problems, fmt.Sprintf("builds directory %q does not exist", cfg.Butler.Directory))
+			// A build output directory is not required to exist before a configured
+			// build runs; build commands commonly create it themselves. When there
+			// are no build targets and no Godot project, don't require convention-
+			// based output directories just to validate unrelated release settings.
+			_, projectErr := os.Stat("project.godot")
+			buildStepNeeded := len(cfg.Build.Targets) > 0 || projectErr == nil
+			if !buildStepNeeded {
+				if _, err := os.Stat(cfg.Butler.Directory); os.IsNotExist(err) && cfg.Butler.Directory != "builds" {
+					problems = append(problems, fmt.Sprintf("builds directory %q does not exist", cfg.Butler.Directory))
+				}
 			}
+
 			if cfg.Pack.Input != "" {
-				if _, err := os.Stat(cfg.Pack.Input); os.IsNotExist(err) {
+				if _, err := os.Stat(cfg.Pack.Input); os.IsNotExist(err) && filepath.Clean(cfg.Pack.Input) != filepath.Clean("assets/sprites") {
 					problems = append(problems, fmt.Sprintf("pack input %q does not exist", cfg.Pack.Input))
 				}
 			}
