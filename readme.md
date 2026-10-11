@@ -5,6 +5,7 @@ Local middleware CLI for game dev and software dev — the glue between your eng
 ```
 fe init <name>    scaffold a new project
 fe build          compile for all configured platforms
+fe export         export all configured Godot presets
 fe pack           pack sprites into a spritesheet
 fe transcode      convert audio/video via ffmpeg
 fe bmp            push builds to itch.io via butler
@@ -41,6 +42,7 @@ fe init my-game
 cd my-game
 # edit .fe.yaml
 fe build
+fe export   # Godot projects: export all configured presets
 fe release
 ```
 
@@ -56,6 +58,10 @@ itchio:
 butler:
   directory: "builds"       # root folder with platform subdirs
   userversion: ""           # or env: FE_USERVERSION
+
+godot:
+  executable: "godot"
+  output_dir: "builds"
 
 pack:
   input: "assets/sprites"   # default convention
@@ -106,6 +112,12 @@ fe is designed to drop into any Git runner with zero extra config if you set the
     ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
     BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
 ```
+
+## Godot exports
+
+For Godot projects, configure export presets in Godot and commit `export_presets.cfg`. Then run `fe export` to export every preset, or `fe export --preset "Windows Desktop"` to export one exact preset. `godot` must be on your PATH (or set `godot.executable`), and the matching export templates/platform requirements must be installed. Preset output filenames/extensions are retained while `godot.output_dir` controls the output root.
+
+Godot presets for Windows Desktop, Linux, and macOS are placed in `windows-x64/`, `linux-x64/`, and `macos-arm64/` respectively, ready for the existing Butler folder convention. Adjust `godot.output_dir` in `.fe.yaml` if you use a different build root. `fe release` automatically exports presets when run from a directory containing `project.godot`; non-Godot projects continue to use `build.targets`.
 
 ## Builds directory convention
 

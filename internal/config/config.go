@@ -16,6 +16,7 @@ type Config struct {
 	Pack      PackConfig      `mapstructure:"pack"`
 	Transcode TranscodeConfig `mapstructure:"transcode"`
 	Build     BuildConfig     `mapstructure:"build"`
+	Godot     GodotConfig     `mapstructure:"godot"`
 }
 
 type ItchioConfig struct {
@@ -43,6 +44,11 @@ type TranscodeConfig struct {
 	VideoResolution string `mapstructure:"videoResolution"`
 	StartTime       string `mapstructure:"startTime"`
 	EndTime         string `mapstructure:"endTime"`
+}
+
+type GodotConfig struct {
+	Executable string `mapstructure:"executable"`
+	OutputDir  string `mapstructure:"output_dir"`
 }
 
 type BuildConfig struct {
@@ -92,6 +98,12 @@ func applyEnvOverrides(cfg *Config) {
 func applyConventions(cfg *Config) {
 	if cfg.Butler.Directory == "" {
 		cfg.Butler.Directory = "builds"
+	}
+	if cfg.Godot.Executable == "" {
+		cfg.Godot.Executable = "godot"
+	}
+	if cfg.Godot.OutputDir == "" {
+		cfg.Godot.OutputDir = cfg.Butler.Directory
 	}
 	if cfg.Pack.Input == "" {
 		cfg.Pack.Input = "assets/sprites"
@@ -148,6 +160,10 @@ itchio:
 butler:
   directory: "builds"      # root folder containing platform subdirs
   userversion: ""          # optional — or set FE_USERVERSION env var
+
+godot:
+  executable: "godot"     # executable name or path
+  output_dir: "builds"    # export output root; platform subfolders are added automatically
 
 pack:
   input: "assets/sprites"
