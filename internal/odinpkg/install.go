@@ -97,7 +97,10 @@ func Install(spec, destDir string) (string, error) {
 		if rel == "." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
 			continue
 		}
-		target := filepath.Join(stage, rel)
+		target, err := safeArchiveTarget(stage, rel)
+		if err != nil {
+			return "", fmt.Errorf("unsafe path in repository archive: %w", err)
+		}
 		if f.FileInfo().IsDir() {
 			if err := os.MkdirAll(target, 0750); err != nil { return "", err }
 			continue
@@ -107,20 +110,34 @@ func Install(spec, destDir string) (string, error) {
 		in, err := f.Open()
 		if err != nil { return "", err }
 		out, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0640)
-		if err != nil { in.Close(); return "", err }
+		if err != nil {
+			in.Close()
+			return "", err
+		}
 		remaining := maxArchiveSize - totalExtracted
 		if remaining < 0 {
 			in.Close()
 			out.Close()
+			os.Remove(target)
 			return "", fmt.Errorf("repository archive expands beyond %d MiB limit", maxArchiveSize>>20)
 		}
 		written, copyErr := io.Copy(out, io.LimitReader(in, remaining+1))
 		closeInErr, closeOutErr := in.Close(), out.Close()
-		if copyErr != nil { return "", copyErr }
-		if closeInErr != nil { return "", closeInErr }
-		if closeOutErr != nil { return "", closeOutErr }
+		if copyErr != nil {
+			os.Remove(target)
+			return "", copyErr
+		}
+		if closeInErr != nil {
+			os.Remove(target)
+			return "", closeInErr
+		}
+		if closeOutErr != nil {
+			os.Remove(target)
+			return "", closeOutErr
+		}
 		totalExtracted += written
 		if totalExtracted > maxArchiveSize {
+			os.Remove(target)
 			return "", fmt.Errorf("repository archive expands beyond %d MiB limit", maxArchiveSize>>20)
 		}
 	}
@@ -150,4 +167,24 @@ func parseGitHubURL(raw string) (owner, repo string, err error) {
 		return "", "", fmt.Errorf("invalid GitHub repository URL %q", raw)
 	}
 	return owner, repo, nil
+}
+
+
+// safeArchiveTarget ensures an archive entry resolves to a path inside the
+// private staging directory. Archive paths are untrusted, even when the source
+// is a repository archive fetched from GitHub.
+func safeArchiveTarget(stage, rel string) (string, error) {
+	cleanRel := filepath.Clean(rel)
+	if cleanRel == "." || filepath.IsAbs(cleanRel) {
+		return "", fmt.Errorf("invalid relative path %q", rel)
+	}
+	target := filepath.Join(stage, cleanRel)
+	relative, err := filepath.Rel(stage, target)
+	if err != nil {
+		return "", err
+	}
+	if relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) {
+		return "", fmt.Errorf("path %q escapes staging directory", rel)
+	}
+	return target, nil
 }
