@@ -50,8 +50,6 @@ func PlatformDir(platform string) (string, error) {
 		return "linux-x64", nil
 	case "macos", "mac os x":
 		return "macos-arm64", nil
-	case "web":
-		return "web", nil
 	default:
 		return "", fmt.Errorf("unsupported Godot export platform %q; configure a supported desktop or Web preset", platform)
 	}
@@ -60,6 +58,11 @@ func PlatformDir(platform string) (string, error) {
 // Export exports each configured preset into a Butler-compatible platform folder.
 // A preset's configured export_path supplies the filename/extension, while fe controls its directory.
 func Export(projectDir, executable, outputDir, onlyPreset string, runner func(string, ...string) *exec.Cmd) error {
+	absoluteDir, err := filepath.Abs(projectDir)
+	if err != nil {
+		return fmt.Errorf("resolve Godot project directory: %w", err)
+	}
+	projectDir = absoluteDir
 	presetFile := filepath.Join(projectDir, "export_presets.cfg")
 	presets, err := ReadPresets(presetFile)
 	if err != nil {
