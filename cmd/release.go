@@ -10,6 +10,7 @@ import (
 	"github.com/flushwhy/fe/internal/build"
 	"github.com/flushwhy/fe/internal/butler"
 	"github.com/flushwhy/fe/internal/config"
+	"github.com/flushwhy/fe/internal/godot"
 	"github.com/flushwhy/fe/internal/pack"
 	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
@@ -42,10 +43,14 @@ CI example:
 		ui.Title("Release Pipeline")
 		start := time.Now()
 
-		// ── Step 1: Build ─────────────────────────────────────────────────
-		ui.Step(1, 3, "Build")
+		// ── Step 1: Build/export ───────────────────────────────────────────
+		ui.Step(1, 3, "Build / export")
 		if !skipBuild {
-			if len(cfg.Build.Targets) == 0 {
+			if _, statErr := os.Stat("project.godot"); statErr == nil {
+				if err := godot.Export(".", cfg.Godot.Executable, cfg.Godot.OutputDir, "", exec.Command); err != nil {
+					return fmt.Errorf("Godot export step failed: %w", err)
+				}
+			} else if len(cfg.Build.Targets) == 0 {
 				ui.Warn("No build targets defined — skipping build step")
 			} else {
 				steps := make([]ui.StepTask, len(cfg.Build.Targets))
