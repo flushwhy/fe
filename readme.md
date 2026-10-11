@@ -30,6 +30,13 @@ chmod +x fe
 sudo mv fe /usr/local/bin/
 ```
 
+On macOS, you can also install with Homebrew:
+
+```sh
+brew tap flushwhy/tap
+brew install fe
+```
+
 Or build from source:
 ```sh
 go install github.com/flushwhy/fe@latest
