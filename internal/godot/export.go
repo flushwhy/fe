@@ -25,7 +25,8 @@ func ReadPresets(path string) ([]Preset, error) {
 	}
 	presets := make([]Preset, 0)
 	for _, section := range cfg.Sections() {
-		if !strings.HasPrefix(section.Name(), "preset.") {
+		sectionName := section.Name()
+		if !strings.HasPrefix(sectionName, "preset.") || strings.Contains(strings.TrimPrefix(sectionName, "preset."), ".") {
 			continue
 		}
 		name := section.Key("name").String()
@@ -46,12 +47,12 @@ func PlatformDir(platform string) (string, error) {
 	switch strings.ToLower(strings.TrimSpace(platform)) {
 	case "windows desktop":
 		return "windows-x64", nil
-	case "linux", "linuxbsd", "linuxbsd headless":
+	case "linux", "linux/x11", "linuxbsd", "linuxbsd headless":
 		return "linux-x64", nil
 	case "macos", "mac os x":
 		return "macos-arm64", nil
 	default:
-		return "", fmt.Errorf("unsupported Godot export platform %q; configure a supported desktop or Web preset", platform)
+		return "", fmt.Errorf("unsupported Godot export platform %q; configure a supported desktop preset", platform)
 	}
 }
 
