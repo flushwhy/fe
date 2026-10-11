@@ -40,7 +40,7 @@ func Install(spec, destDir string) (string, error) {
 	if destDir == "" {
 		destDir = "mylibs"
 	}
-	if err := os.MkdirAll(destDir, 0755); err != nil {
+	if err := os.MkdirAll(destDir, 0750); err != nil {
 		return "", fmt.Errorf("creating package directory: %w", err)
 	}
 	dest, err := filepath.Abs(filepath.Join(destDir, name))
@@ -86,6 +86,7 @@ func Install(spec, destDir string) (string, error) {
 	}
 	defer os.RemoveAll(stage)
 	odinFound := false
+	var totalExtracted int64
 	for _, f := range zr.File {
 		clean := path.Clean(f.Name)
 		parts := strings.Split(clean, "/")
@@ -98,20 +99,30 @@ func Install(spec, destDir string) (string, error) {
 		}
 		target := filepath.Join(stage, rel)
 		if f.FileInfo().IsDir() {
-			if err := os.MkdirAll(target, 0755); err != nil { return "", err }
+			if err := os.MkdirAll(target, 0750); err != nil { return "", err }
 			continue
 		}
 		if strings.EqualFold(filepath.Ext(rel), ".odin") { odinFound = true }
-		if err := os.MkdirAll(filepath.Dir(target), 0755); err != nil { return "", err }
+		if err := os.MkdirAll(filepath.Dir(target), 0750); err != nil { return "", err }
 		in, err := f.Open()
 		if err != nil { return "", err }
-		out, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0644)
+		out, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0640)
 		if err != nil { in.Close(); return "", err }
-		_, copyErr := io.Copy(out, io.LimitReader(in, maxArchiveSize+1))
+		remaining := maxArchiveSize - totalExtracted
+		if remaining < 0 {
+			in.Close()
+			out.Close()
+			return "", fmt.Errorf("repository archive expands beyond %d MiB limit", maxArchiveSize>>20)
+		}
+		written, copyErr := io.Copy(out, io.LimitReader(in, remaining+1))
 		closeInErr, closeOutErr := in.Close(), out.Close()
 		if copyErr != nil { return "", copyErr }
 		if closeInErr != nil { return "", closeInErr }
 		if closeOutErr != nil { return "", closeOutErr }
+		totalExtracted += written
+		if totalExtracted > maxArchiveSize {
+			return "", fmt.Errorf("repository archive expands beyond %d MiB limit", maxArchiveSize>>20)
+		}
 	}
 	if !odinFound {
 		return "", fmt.Errorf("repository %s contains no .odin files", spec)
