@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.3.2](https://github.com/flushwhy/fe/compare/v0.3.1...v0.3.2) (2026-10-11)
+
+
+### Bug Fixes
+
+* update itch.io butler download URL ([3e155ba](https://github.com/flushwhy/fe/commit/3e155ba5fbc58f16b2a549e175542c29c1d8c66d))
+* use active itch.io butler download domain ([055e3f4](https://github.com/flushwhy/fe/commit/055e3f40c454091b422533ab780e40599e5c5c7f))
+
 ## [0.3.1](https://github.com/flushwhy/fe/compare/v0.3.0...v0.3.1) (2026-10-11)
 
 
