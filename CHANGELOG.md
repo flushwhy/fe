@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.3.1](https://github.com/flushwhy/fe/compare/v0.3.0...v0.3.1) (2026-10-11)
+
+
+### Bug Fixes
+
+* limit extracted archive size and tighten installer permissions ([4df259f](https://github.com/flushwhy/fe/commit/4df259fefe5bde0f140deeca88b9d6caebc3da6c))
+* limit total extracted archive size ([419f152](https://github.com/flushwhy/fe/commit/419f15248f44c43637f40847e3f85cbbe6d9f093))
+* validate archive extraction paths ([1977a57](https://github.com/flushwhy/fe/commit/1977a57860cc04d0b8c3b0b203e86d961a170d5f))
+
 ## [0.3.0](https://github.com/flushwhy/fe/compare/v0.2.0...v0.3.0) (2026-10-11)
 
 
