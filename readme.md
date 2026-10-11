@@ -107,7 +107,13 @@ fe is designed to drop into any Git runner with zero extra config if you set the
     BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
 ```
 
-## Godot exports\n\nFor Godot projects, configure export presets in Godot and commit `export_presets.cfg`. Then run `fe export` to export every preset, or `fe export --preset "Windows Desktop"` to export one exact preset. `godot` must be on your PATH (or set `godot.executable`), and the matching export templates/platform requirements must be installed. Preset output filenames/extensions are retained while `godot.output_dir` controls the output root.\n\nGodot presets for Windows Desktop, Linux, and macOS are placed in `windows-x64/`, `linux-x64/`, and `macos-arm64/` respectively, ready for the existing Butler folder convention. Adjust `godot.output_dir` in `.fe.yaml` if you use a different build root. `fe release` automatically exports presets when run from a directory containing `project.godot`; non-Godot projects continue to use `build.targets`.\n\n## Builds directory convention
+## Godot exports
+
+For Godot projects, configure export presets in Godot and commit `export_presets.cfg`. Then run `fe export` to export every preset, or `fe export --preset "Windows Desktop"` to export one exact preset. `godot` must be on your PATH (or set `godot.executable`), and the matching export templates/platform requirements must be installed. Preset output filenames/extensions are retained while `godot.output_dir` controls the output root.
+
+Godot presets for Windows Desktop, Linux, and macOS are placed in `windows-x64/`, `linux-x64/`, and `macos-arm64/` respectively, ready for the existing Butler folder convention. Adjust `godot.output_dir` in `.fe.yaml` if you use a different build root. `fe release` automatically exports presets when run from a directory containing `project.godot`; non-Godot projects continue to use `build.targets`.
+
+## Builds directory convention
 
 `fe bmp` and `fe release` look for platform folders inside `builds/`:
 
