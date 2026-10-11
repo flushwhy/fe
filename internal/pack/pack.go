@@ -108,7 +108,7 @@ func writePNG(path string, canvas *image.RGBA) error {
 		return fmt.Errorf("could not remove existing output file: %w", err)
 	}
 
-	f, err := os.Create(path)
+	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0640)
 	if err != nil {
 		return fmt.Errorf("could not create output file %s: %w", path, err)
 	}
