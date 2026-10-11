@@ -100,7 +100,7 @@ func Export(projectDir, executable, outputDir, onlyPreset string, runner func(st
 			}
 		}
 		destination := filepath.Join(outputDir, platformDir, filename)
-		if err := os.MkdirAll(filepath.Dir(destination), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(destination), 0o750); err != nil {
 			return fmt.Errorf("create export directory: %w", err)
 		}
 		args := []string{"--headless", "--path", projectDir, "--export-release", preset.Name, destination}
