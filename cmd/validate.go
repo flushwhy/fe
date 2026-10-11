@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"time"
-	"path/filepath"
 
 	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/ui"
@@ -47,7 +46,7 @@ Exit code 0 = all good. Non-zero = problems found.`,
 			}
 
 			if cfg.Pack.Input != "" {
-				if _, err := os.Stat(cfg.Pack.Input); os.IsNotExist(err) && filepath.Clean(cfg.Pack.Input) != filepath.Clean("assets/sprites") {
+				if _, err := os.Stat(cfg.Pack.Input); os.IsNotExist(err) && cfg.Pack.Input != "assets/sprites" {
 					problems = append(problems, fmt.Sprintf("pack input %q does not exist", cfg.Pack.Input))
 				}
 			}
