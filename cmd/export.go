@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"os/exec"
 
@@ -36,4 +35,3 @@ func init() {
 	exportCmd.Flags().String("preset", "", "export only this exact Godot preset name")
 }
 
-var _ = fmt.Sprintf
