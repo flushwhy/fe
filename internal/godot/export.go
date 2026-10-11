@@ -12,8 +12,8 @@ import (
 
 // Preset describes the fields fe needs from a Godot export preset.
 type Preset struct {
-	Name     string
-	Platform string
+	Name       string
+	Platform   string
 	ExportPath string
 }
 
