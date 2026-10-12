@@ -28,11 +28,28 @@ fe o3de build --build-dir <configured-build-directory>
 
 ## Install
 
-Download the binary for your platform from the [releases page](https://github.com/flushwhy/fe/releases/latest):
+On Debian or Ubuntu, download the matching `.deb` package from the [latest release](https://github.com/flushwhy/fe/releases/latest) and install it with apt. Packages are published for 64-bit x86 and ARM systems:
+
+```sh
+# Debian / Ubuntu (x86-64)
+curl -LO https://github.com/flushwhy/fe/releases/latest/download/fe_VERSION_amd64.deb
+sudo apt install ./fe_VERSION_amd64.deb
+
+# Debian / Ubuntu (ARM64): use the matching fe_VERSION_arm64.deb asset
+```
+
+Replace `VERSION` with the version shown in the release asset filename. These are downloadable release packages for now; a signed APT repository may be added later.
+
+You can also download a standalone binary for your platform from the [releases page](https://github.com/flushwhy/fe/releases/latest):
 
 ```sh
 # Linux x64
-curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-x64 -o fe
+curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-amd64 -o fe
+chmod +x fe
+sudo mv fe /usr/local/bin/
+
+# Linux ARM64
+curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-arm64 -o fe
 chmod +x fe
 sudo mv fe /usr/local/bin/
 
