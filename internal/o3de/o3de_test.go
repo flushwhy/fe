@@ -17,7 +17,14 @@ func TestRegisteredReadsO3DEManifestArray(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(entries) != 2 || entries[0].Name != "o3de" || entries[0].Path != "/opt/o3de" {
+	if len(entries) != 2 {
+		t.Fatalf("expected 2 entries, got %#v", entries)
+	}
+	found := map[string]bool{}
+	for _, entry := range entries {
+		found[entry.Path] = true
+	}
+	if !found["/opt/o3de"] || !found["/work/another-engine"] {
 		t.Fatalf("unexpected entries: %#v", entries)
 	}
 }
