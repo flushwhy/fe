@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -180,6 +181,7 @@ type tuiModel struct {
 	lastOutput string
 	lastErr    error
 	lastDur    time.Duration
+	runCancel  context.CancelFunc
 
 	// config
 	cfg    *config.Config
@@ -237,6 +239,10 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.lastOutput = msg.output
 		m.lastErr = msg.err
 		m.lastDur = msg.dur
+		if m.runCancel != nil {
+			m.runCancel()
+			m.runCancel = nil
+		}
 		if msg.output != "" {
 			m.logs = append(m.logs, msg.output)
 		}
@@ -258,7 +264,15 @@ func (m tuiModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 func (m tuiModel) handleKey(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	// Global keys
 	switch msg.String() {
-	case "ctrl+c", "q":
+	case "ctrl+c":
+		if m.state == stateRunning && m.runCancel != nil {
+			m.runCancel()
+			return m, nil
+		}
+		if m.state != stateInput {
+			return m, tea.Quit
+		}
+	case "q":
 		if m.state != stateInput {
 			return m, tea.Quit
 		}
@@ -377,6 +391,8 @@ func (m tuiModel) runItem(item menuItem, extraArg string) (tuiModel, tea.Cmd) {
 	}
 
 	start := time.Now()
+		ctx, cancel := context.WithCancel(context.Background())
+		m.runCancel = cancel
 
 	return m, tea.Batch(
 		m.spinner.Tick,
@@ -388,7 +404,7 @@ func (m tuiModel) runItem(item menuItem, extraArg string) (tuiModel, tea.Cmd) {
 			}
 			// feArgs is assembled from the fixed TUI menu plus the project name
 			// entered by the user; exec.Command passes each argument without a shell.
-			cmd := exec.Command(self, feArgs...)
+			cmd := exec.CommandContext(ctx, self, feArgs...)
 			out, err := cmd.CombinedOutput()
 			return cmdDoneMsg{
 				output: string(out),
@@ -402,6 +418,8 @@ func (m tuiModel) runItem(item menuItem, extraArg string) (tuiModel, tea.Cmd) {
 func (m tuiModel) runDoctor() (tuiModel, tea.Cmd) {
 	m.state = stateRunning
 	start := time.Now()
+	ctx, cancel := context.WithCancel(context.Background())
+	m.runCancel = cancel
 
 	return m, tea.Batch(
 		m.spinner.Tick,
@@ -410,7 +428,7 @@ func (m tuiModel) runDoctor() (tuiModel, tea.Cmd) {
 			if err != nil {
 				return cmdDoneMsg{err: fmt.Errorf("locating fe executable: %w", err), dur: time.Since(start)}
 			}
-			cmd := exec.Command(self, "doctor")
+			cmd := exec.CommandContext(ctx, self, "doctor")
 			out, err := cmd.CombinedOutput()
 			return cmdDoneMsg{output: string(out), err: err, dur: time.Since(start)}
 		},
