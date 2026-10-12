@@ -46,6 +46,9 @@ Refresh a cached template with: fe template update <template-id>`, supportedLang
 		lang := scaffold.Lang("")
 		if len(args) > 0 {
 			lang = scaffold.Lang(strings.ToLower(args[0]))
+			if templateID == "" {
+				templateID = defaultTemplateID(lang)
+			}
 		}
 		name, _ := cmd.Flags().GetString("name")
 		module, _ := cmd.Flags().GetString("module")
@@ -86,4 +89,21 @@ func supportedLangs() string {
 		langs[i] = string(l)
 	}
 	return strings.Join(langs, ", ")
+}
+
+func defaultTemplateID(lang scaffold.Lang) string {
+	switch lang {
+	case scaffold.LangC:
+		return "c-make"
+	case scaffold.LangCpp:
+		return "cpp-cmake"
+	case scaffold.LangGo:
+		return "go-basic"
+	case scaffold.LangOdin:
+		return "odin-basic"
+	case scaffold.LangZig:
+		return "zig-build"
+	default:
+		return ""
+	}
 }
