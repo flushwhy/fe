@@ -16,10 +16,12 @@ project.json, gem.json, or template.json markers.
 
 By default, searches the current directory and common development folders in
 your home directory. Pass --path to scan specific roots, or --registered-only
-to limit results to the O3DE manifest.
+to limit results to the O3DE manifest. Add --interactive to browse results and
+select one with the keyboard.
 
 Examples:
   fe o3de find engines
+  fe o3de find engines --interactive
   fe o3de find projects --path ~/Games --path ~/work
   fe o3de find gems --depth 3`,
 	Args: cobra.ExactArgs(1),
@@ -27,6 +29,7 @@ Examples:
 		roots, _ := cmd.Flags().GetStringArray("path")
 		depth, _ := cmd.Flags().GetInt("depth")
 		registeredOnly, _ := cmd.Flags().GetBool("registered-only")
+		interactive, _ := cmd.Flags().GetBool("interactive")
 		entries, err := o3de.Discover(args[0], roots, depth, registeredOnly)
 		if err != nil {
 			return err
@@ -37,6 +40,16 @@ Examples:
 				fmt.Println("Try --path /directory/to/search, or use O3DE's official CLI to register an existing object.")
 			} else {
 				fmt.Println("Use O3DE's official CLI to register existing objects; fe does not change registration automatically.")
+			}
+			return nil
+		}
+		if interactive {
+			selected, err := runO3DEFinder(args[0], entries)
+			if err != nil {
+				return err
+			}
+			if selected != nil {
+				fmt.Printf("Selected %s: %s\nPath: %s\n", selected.Kind, selected.Name, selected.Path)
 			}
 			return nil
 		}
@@ -59,4 +72,5 @@ func init() {
 	o3deFindCmd.Flags().StringArray("path", nil, "additional search root (repeatable)")
 	o3deFindCmd.Flags().Int("depth", 4, "maximum directory depth below each search root")
 	o3deFindCmd.Flags().Bool("registered-only", false, "list only objects registered in the O3DE manifest")
+	o3deFindCmd.Flags().Bool("interactive", false, "browse results in a keyboard-driven picker")
 }
