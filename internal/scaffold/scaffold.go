@@ -152,7 +152,7 @@ func Init(opts Options) error {
 
 	fmt.Println()
 	ui.OK("Project %q ready", opts.Name)
-	if opts.TemplateID == "" {
+	if opts.Lang != "" {
 		printNextSteps(opts.Lang, opts.Name)
 	} else {
 		ui.Hint(fmt.Sprintf("cd %s", opts.Name), "Review the template README for build instructions.")
