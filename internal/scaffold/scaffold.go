@@ -40,6 +40,7 @@ type Options struct {
 	Dir       string // base directory to create project in (default: cwd)
 	Module    string // Go module path
 	RemoteURL string
+	TemplateID string // named template from flushwhy/fe-templates
 	GoVersion string
 }
 
@@ -64,8 +65,12 @@ func (o Options) projectRoot() (string, error) {
 }
 
 func Init(opts Options) error {
-	if err := validateLang(opts.Lang); err != nil {
-		return err
+	if opts.TemplateID == "" {
+		if err := validateLang(opts.Lang); err != nil {
+			return err
+		}
+	} else if !templateIDPattern.MatchString(opts.TemplateID) {
+		return fmt.Errorf("invalid template ID %q (use lowercase words separated by hyphens)", opts.TemplateID)
 	}
 	if opts.Name == "" {
 		return fmt.Errorf("project name is required")
@@ -93,25 +98,37 @@ func Init(opts Options) error {
 		GoVersion: opts.GoVersion,
 	}
 
-	ui.Title("%s  Initialising %s project: %s", ui.IconRocket, opts.Lang, opts.Name)
+	label := string(opts.Lang)
+	if opts.TemplateID != "" {
+		label = opts.TemplateID
+	}
+	ui.Title("%s  Initialising %s project: %s", ui.IconRocket, label, opts.Name)
 
 	var src fs.FS
 
 	err = ui.RunSpinner("Resolving templates", func() error {
-		if opts.RemoteURL != "" {
-			var fetchErr error
-			src, fetchErr = fetchRemote(opts.RemoteURL, string(opts.Lang))
-			if fetchErr != nil {
-				ui.Warn("Remote fetch failed (%v) — using built-in templates", fetchErr)
-				src = nil
-			}
-		}
-		if src == nil { // Filepath breaks on windows so use path.Join instead
-			sub, err := fs.Sub(embeddedTemplates, path.Join("templates", string(opts.Lang)))
+		if opts.TemplateID != "" {
+			cachedPath, err := ResolveTemplate(opts.TemplateID, false)
 			if err != nil {
-				return fmt.Errorf("no built-in template for %s: %w", opts.Lang, err)
+				return err
 			}
-			src = sub
+			src = os.DirFS(cachedPath)
+		} else {
+			if opts.RemoteURL != "" {
+				var fetchErr error
+				src, fetchErr = fetchRemote(opts.RemoteURL, string(opts.Lang))
+				if fetchErr != nil {
+					ui.Warn("Remote fetch failed (%v) — using built-in templates", fetchErr)
+					src = nil
+				}
+			}
+			if src == nil { // Filepath breaks on windows so use path.Join instead
+				sub, err := fs.Sub(embeddedTemplates, path.Join("templates", string(opts.Lang)))
+				if err != nil {
+					return fmt.Errorf("no built-in template for %s: %w", opts.Lang, err)
+				}
+				src = sub
+			}
 		}
 		return nil
 	})
@@ -135,7 +152,11 @@ func Init(opts Options) error {
 
 	fmt.Println()
 	ui.OK("Project %q ready", opts.Name)
-	printNextSteps(opts.Lang, opts.Name)
+	if opts.TemplateID == "" {
+		printNextSteps(opts.Lang, opts.Name)
+	} else {
+		ui.Hint(fmt.Sprintf("cd %s", opts.Name), "Review the template README for build instructions.")
+	}
 	return nil
 }
 
