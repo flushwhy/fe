@@ -11,7 +11,19 @@ fe transcode      convert audio/video via ffmpeg
 fe bmp            push builds to itch.io via butler
 fe release        build → pack → push in one shot
 fe validate       pre-flight config & path check
+fe doctor         diagnose local toolchain and config issues
 fe tui            interactive terminal UI (local only)
+```
+
+For Open 3D Engine (O3DE) workflows, fe also provides engine discovery and build helpers:
+
+```sh
+fe o3de doctor
+fe o3de find engines
+fe o3de find projects
+fe o3de find gems
+fe o3de find templates
+fe o3de build --build-dir <configured-build-directory>
 ```
 
 ## Install
@@ -38,6 +50,7 @@ brew install fe
 ```
 
 Or build from source:
+
 ```sh
 go install github.com/flushwhy/fe@latest
 ```
@@ -94,12 +107,12 @@ build:
 env vars  >  .fe.yaml  >  conventions  >  defaults
 ```
 
-| Env var            | Overrides               |
+| Env var | Overrides |
 |--------------------|-------------------------|
-| `ITCHIO_USERNAME`  | `itchio.username`       |
-| `ITCHIO_GAME`      | `itchio.game`           |
-| `FE_USERVERSION`   | `butler.userversion`    |
-| `FE_BUILD_DIR`     | `butler.directory`      |
+| `ITCHIO_USERNAME` | `itchio.username` |
+| `ITCHIO_GAME` | `itchio.game` |
+| `FE_USERVERSION` | `butler.userversion` |
+| `FE_BUILD_DIR` | `butler.directory` |
 
 ## CI usage
 
@@ -126,6 +139,42 @@ For Godot projects, configure export presets in Godot and commit `export_presets
 
 Godot presets for Windows Desktop, Linux, and macOS are placed in `windows-x64/`, `linux-x64/`, and `macos-arm64/` respectively, ready for the existing Butler folder convention. Adjust `godot.output_dir` in `.fe.yaml` if you use a different build root. `fe release` automatically exports presets when run from a directory containing `project.godot`; non-Godot projects continue to use `build.targets`.
 
+## Open 3D Engine (O3DE)
+
+The `fe o3de` commands help locate local O3DE resources and work with an already configured CMake build directory. They are discovery/build helpers, not a replacement for installing or configuring O3DE.
+
+### Diagnose your setup
+
+```sh
+fe o3de doctor
+```
+
+Checks the local O3DE setup and reports useful information about the detected environment.
+
+### Find engines, projects, gems, and templates
+
+```sh
+fe o3de find engines
+fe o3de find projects
+fe o3de find gems
+fe o3de find templates
+```
+
+Discovery uses registered O3DE manifest entries and bounded local filesystem search. Use `--path` to choose a search root, `--depth` to limit how far discovery descends, and `--registered-only` to restrict results to manifest-registered resources. For example:
+
+```sh
+fe o3de find projects --path ~/dev --depth 3
+fe o3de find engines --registered-only
+```
+
+### Build an existing configured build directory
+
+```sh
+fe o3de build --build-dir /path/to/build
+```
+
+Pass the existing CMake build directory for your O3DE project. fe invokes the build and summarizes common failures; configure the project/build directory with the O3DE workflow first.
+
 ## Builds directory convention
 
 `fe bmp` and `fe release` look for platform folders inside `builds/`:
@@ -138,21 +187,28 @@ builds/
 ```
 
 Supported platforms: `windows`, `linux`, `macos`
+
 Supported arches: `x64`, `x32`, `arm64`, `arm32`
 
 ## TUI
 
-`fe tui` opens an interactive Bubble Tea interface. It auto-detects whether you're in a real terminal and refuses to run in CI.
+Run `fe tui` from an interactive terminal to open the Bubble Tea menu for common project, shipping, doctor, and configuration workflows. The TUI requires both keyboard input and terminal output, so it does not start in a non-interactive CI environment.
+
+- While a command is running, press **Ctrl+C** to cancel that command and return to the TUI.
+- When the TUI is idle, press **Ctrl+C** or **q** to exit.
+
+The TUI calls the existing `fe` commands, so command behavior remains consistent with using the CLI directly.
 
 ## Dependencies
 
 fe wraps existing tools — you need them installed separately:
 
-| Command       | Requires         |
+| Command | Requires |
 |---------------|------------------|
-| `fe bmp`      | [butler](https://itch.io/docs/butler/) |
-| `fe transcode`| [ffmpeg](https://ffmpeg.org/)          |
-| `fe build`    | whatever compiler your targets use     |
+| `fe bmp` | [butler](https://itch.io/docs/butler/) |
+| `fe transcode` | [ffmpeg](https://ffmpeg.org/) |
+| `fe build` | whatever compiler your targets use |
+| `fe o3de build` | an O3DE project with an existing configured CMake build directory |
 
 ## License
 
