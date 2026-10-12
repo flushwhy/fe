@@ -78,7 +78,6 @@ func init() {
 	initCmd.Flags().String("module", "", "Go module path (go only, e.g. github.com/you/myapp)")
 	initCmd.Flags().String("template", "", "named template ID from flushwhy/fe-templates")
 
-	viper.BindPFlag("templates.source", initCmd.Flags().Lookup("remote"))
 }
 
 func supportedLangs() string {
