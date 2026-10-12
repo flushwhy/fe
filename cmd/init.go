@@ -51,7 +51,11 @@ Refresh a cached template with: fe template update <template-id>`, supportedLang
 		module, _ := cmd.Flags().GetString("module")
 
 		if name == "" {
-			name = string(lang) + "-project"
+			if templateID != "" {
+				name = templateID + "-project"
+			} else {
+				name = string(lang) + "-project"
+			}
 		}
 
 		// Remote URL from flag or config file.
