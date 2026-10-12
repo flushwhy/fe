@@ -16,7 +16,10 @@ var rootCmd = &cobra.Command{
 	Long: `Fe is a local CLI and CI-friendly middleware layer.
 
   Project scaffolding:
-    fe init <lang> --name <project>   scaffold a new project (odin, c, cpp, zig, go)
+    fe init <lang> --name <project>   scaffold a built-in language starter
+    fe init --template <id> --name <project>   scaffold from fe-templates
+    fe template list                 list available remote templates
+    fe template update <id>          refresh a cached template
     fe add <tool>                     wire up LSP/editor tooling (clangd, ols, zls, gopls)
     fe doctor                         check tools are installed and configs are correct
 
