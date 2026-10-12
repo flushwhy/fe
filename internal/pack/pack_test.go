@@ -49,27 +49,35 @@ func TestRunNamedSheets(t *testing.T) {
 		t.Fatalf("Run() error = %v", err)
 	}
 
+	// Open outputs relative to the temporary root instead of passing fully
+	// constructed filesystem paths to os.Open.
+	outputRoot, err := os.OpenRoot(root)
+	if err != nil {
+		t.Fatalf("opening output root: %v", err)
+	}
+	defer outputRoot.Close()
+
 	for _, tc := range []struct {
-		path string
+		name string
 		w, h int
 	}{
-		{filepath.Join(root, "assets", "player.png"), 6, 3},
-		{filepath.Join(root, "assets", "npcs.png"), 5, 2},
+		{"assets/player.png", 6, 3},
+		{"assets/npcs.png", 5, 2},
 	} {
-		f, err := os.Open(tc.path)
+		f, err := outputRoot.Open(tc.name)
 		if err != nil {
-			t.Fatalf("opening output %s: %v", tc.path, err)
+			t.Fatalf("opening output %s: %v", tc.name, err)
 		}
 		img, err := png.Decode(f)
 		f.Close()
 		if err != nil {
-			t.Fatalf("decoding output %s: %v", tc.path, err)
+			t.Fatalf("decoding output %s: %v", tc.name, err)
 		}
 		if got := img.Bounds().Dx(); got != tc.w {
-			t.Errorf("%s width = %d, want %d", tc.path, got, tc.w)
+			t.Errorf("%s width = %d, want %d", tc.name, got, tc.w)
 		}
 		if got := img.Bounds().Dy(); got != tc.h {
-			t.Errorf("%s height = %d, want %d", tc.path, got, tc.h)
+			t.Errorf("%s height = %d, want %d", tc.name, got, tc.h)
 		}
 	}
 }
