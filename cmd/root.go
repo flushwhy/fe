@@ -26,6 +26,7 @@ var rootCmd = &cobra.Command{
   O3DE workflow glue:
     fe o3de doctor                    diagnose engine and build prerequisites
     fe o3de find <kind>               list registered engines, projects, Gems, templates
+    fe o3de build --build-dir build   build an existing CMake build directory
 
   Shipping pipeline:
     fe build                          compile for all configured platforms
