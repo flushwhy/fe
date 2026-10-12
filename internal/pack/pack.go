@@ -7,40 +7,75 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"sort"
+	"strings"
 
 	"github.com/flushwhy/fe/internal/config"
 )
 
-// Run packs all PNG files in cfg.Input into a single horizontal spritesheet
-// written to cfg.Output.
+// Run packs PNG files into either one conventional spritesheet or a set of
+// named sheets configured in cfg.Sheets.
 func Run(cfg config.PackConfig) error {
+	if len(cfg.Sheets) > 0 {
+		if cfg.Input == "" {
+			cfg.Input = "assets/sprites"
+		}
+		if cfg.Output == "" {
+			cfg.Output = "assets/spritesheet.png"
+		}
+		names := make([]string, 0, len(cfg.Sheets))
+		for name := range cfg.Sheets {
+			if name == "" || name == "." || name == ".." || strings.ContainsAny(name, "/\\") {
+				return fmt.Errorf("invalid pack sheet name %q", name)
+			}
+			names = append(names, name)
+		}
+		sort.Strings(names)
+		for _, name := range names {
+			sheet := cfg.Sheets[name]
+			if sheet.Input == "" {
+				sheet.Input = filepath.Join(cfg.Input, name)
+			}
+			if sheet.Output == "" {
+				sheet.Output = filepath.Join(filepath.Dir(cfg.Output), name+".png")
+			}
+			if err := packOne(sheet.Input, sheet.Output); err != nil {
+				return fmt.Errorf("packing sheet %q: %w", name, err)
+			}
+		}
+		return nil
+	}
 	if cfg.Input == "" {
 		return fmt.Errorf("input directory is required")
 	}
 	if cfg.Output == "" {
 		return fmt.Errorf("output path is required")
 	}
+	return packOne(cfg.Input, cfg.Output)
+}
 
-	// Ensure output directory exists.
-	if err := os.MkdirAll(filepath.Dir(cfg.Output), 0750); err != nil {
+func packOne(input, output string) error {
+	if input == "" {
+		return fmt.Errorf("input directory is required")
+	}
+	if output == "" {
+		return fmt.Errorf("output path is required")
+	}
+	if err := os.MkdirAll(filepath.Dir(output), 0750); err != nil {
 		return fmt.Errorf("could not create output directory: %w", err)
 	}
-
-	images, err := loadPNGs(cfg.Input)
+	images, err := loadPNGs(input)
 	if err != nil {
 		return err
 	}
 	if len(images) == 0 {
-		return fmt.Errorf("no PNG files found in %s", cfg.Input)
+		return fmt.Errorf("no PNG files found in %s", input)
 	}
-
 	canvas := stitch(images)
-
-	if err := writePNG(cfg.Output, canvas); err != nil {
+	if err := writePNG(output, canvas); err != nil {
 		return err
 	}
-
-	fmt.Printf("✓ Packed %d images → %s\n", len(images), cfg.Output)
+	fmt.Printf("✓ Packed %d images → %s\n", len(images), output)
 	return nil
 }
 

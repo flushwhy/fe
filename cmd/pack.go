@@ -13,13 +13,24 @@ import (
 
 var packCmd = &cobra.Command{
 	Use:   "pack",
-	Short: "Pack PNG sprites into a single spritesheet.",
-	Long: `Reads all PNG files from the input directory and stitches them
-horizontally into a single spritesheet PNG.
+	Short: "Pack PNG sprites into one or more spritesheets.",
+	Long: `Reads PNG files from the input directory and stitches them horizontally.
+By default, it creates one spritesheet. Configure pack.sheets in .fe.yaml
+for separate sheets from named input directories.
 
 Defaults (from convention):
   input:  assets/sprites/
-  output: assets/spritesheet.png`,
+  output: assets/spritesheet.png
+
+Example:
+  pack:
+    sheets:
+      player:
+        input: assets/sprites/player
+        output: assets/player.png
+      npcs:
+        input: assets/sprites/npcs
+        output: assets/npcs.png`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
 		if err != nil {
@@ -35,7 +46,11 @@ Defaults (from convention):
 		ui.Title("Packing sprites")
 		start := time.Now()
 
-		err = ui.RunSpinner(fmt.Sprintf("Packing %s → %s", cfg.Pack.Input, cfg.Pack.Output), func() error {
+		label := fmt.Sprintf("Packing %s → %s", cfg.Pack.Input, cfg.Pack.Output)
+		if len(cfg.Pack.Sheets) > 0 {
+			label = fmt.Sprintf("Packing %d spritesheets", len(cfg.Pack.Sheets))
+		}
+		err = ui.RunSpinner(label, func() error {
 			return pack.Run(cfg.Pack)
 		})
 		if err != nil {
