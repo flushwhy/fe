@@ -10,16 +10,34 @@ import (
 
 var o3deFindCmd = &cobra.Command{
 	Use:   "find <engines|projects|gems|templates>",
-	Short: "List O3DE objects registered in the official O3DE manifest.",
-	Args:  cobra.ExactArgs(1),
+	Short: "Find registered and local O3DE objects without changing registration.",
+	Long: `Searches O3DE's manifest and scans local directories for engine.json,
+project.json, gem.json, or template.json markers.
+
+By default, searches the current directory and common development folders in
+your home directory. Pass --path to scan specific roots, or --registered-only
+to limit results to the O3DE manifest.
+
+Examples:
+  fe o3de find engines
+  fe o3de find projects --path ~/Games --path ~/work
+  fe o3de find gems --depth 3`,
+	Args: cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		entries, err := o3de.Registered(args[0])
+		roots, _ := cmd.Flags().GetStringArray("path")
+		depth, _ := cmd.Flags().GetInt("depth")
+		registeredOnly, _ := cmd.Flags().GetBool("registered-only")
+		entries, err := o3de.Discover(args[0], roots, depth, registeredOnly)
 		if err != nil {
 			return err
 		}
 		if len(entries) == 0 {
-			fmt.Printf("No registered %s found.\n", args[0])
-			fmt.Println("Use O3DE's official CLI to register existing objects; fe does not change registration automatically.")
+			fmt.Printf("No %s found in the searched locations.\n", args[0])
+			if !registeredOnly {
+				fmt.Println("Try --path /directory/to/search, or use O3DE's official CLI to register an existing object.")
+			} else {
+				fmt.Println("Use O3DE's official CLI to register existing objects; fe does not change registration automatically.")
+			}
 			return nil
 		}
 		fmt.Println()
@@ -29,12 +47,16 @@ var o3deFindCmd = &cobra.Command{
 				name += " (" + entry.Version + ")"
 			}
 			fmt.Printf("  %s  %s\n", ui.StyleBold.Render(name), ui.StyleDim.Render(entry.Path))
+			fmt.Printf("    %s\n", ui.StyleDim.Render(entry.Source))
 		}
-		fmt.Printf("\n%d registered %s\n", len(entries), args[0])
+		fmt.Printf("\n%d %s found\n", len(entries), args[0])
 		return nil
 	},
 }
 
 func init() {
 	o3deCmd.AddCommand(o3deFindCmd)
+	o3deFindCmd.Flags().StringArray("path", nil, "additional search root (repeatable)")
+	o3deFindCmd.Flags().Int("depth", 4, "maximum directory depth below each search root")
+	o3deFindCmd.Flags().Bool("registered-only", false, "list only objects registered in the O3DE manifest")
 }
