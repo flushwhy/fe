@@ -90,7 +90,9 @@ func ResolveTemplate(id string, refresh bool) (string, error) {
 	dest := filepath.Join(cacheRoot, id)
 	if !refresh {
 		if info, err := os.Stat(filepath.Join(cacheRoot, id+".ready")); err == nil && !info.IsDir() {
-			return dest, nil
+			if dirInfo, dirErr := os.Stat(dest); dirErr == nil && dirInfo.IsDir() {
+				return dest, nil
+			}
 		}
 	}
 	return downloadTemplate(id, cacheRoot, dest)
@@ -180,6 +182,7 @@ func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 			return "", fmt.Errorf("caching template file %s: %w", rel, err)
 		}
 	}
+	_ = os.Remove(filepath.Join(cacheRoot, id+".ready"))
 	if err := os.RemoveAll(dest); err != nil {
 		return "", fmt.Errorf("replacing cached template: %w", err)
 	}
