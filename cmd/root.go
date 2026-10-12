@@ -23,6 +23,10 @@ var rootCmd = &cobra.Command{
     fe add <tool>                     wire up LSP/editor tooling (clangd, ols, zls, gopls)
     fe doctor                         check tools are installed and configs are correct
 
+  O3DE workflow glue:
+    fe o3de doctor                    diagnose engine and build prerequisites
+    fe o3de find <kind>               list registered engines, projects, Gems, templates
+
   Shipping pipeline:
     fe build                          compile for all configured platforms
     fe pack                           pack sprites into a spritesheet
