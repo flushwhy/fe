@@ -9,6 +9,7 @@ import (
 	"path"
 	"path/filepath"
 	"regexp"
+	"sort"
 	"strings"
 	"time"
 )
@@ -88,7 +89,7 @@ func ResolveTemplate(id string, refresh bool) (string, error) {
 	}
 	dest := filepath.Join(cacheRoot, id)
 	if !refresh {
-		if info, err := os.Stat(filepath.Join(dest, ".fe-template-cache")); err == nil && !info.IsDir() {
+		if info, err := os.Stat(filepath.Join(cacheRoot, id+".ready")); err == nil && !info.IsDir() {
 			return dest, nil
 		}
 	}
@@ -179,22 +180,16 @@ func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 			return "", fmt.Errorf("caching template file %s: %w", rel, err)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(tmp, ".fe-template-cache"), []byte("flushwhy/fe-templates main\n"), 0600); err != nil {
-		return "", fmt.Errorf("writing template cache marker: %w", err)
-	}
 	if err := os.RemoveAll(dest); err != nil {
 		return "", fmt.Errorf("replacing cached template: %w", err)
 	}
 	if err := os.Rename(tmp, dest); err != nil {
 		return "", fmt.Errorf("saving template cache: %w", err)
 	}
+	if err := os.WriteFile(filepath.Join(cacheRoot, id+".ready"), []byte("flushwhy/fe-templates main\\n"), 0600); err != nil {
+		return "", fmt.Errorf("writing template cache marker: %w", err)
+	}
 	return dest, nil
 }
 
-func sortStrings(values []string) {
-	for i := 1; i < len(values); i++ {
-		for j := i; j > 0 && values[j] < values[j-1]; j-- {
-			values[j], values[j-1] = values[j-1], values[j]
-		}
-	}
-}
+func sortStrings(values []string) { sort.Strings(values) }
