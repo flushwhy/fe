@@ -30,6 +30,14 @@ type ButlerConfig struct {
 }
 
 type PackConfig struct {
+	Input  string               `mapstructure:"input"`
+	Output string               `mapstructure:"output"`
+	Sheets map[string]PackSheet `mapstructure:"sheets"`
+}
+
+// PackSheet configures one named spritesheet. Empty paths use conventions
+// based on the pack input/output and the sheet name.
+type PackSheet struct {
 	Input  string `mapstructure:"input"`
 	Output string `mapstructure:"output"`
 }
@@ -133,8 +141,8 @@ func (c *Config) Validate(command string) []string {
 			errs = append(errs, "transcode.inputFile is required (set --inputFile flag)")
 		}
 	case "pack":
-		if c.Pack.Input == "" {
-			errs = append(errs, "pack.input is required (set --input flag or pack.input in .fe.yaml)")
+		if len(c.Pack.Sheets) == 0 && c.Pack.Input == "" {
+			errs = append(errs, "pack.input is required when pack.sheets is not configured (set --input or pack.input in .fe.yaml)")
 		}
 	case "build":
 		if len(c.Build.Targets) == 0 {
@@ -168,6 +176,14 @@ godot:
 pack:
   input: "assets/sprites"
   output: "assets/spritesheet.png"
+  # Optional: pack separate sprite groups instead of one combined sheet.
+  # sheets:
+  #   player:
+  #     input: "assets/sprites/player"
+  #     output: "assets/player.png"
+  #   npcs:
+  #     input: "assets/sprites/npcs"
+  #     output: "assets/npcs.png"
 
 transcode:
   codec: "libvorbis"
@@ -193,6 +209,9 @@ func (c *Config) SummaryLines() []string {
 		fmt.Sprintf("  userversion  : %s", maskEmpty(c.Butler.Userversion)),
 		fmt.Sprintf("  pack input   : %s", c.Pack.Input),
 		fmt.Sprintf("  pack output  : %s", c.Pack.Output),
+	}
+	if len(c.Pack.Sheets) > 0 {
+		lines = append(lines, fmt.Sprintf("  pack sheets  : %d named sheets", len(c.Pack.Sheets)))
 	}
 
 	if len(c.Build.Targets) > 0 {
