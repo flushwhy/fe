@@ -3,7 +3,7 @@
 Local middleware CLI for game dev and software dev — the glue between your engine/compiler and actually shipping.
 
 ```
-fe init <name>    scaffold a new project
+fe init <lang> --name <project>    scaffold a new project
 fe build          compile for all configured platforms
 fe export         export all configured Godot presets
 fe pack           pack sprites into a spritesheet
@@ -141,7 +141,7 @@ fe is designed to drop into any Git runner with zero extra config if you set the
 # .github/workflows/release.yml
 - name: Download fe
   run: |
-    curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-x64 -o fe
+    curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-amd64 -o fe
     chmod +x fe
 
 - name: Release
