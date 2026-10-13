@@ -11,11 +11,6 @@ on:
         description: "Existing release tag to build and attach assets for (for example fe-v0.0.3)"
         required: true
         type: string
-      deploy_itchio:
-        description: "Also run the configured game build and itch.io deployment from this repository"
-        required: false
-        default: false
-        type: boolean
 
 permissions:
   contents: write
