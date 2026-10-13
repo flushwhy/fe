@@ -11,6 +11,11 @@ on:
         description: "Existing release tag to build and attach assets for (for example fe-v0.0.3)"
         required: true
         type: string
+      deploy_itchio:
+        description: "Also run the configured game build and itch.io deployment from this repository"
+        required: false
+        default: false
+        type: boolean
 
 permissions:
   contents: write
@@ -207,9 +212,10 @@ jobs:
         shell: pwsh
         run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
 
-  # Avoid redeploying itch.io when manually backfilling assets on an existing release.
+  # The Fe CLI release tag is not necessarily a game release. Keep itch.io
+  # deployment opt-in so a CLI release does not fail when no game build is configured.
   itchio:
-    if: github.event_name != 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy_itchio
     name: Deploy configured game builds to itch.io
     runs-on: ubuntu-latest
     steps:
