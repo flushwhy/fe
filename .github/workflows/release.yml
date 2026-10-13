@@ -207,23 +207,30 @@ jobs:
         shell: pwsh
         run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
 
-  # Avoid redeploying itch.io when manually backfilling assets on an existing release.
+  # Dogfood Fe's own release pipeline to publish the Fe CLI binaries.
   itchio:
-    if: github.event_name != 'workflow_dispatch'
-    name: Deploy configured game builds to itch.io
+    name: Release Fe to itch.io using Fe
+    needs: binaries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.RELEASE_TAG }}
 
-      - uses: actions/setup-go@v5
+      - uses: actions/download-artifact@v4
         with:
-          go-version: "1.25.x"
-          cache: true
+          path: dist
+          merge-multiple: true
 
-      - name: Build Fe CLI
-        run: go build -trimpath -o ./fe .
+      - name: Stage binaries in Fe's expected platform layout
+        run: |
+          set -euo pipefail
+          mkdir -p builds/linux-x64 builds/linux-arm64 builds/windows-x64 builds/macos-x64 builds/macos-arm64
+          install -m 0755 dist/fe-linux-amd64 builds/linux-x64/fe
+          install -m 0755 dist/fe-linux-arm64 builds/linux-arm64/fe
+          install -m 0755 dist/fe-windows-amd64.exe builds/windows-x64/fe.exe
+          install -m 0755 dist/fe-macos-amd64 builds/macos-x64/fe
+          install -m 0755 dist/fe-macos-arm64 builds/macos-arm64/fe
 
       - name: Install butler
         run: |
@@ -231,19 +238,14 @@ jobs:
           unzip -q butler.zip
           chmod +x butler
           sudo mv butler /usr/local/bin/
+          butler -V
 
-      - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-
-      - name: Validate config
-        run: ./fe validate
+      - name: Release Fe through Fe
+        run: |
+          chmod +x dist/fe-linux-amd64
+          ./dist/fe-linux-amd64 release --skip-build --skip-pack --userversion "$RELEASE_TAG"
         env:
-          ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
-          ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
-
-      - name: Deploy to itch.io
-        run: ./fe release --userversion "$RELEASE_TAG"
-        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
           ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
           ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}

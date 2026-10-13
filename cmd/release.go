@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/flushwhy/fe/internal/build"
@@ -22,9 +23,10 @@ var releaseCmd = &cobra.Command{
 	Short: "Full release pipeline: build → pack → push to itch.io.",
 	Long: `Runs the complete release pipeline in order:
   1. fe build   — compile all platform targets
-  2. fe pack    — pack sprites into spritesheet
+  2. fe pack    — optionally pack sprites into a spritesheet
   3. fe bmp     — push builds to itch.io via butler
 
+Sprite packing is skipped with a warning when the configured sprite input is missing.
 Skip individual steps with --skip-build, --skip-pack, --skip-bmp.
 
 CI example:
@@ -69,18 +71,29 @@ CI example:
 			ui.Dim("skipped")
 		}
 
+		// A missing build directory is often caused by an empty build.targets
+		// configuration. Catch it before packing assets or attempting an upload.
+		// When --skip-bmp is set, the caller explicitly requested no upload.
+		if !skipBmp {
+			if err := validateReleaseBuildDir(cfg.Butler.Directory); err != nil {
+				return err
+			}
+		}
+
 		// ── Step 2: Pack ──────────────────────────────────────────────────
 		fmt.Println()
 		ui.Step(2, 3, "Pack sprites")
-		if !skipPack {
+		if skipPack {
+			ui.Dim("skipped")
+		} else if !releaseSpriteInputsAvailable(cfg.Pack) {
+			ui.Warn("No configured sprite input directory found — skipping sprite packing (software-only release). Add sprites or configure pack.input / pack.sheets in .fe.yaml if you want a spritesheet.")
+		} else {
 			err := ui.RunSpinner(fmt.Sprintf("Packing %s → %s", cfg.Pack.Input, cfg.Pack.Output), func() error {
 				return pack.Run(cfg.Pack)
 			})
 			if err != nil {
 				ui.Warn("Pack step: %v (continuing)", err)
 			}
-		} else {
-			ui.Dim("skipped")
 		}
 
 		// ── Step 3: Push ──────────────────────────────────────────────────
@@ -119,6 +132,50 @@ CI example:
 		ui.Elapsed(start)
 		return nil
 	},
+}
+
+// validateReleaseBuildDir prevents a release from reaching the itch.io push
+// step when no build output was produced or supplied.
+func validateReleaseBuildDir(directory string) error {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return fmt.Errorf("release cannot push to itch.io: build output directory %q is unavailable (%w); configure build.targets in .fe.yaml or provide prebuilt platform folders and set butler.directory to their parent", directory, err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			return nil
+		}
+	}
+	return fmt.Errorf("release cannot push to itch.io: build output directory %q contains no platform folders; configure build.targets in .fe.yaml or provide prebuilt platform folders", directory)
+}
+
+// releaseSpriteInputsAvailable reports whether any configured sprite input
+// directory exists. Sprite assets are optional for software-only releases.
+func releaseSpriteInputsAvailable(cfg config.PackConfig) bool {
+	if len(cfg.Sheets) == 0 {
+		input := cfg.Input
+		if input == "" {
+			input = "assets/sprites"
+		}
+		info, err := os.Stat(input)
+		return err == nil && info.IsDir()
+	}
+
+	root := cfg.Input
+	if root == "" {
+		root = "assets/sprites"
+	}
+	for name, sheet := range cfg.Sheets {
+		input := sheet.Input
+		if input == "" {
+			input = filepath.Join(root, name)
+		}
+		info, err := os.Stat(input)
+		if err == nil && info.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 func init() {
