@@ -1,4 +1,4 @@
-// Package scaffold creates new projects from built-in or remote templates.
+// Package scaffold creates new projects from remote templates.
 package scaffold
 
 import (
@@ -35,8 +35,8 @@ type Options struct {
 	Dir       string // base directory to create project in (default: cwd)
 	Module    string // Go module path
 	RemoteURL string
-	TemplateID string // named template from flushwhy/fe-templates
-	templateFS fs.FS // optional template filesystem, used by tests
+	TemplateID  string // named template from flushwhy/fe-templates
+	templateFS  fs.FS  // optional template filesystem, used by tests
 	GoVersion string
 }
 
@@ -110,7 +110,7 @@ func Init(opts Options) error {
 			src = opts.templateFS
 			return nil
 		}
-		if opts.RemoteURL != "" {
+		if opts.RemoteURL != "" && !explicitTemplate {
 			var fetchErr error
 			src, fetchErr = fetchRemote(opts.RemoteURL, string(opts.Lang))
 			if fetchErr != nil {
