@@ -3,13 +3,11 @@ package scaffold
 
 import (
 	"bytes"
-	"embed"
 	"fmt"
 	"io"
 	"io/fs"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"runtime"
 	"strings"
@@ -18,9 +16,6 @@ import (
 
 	"github.com/flushwhy/fe/internal/ui"
 )
-
-//go:embed templates
-var embeddedTemplates embed.FS
 
 type Lang string
 
@@ -41,6 +36,7 @@ type Options struct {
 	Module    string // Go module path
 	RemoteURL string
 	TemplateID string // named template from flushwhy/fe-templates
+	templateFS fs.FS // optional template filesystem, used by tests
 	GoVersion string
 }
 
@@ -65,11 +61,14 @@ func (o Options) projectRoot() (string, error) {
 }
 
 func Init(opts Options) error {
-	if opts.TemplateID == "" {
+	explicitTemplate := opts.TemplateID != ""
+	if !explicitTemplate {
 		if err := validateLang(opts.Lang); err != nil {
 			return err
 		}
-	} else if !templateIDPattern.MatchString(opts.TemplateID) {
+		opts.TemplateID = defaultTemplateID(opts.Lang)
+	}
+	if !templateIDPattern.MatchString(opts.TemplateID) {
 		return fmt.Errorf("invalid template ID %q (use lowercase words separated by hyphens)", opts.TemplateID)
 	}
 	if opts.Name == "" {
@@ -99,7 +98,7 @@ func Init(opts Options) error {
 	}
 
 	label := string(opts.Lang)
-	if opts.TemplateID != "" {
+	if explicitTemplate {
 		label = opts.TemplateID
 	}
 	ui.Title("%s  Initialising %s project: %s", ui.IconRocket, label, opts.Name)
@@ -107,29 +106,23 @@ func Init(opts Options) error {
 	var src fs.FS
 
 	err = ui.RunSpinner("Resolving templates", func() error {
-		if opts.TemplateID != "" {
-			cachedPath, err := ResolveTemplate(opts.TemplateID, false)
-			if err != nil {
-				return err
-			}
-			src = os.DirFS(cachedPath)
-		} else {
-			if opts.RemoteURL != "" {
-				var fetchErr error
-				src, fetchErr = fetchRemote(opts.RemoteURL, string(opts.Lang))
-				if fetchErr != nil {
-					ui.Warn("Remote fetch failed (%v) — using built-in templates", fetchErr)
-					src = nil
-				}
-			}
-			if src == nil { // Filepath breaks on windows so use path.Join instead
-				sub, err := fs.Sub(embeddedTemplates, path.Join("templates", string(opts.Lang)))
-				if err != nil {
-					return fmt.Errorf("no built-in template for %s: %w", opts.Lang, err)
-				}
-				src = sub
-			}
+		if opts.templateFS != nil {
+			src = opts.templateFS
+			return nil
 		}
+		if opts.RemoteURL != "" {
+			var fetchErr error
+			src, fetchErr = fetchRemote(opts.RemoteURL, string(opts.Lang))
+			if fetchErr != nil {
+				return fmt.Errorf("fetching configured remote template: %w", fetchErr)
+			}
+			return nil
+		}
+		cachedPath, err := ResolveTemplate(opts.TemplateID, false)
+		if err != nil {
+			return fmt.Errorf("could not resolve template %q; check your internet connection and try again: %w", opts.TemplateID, err)
+		}
+		src = os.DirFS(cachedPath)
 		return nil
 	})
 	if err != nil {
@@ -262,6 +255,23 @@ func fetchRemote(baseURL, lang string) (fs.FS, error) {
 		return nil, fmt.Errorf("reading response: %w", err)
 	}
 	return extractTarGz(data)
+}
+
+func defaultTemplateID(lang Lang) string {
+	switch lang {
+	case LangC:
+		return "c-make"
+	case LangCpp:
+		return "cpp-cmake"
+	case LangGo:
+		return "go-basic"
+	case LangOdin:
+		return "odin-basic"
+	case LangZig:
+		return "zig-build"
+	default:
+		return ""
+	}
 }
 
 func validateLang(lang Lang) error {
