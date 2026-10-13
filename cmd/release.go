@@ -23,7 +23,7 @@ var releaseCmd = &cobra.Command{
 	Short: "Full release pipeline: build → pack → push to itch.io.",
 	Long: `Runs the complete release pipeline in order:
   1. fe build   — compile all platform targets
-  2. fe pack    — pack sprites into spritesheet
+  2. fe pack    — optionally pack sprites into a spritesheet
   3. fe bmp     — push builds to itch.io via butler
 
 Sprite packing is skipped with a warning when the configured sprite input is missing.
