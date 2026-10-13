@@ -140,10 +140,13 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Verify release assets
+      - name: Verify and checksum release assets
         run: |
           ls -lah dist
           test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 7
+          sha256sum dist/fe-* dist/*.deb > dist/SHA256SUMS
+          test "$(wc -l < dist/SHA256SUMS)" -eq 7
+          cat dist/SHA256SUMS
 
       - name: Create release and upload binaries
         uses: softprops/action-gh-release@v2
