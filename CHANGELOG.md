@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.4.1](https://github.com/flushwhy/fe/compare/v0.4.0...v0.4.1) (2026-10-13)
+
+
+### Bug Fixes
+
+* fail early when release build output is missing ([#32](https://github.com/flushwhy/fe/issues/32)) ([7e02d6f](https://github.com/flushwhy/fe/commit/7e02d6f7b3b76494b8def4e449405255de098099))
+
 ## [0.4.0](https://github.com/flushwhy/fe/compare/v0.3.2...v0.4.0) (2026-10-13)
 
 
