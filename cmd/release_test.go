@@ -5,6 +5,8 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/flushwhy/fe/internal/config"
 )
 
 func TestValidateReleaseBuildDir(t *testing.T) {
@@ -37,6 +39,35 @@ func TestValidateReleaseBuildDir(t *testing.T) {
 		}
 		if err := validateReleaseBuildDir(dir); err != nil {
 			t.Fatalf("expected prebuilt output to be accepted, got: %v", err)
+		}
+	})
+}
+
+func TestReleaseSpriteInputsAvailable(t *testing.T) {
+	t.Run("missing input is optional", func(t *testing.T) {
+		cfg := config.PackConfig{Input: filepath.Join(t.TempDir(), "missing")}
+		if releaseSpriteInputsAvailable(cfg) {
+			t.Fatal("expected missing sprite input to be unavailable")
+		}
+	})
+
+	t.Run("existing input directory", func(t *testing.T) {
+		cfg := config.PackConfig{Input: t.TempDir()}
+		if !releaseSpriteInputsAvailable(cfg) {
+			t.Fatal("expected existing sprite input directory to be available")
+		}
+	})
+
+	t.Run("configured named sheet input", func(t *testing.T) {
+		input := t.TempDir()
+		cfg := config.PackConfig{
+			Input: filepath.Join(t.TempDir(), "sprites"),
+			Sheets: map[string]config.PackSheet{
+				"player": {Input: input},
+			},
+		}
+		if !releaseSpriteInputsAvailable(cfg) {
+			t.Fatal("expected configured named sheet input to be available")
 		}
 	})
 }
