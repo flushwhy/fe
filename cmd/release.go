@@ -86,7 +86,7 @@ CI example:
 		if skipPack {
 			ui.Dim("skipped")
 		} else if !releaseSpriteInputsAvailable(cfg.Pack) {
-			ui.Warn("No sprite input directory found — skipping sprite packing. Add sprites at %s or configure pack.input / pack.sheets in .fe.yaml.", cfg.Pack.Input)
+			ui.Warn("No configured sprite input directory found — skipping sprite packing (software-only release). Add sprites or configure pack.input / pack.sheets in .fe.yaml if you want a spritesheet.")
 		} else {
 			err := ui.RunSpinner(fmt.Sprintf("Packing %s → %s", cfg.Pack.Input, cfg.Pack.Output), func() error {
 				return pack.Run(cfg.Pack)
