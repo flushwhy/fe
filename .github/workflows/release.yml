@@ -212,24 +212,34 @@ jobs:
         shell: pwsh
         run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
 
-  # The Fe CLI release tag is not necessarily a game release. Keep itch.io
-  # deployment opt-in so a CLI release does not fail when no game build is configured.
+  # Publish Fe itself to itch.io. The release pipeline for games is not
+  # appropriate here: Fe is the product, so upload the cross-platform CLI binaries.
   itchio:
-    if: github.event_name == 'workflow_dispatch' && inputs.deploy_itchio
-    name: Deploy configured game builds to itch.io
+    name: Publish Fe CLI to itch.io
+    needs: binaries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          path: dist
+          merge-multiple: true
 
-      - uses: actions/setup-go@v5
-        with:
-          go-version: "1.25.x"
-          cache: true
-
-      - name: Build Fe CLI
-        run: go build -trimpath -o ./fe .
+      - name: Stage platform downloads
+        run: |
+          set -euo pipefail
+          mkdir -p itch/linux itch/windows itch/osx
+          cp dist/fe-linux-amd64 dist/fe-linux-arm64 itch/linux/
+          cp dist/fe-windows-amd64.exe itch/windows/
+          cp dist/fe-macos-amd64 dist/fe-macos-arm64 itch/osx/
+          cat > itch/README.txt <<'EOF'
+          Fe CLI downloads
+          
+          Linux: download the appropriate fe-linux binary for your CPU architecture and run chmod +x on it.
+          Windows: run fe-windows-amd64.exe from a terminal.
+          macOS: download the appropriate fe-macos binary for your CPU architecture and run chmod +x on it.
+          
+          Source and documentation: https://github.com/flushwhy/fe
+          EOF
 
       - name: Install butler
         run: |
@@ -237,19 +247,28 @@ jobs:
           unzip -q butler.zip
           chmod +x butler
           sudo mv butler /usr/local/bin/
+          butler -V
 
-      - name: Install ffmpeg
-        run: sudo apt-get update && sudo apt-get install -y ffmpeg
-
-      - name: Validate config
-        run: ./fe validate
+      - name: Push Linux downloads
+        run: butler push itch/linux "$ITCHIO_USERNAME/$ITCHIO_GAME:linux" --userversion "$RELEASE_TAG"
         env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
           ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
           ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
 
-      - name: Deploy to itch.io
-        run: ./fe release --userversion "$RELEASE_TAG"
+      - name: Push Windows download
+        run: butler push itch/windows "$ITCHIO_USERNAME/$ITCHIO_GAME:windows" --userversion "$RELEASE_TAG"
         env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+          ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
+          ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+
+      - name: Push macOS downloads
+        run: butler push itch/osx "$ITCHIO_USERNAME/$ITCHIO_GAME:osx" --userversion "$RELEASE_TAG"
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
           ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
           ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
