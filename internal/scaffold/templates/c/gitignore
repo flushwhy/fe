@@ -1,6 +1,0 @@
-{{.Name}}
-{{.Name}}.exe
-*.o
-*.obj
-build/
-compile_commands.json
