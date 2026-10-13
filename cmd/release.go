@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"path/filepath"
 	"time"
 
 	"github.com/flushwhy/fe/internal/build"
@@ -25,6 +26,7 @@ var releaseCmd = &cobra.Command{
   2. fe pack    — pack sprites into spritesheet
   3. fe bmp     — push builds to itch.io via butler
 
+Sprite packing is skipped with a warning when the configured sprite input is missing.
 Skip individual steps with --skip-build, --skip-pack, --skip-bmp.
 
 CI example:
@@ -81,15 +83,17 @@ CI example:
 		// ── Step 2: Pack ──────────────────────────────────────────────────
 		fmt.Println()
 		ui.Step(2, 3, "Pack sprites")
-		if !skipPack {
+		if skipPack {
+			ui.Dim("skipped")
+		} else if !releaseSpriteInputsAvailable(cfg.Pack) {
+			ui.Warn("No sprite input directory found — skipping sprite packing. Add sprites at %s or configure pack.input / pack.sheets in .fe.yaml.", cfg.Pack.Input)
+		} else {
 			err := ui.RunSpinner(fmt.Sprintf("Packing %s → %s", cfg.Pack.Input, cfg.Pack.Output), func() error {
 				return pack.Run(cfg.Pack)
 			})
 			if err != nil {
 				ui.Warn("Pack step: %v (continuing)", err)
 			}
-		} else {
-			ui.Dim("skipped")
 		}
 
 		// ── Step 3: Push ──────────────────────────────────────────────────
@@ -143,6 +147,35 @@ func validateReleaseBuildDir(directory string) error {
 		}
 	}
 	return fmt.Errorf("release cannot push to itch.io: build output directory %q contains no platform folders; configure build.targets in .fe.yaml or provide prebuilt platform folders", directory)
+}
+
+// releaseSpriteInputsAvailable reports whether any configured sprite input
+// directory exists. Sprite assets are optional for software-only releases.
+func releaseSpriteInputsAvailable(cfg config.PackConfig) bool {
+	if len(cfg.Sheets) == 0 {
+		input := cfg.Input
+		if input == "" {
+			input = "assets/sprites"
+		}
+		info, err := os.Stat(input)
+		return err == nil && info.IsDir()
+	}
+
+	root := cfg.Input
+	if root == "" {
+		root = "assets/sprites"
+	}
+	for name, sheet := range cfg.Sheets {
+		input := sheet.Input
+		if input == "" {
+			input = filepath.Join(root, name)
+		}
+		info, err := os.Stat(input)
+		if err == nil && info.IsDir() {
+			return true
+		}
+	}
+	return false
 }
 
 func init() {
