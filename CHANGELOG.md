@@ -5,6 +5,24 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.4.0](https://github.com/flushwhy/fe/compare/v0.3.2...v0.4.0) (2026-10-13)
+
+
+### Features
+
+* add O3DE discovery and doctor ([#23](https://github.com/flushwhy/fe/issues/23)) ([02d4c2e](https://github.com/flushwhy/fe/commit/02d4c2e883a5099364b8c4be94d11acc24ad87f6))
+* download and cache named project templates ([#22](https://github.com/flushwhy/fe/issues/22)) ([77346c2](https://github.com/flushwhy/fe/commit/77346c2a996b6d7e37c87973433525982b571b9b))
+* publish Debian packages for Linux ([#26](https://github.com/flushwhy/fe/issues/26)) ([e09f4e8](https://github.com/flushwhy/fe/commit/e09f4e844e20eacfd099a71390de60756814f49e))
+* support multiple named spritesheets ([#21](https://github.com/flushwhy/fe/issues/21)) ([a44bde1](https://github.com/flushwhy/fe/commit/a44bde15cda042988c7f546cb4c1f2200ddf7d5c))
+
+
+### Bug Fixes
+
+* align release Go version and smoke-test Debian install ([#27](https://github.com/flushwhy/fe/issues/27)) ([df0581d](https://github.com/flushwhy/fe/commit/df0581d19fe72ea092a624190022bb24f86d2e21))
+* handle TUI executable lookup errors ([#19](https://github.com/flushwhy/fe/issues/19)) ([08c0da4](https://github.com/flushwhy/fe/commit/08c0da4cb38a9a5241a5e36f9fdaf9fe447c0224))
+* make TUI command interaction reliable ([#24](https://github.com/flushwhy/fe/issues/24)) ([1dcd640](https://github.com/flushwhy/fe/commit/1dcd640ea083cb0ad03e4ef9866307c3c8d6758e))
+* validate only required project paths ([#16](https://github.com/flushwhy/fe/issues/16)) ([d1c5f67](https://github.com/flushwhy/fe/commit/d1c5f675d13a3b1140f1c4028d1b9638a1b1455a))
+
 ## [0.3.2](https://github.com/flushwhy/fe/compare/v0.3.1...v0.3.2) (2026-10-11)
 
 
