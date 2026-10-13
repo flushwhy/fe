@@ -49,7 +49,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22.x"
+          go-version: "1.25.x"
           cache: true
 
       - name: Test
@@ -110,6 +110,18 @@ jobs:
           EOF
             dpkg-deb --root-owner-group --build "$package" "dist/fe_${version}_${target}.deb"
           done
+
+      - name: Smoke-test clean amd64 Debian package install
+        env:
+          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+        run: |
+          version="${RELEASE_TAG#fe-v}"
+          version="${version#v}"
+          sudo apt-get install -y "./dist/fe_${version}_amd64.deb"
+          test "$(command -v fe)" = "/usr/bin/fe"
+          dpkg-query -W -f='${Status} ${Version} ${Architecture}\n' fe | grep -Fx "install ok installed ${version} amd64"
+          fe --help >/dev/null
+          fe o3de --help >/dev/null
 
       - uses: actions/upload-artifact@v4
         with:
@@ -204,7 +216,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: "1.22.x"
+          go-version: "1.25.x"
           cache: true
 
       - name: Build Fe CLI
