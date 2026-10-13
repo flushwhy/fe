@@ -63,6 +63,17 @@ func TestPush(t *testing.T) {
 		}
 	})
 
+	t.Run("convention layout with channel suffix", func(t *testing.T) {
+		tmp := t.TempDir()
+		os.MkdirAll(filepath.Join(tmp, "linux-x64"), 0755)
+
+		want := []string{"butler", "push", filepath.Join(tmp, "linux-x64"), "u/g:linux-x64-rolling", "--userversion", "rolling-abc1234"}
+		err := Push("u", "g", tmp, "rolling-abc1234", helperExecutor(t, want), discardLogger, "rolling")
+		if err != nil {
+			t.Errorf("unexpected error: %v", err)
+		}
+	})
+
 	t.Run("legacy two-level layout: windows/x64", func(t *testing.T) {
 		tmp := t.TempDir()
 		os.MkdirAll(filepath.Join(tmp, "windows", "x64"), 0755)

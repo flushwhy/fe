@@ -52,7 +52,7 @@ var archMap = map[string]string{
 //
 //  2. Legacy two-level layout:
 //     builds/windows/x64/   → channel windowsx64
-func Push(username, game, directory, userversion string, executor CommandExecutor, logger Logger) error {
+func Push(username, game, directory, userversion string, executor CommandExecutor, logger Logger, channelSuffix ...string) error {
 	logger.Printf("Pushing to %s/%s from %s", username, game, directory)
 
 	if userversion != "" {
@@ -62,6 +62,11 @@ func Push(username, game, directory, userversion string, executor CommandExecuto
 	entries, err := os.ReadDir(directory)
 	if err != nil {
 		return fmt.Errorf("could not read directory %s: %w", directory, err)
+	}
+
+	suffix := ""
+	if len(channelSuffix) > 0 && strings.TrimSpace(channelSuffix[0]) != "" {
+		suffix = "-" + strings.Trim(strings.TrimSpace(channelSuffix[0]), "-")
 	}
 
 	pushed := 0
@@ -77,7 +82,7 @@ func Push(username, game, directory, userversion string, executor CommandExecuto
 		// Convention layout: single folder named "platform-arch" e.g. "windows-x64"
 		if channel, ok := resolveConventionChannel(nameLower); ok {
 			fullPath := filepath.Join(directory, name)
-			if err := runPush(executor, logger, fullPath, username, game, channel, userversion); err != nil {
+			if err := runPush(executor, logger, fullPath, username, game, channel+suffix, userversion); err != nil {
 				return err
 			}
 			pushed++
@@ -105,7 +110,7 @@ func Push(username, game, directory, userversion string, executor CommandExecuto
 
 				channel := platformMap[nameLower] + "-" + arch
 				fullPath := filepath.Join(directory, name, sub.Name())
-				if err := runPush(executor, logger, fullPath, username, game, channel, userversion); err != nil {
+				if err := runPush(executor, logger, fullPath, username, game, channel+suffix, userversion); err != nil {
 					return err
 				}
 				pushed++

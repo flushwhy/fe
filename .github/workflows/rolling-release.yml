@@ -1,0 +1,58 @@
+name: rolling-release
+
+on:
+  push:
+    branches:
+      - master
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: rolling-release
+  cancel-in-progress: true
+
+jobs:
+  rolling:
+    name: Publish rolling build to itch.io
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache: true
+
+      - name: Test
+        run: go test ./...
+
+      - name: Build and stage Fe for each platform
+        run: |
+          set -euo pipefail
+          mkdir -p builds/linux-x64 builds/linux-arm64 builds/windows-x64 builds/macos-x64 builds/macos-arm64
+
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o builds/linux-x64/fe .
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o builds/linux-arm64/fe .
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o builds/windows-x64/fe.exe .
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o builds/macos-x64/fe .
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o builds/macos-arm64/fe .
+
+      - name: Install butler
+        run: |
+          curl -fsSL https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default -o butler.zip
+          unzip -q butler.zip
+          chmod +x butler
+          sudo mv butler /usr/local/bin/
+          butler -V
+
+      - name: Publish rolling channels through Fe
+        run: |
+          ./builds/linux-x64/fe release --skip-build --skip-pack --channel-suffix rolling --userversion "rolling-${GITHUB_SHA::7}"
+        env:
+          ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
+          ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
+          BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
