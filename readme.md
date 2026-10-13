@@ -75,13 +75,15 @@ go install github.com/flushwhy/fe@latest
 ## Quick start
 
 ```sh
-fe init my-game
+fe init go --name my-game
 cd my-game
 # edit .fe.yaml
 fe build
 fe export   # Godot projects: export all configured presets
 fe release
 ```
+
+Project scaffolds are downloaded from the [fe-templates repository](https://github.com/flushwhy/fe-templates) on first use and cached locally. An internet connection to GitHub is required the first time you use a template; cached templates can be reused offline. Browse templates with `fe template list`, or refresh one with `fe template update <template-id>`.
 
 ## Config — `.fe.yaml`
 
