@@ -41,6 +41,7 @@ CI example:
 		skipBuild, _ := cmd.Flags().GetBool("skip-build")
 		skipPack, _ := cmd.Flags().GetBool("skip-pack")
 		skipBmp, _ := cmd.Flags().GetBool("skip-bmp")
+		channelSuffix, _ := cmd.Flags().GetString("channel-suffix")
 
 		ui.Title("Release Pipeline")
 		start := time.Now()
@@ -117,6 +118,7 @@ CI example:
 						cfg.Butler.Userversion,
 						exec.Command,
 						logger,
+						channelSuffix,
 					)
 				},
 			)
@@ -184,5 +186,6 @@ func init() {
 	releaseCmd.Flags().Bool("skip-pack", false, "skip the sprite pack step")
 	releaseCmd.Flags().Bool("skip-bmp", false, "skip the itch.io push step")
 	releaseCmd.Flags().String("userversion", "", "version string for itch.io channel")
+	releaseCmd.Flags().String("channel-suffix", "", "append a suffix to itch.io platform channels (for example rolling)")
 	viper.BindPFlag("butler.userversion", releaseCmd.Flags().Lookup("userversion"))
 }
