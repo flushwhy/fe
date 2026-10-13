@@ -2,6 +2,8 @@ package scaffold
 
 import (
 	"os"
+	"net/http"
+	"net/http/httptest"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -158,4 +160,51 @@ func TestInit(t *testing.T) {
 			t.Fatal("expected error for empty name, got nil")
 		}
 	})
+}
+
+
+func TestDefaultTemplateID(t *testing.T) {
+	tests := []struct {
+		lang Lang
+		want string
+	}{
+		{LangC, "c-make"},
+		{LangCpp, "cpp-cmake"},
+		{LangGo, "go-basic"},
+		{LangOdin, "odin-basic"},
+		{LangZig, "zig-build"},
+		{Lang("unknown"), ""},
+	}
+	for _, tt := range tests {
+		t.Run(string(tt.lang), func(t *testing.T) {
+			if got := defaultTemplateID(tt.lang); got != tt.want {
+				t.Errorf("defaultTemplateID(%q) = %q, want %q", tt.lang, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestInitConfiguredRemoteTemplateFailure(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}))
+	defer server.Close()
+
+	tmp := t.TempDir()
+	err := Init(Options{
+		Lang:      LangGo,
+		Name:      "my-project",
+		Dir:       tmp,
+		RemoteURL: server.URL,
+	})
+	if err == nil {
+		t.Fatal("expected an error when the configured template source is unavailable")
+	}
+	if !strings.Contains(err.Error(), "fetching configured remote template") ||
+		!strings.Contains(err.Error(), "remote returned 404") {
+		t.Fatalf("expected actionable remote fetch error, got: %v", err)
+	}
+	if _, statErr := os.Stat(filepath.Join(tmp, "my-project")); !os.IsNotExist(statErr) {
+		t.Fatalf("project directory should not be created after template resolution fails; stat error = %v", statErr)
+	}
 }
