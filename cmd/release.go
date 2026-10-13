@@ -69,6 +69,15 @@ CI example:
 			ui.Dim("skipped")
 		}
 
+		// A missing build directory is often caused by an empty build.targets
+		// configuration. Catch it before packing assets or attempting an upload.
+		// When --skip-bmp is set, the caller explicitly requested no upload.
+		if !skipBmp {
+			if err := validateReleaseBuildDir(cfg.Butler.Directory); err != nil {
+				return err
+			}
+		}
+
 		// ── Step 2: Pack ──────────────────────────────────────────────────
 		fmt.Println()
 		ui.Step(2, 3, "Pack sprites")
