@@ -130,6 +130,21 @@ CI example:
 	},
 }
 
+// validateReleaseBuildDir prevents a release from reaching the itch.io push
+// step when no build output was produced or supplied.
+func validateReleaseBuildDir(directory string) error {
+	entries, err := os.ReadDir(directory)
+	if err != nil {
+		return fmt.Errorf("release cannot push to itch.io: build output directory %q is unavailable (%w); configure build.targets in .fe.yaml or provide prebuilt platform folders and set butler.directory to their parent", directory, err)
+	}
+	for _, entry := range entries {
+		if entry.IsDir() {
+			return nil
+		}
+	}
+	return fmt.Errorf("release cannot push to itch.io: build output directory %q contains no platform folders; configure build.targets in .fe.yaml or provide prebuilt platform folders", directory)
+}
+
 func init() {
 	rootCmd.AddCommand(releaseCmd)
 	releaseCmd.Flags().Bool("skip-build", false, "skip the build step")
