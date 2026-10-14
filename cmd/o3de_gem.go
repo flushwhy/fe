@@ -93,16 +93,32 @@ func newO3DEGemProjectCommand(use, short, operation string) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			project, _ := cmd.Flags().GetString("project")
 			if strings.TrimSpace(project) == "" {
-				return fmt.Errorf("--project is required")
+				return fmt.Errorf("--project is required (use a registered project name or path)")
 			}
-			abs, err := filepath.Abs(project)
-			if err != nil {
-				return fmt.Errorf("resolve project path: %w", err)
+			cliArgs := []string{operation}
+			gemPath, _ := cmd.Flags().GetString("gem-path")
+			if strings.TrimSpace(gemPath) != "" {
+				absGem, err := filepath.Abs(gemPath)
+				if err != nil {
+					return fmt.Errorf("resolve Gem path: %w", err)
+				}
+				if info, err := os.Stat(filepath.Join(absGem, "gem.json")); err != nil || info.IsDir() {
+					return fmt.Errorf("%q does not contain a gem.json manifest", absGem)
+				}
+				cliArgs = append(cliArgs, "--gem-path", absGem)
+			} else {
+				cliArgs = append(cliArgs, "--gem-name", args[0])
 			}
-			if info, err := os.Stat(filepath.Join(abs, "project.json")); err != nil || info.IsDir() {
-				return fmt.Errorf("%q does not contain a project.json manifest", abs)
+			if info, err := os.Stat(filepath.Join(project, "project.json")); err == nil && !info.IsDir() {
+				abs, err := filepath.Abs(project)
+				if err != nil {
+					return fmt.Errorf("resolve project path: %w", err)
+				}
+				cliArgs = append(cliArgs, "--project-path", abs)
+			} else {
+				cliArgs = append(cliArgs, "--project-name", project)
 			}
-			return runO3DECLI(cmd, operation, "--gem-name", args[0], "--project-path", abs)
+			return runO3DECLI(cmd, cliArgs...)
 		},
 	}
 }
@@ -136,7 +152,9 @@ func init() {
 	o3deGemRegisterCmd.Flags().String("path", "", "path to an existing Gem directory")
 	enableCmd := newO3DEGemProjectCommand("enable", "Enable a Gem for an O3DE project.", "enable-gem")
 	disableCmd := newO3DEGemProjectCommand("disable", "Disable a Gem for an O3DE project.", "disable-gem")
-	enableCmd.Flags().String("project", "", "O3DE project directory")
-	disableCmd.Flags().String("project", "", "O3DE project directory")
+	enableCmd.Flags().String("project", "", "registered O3DE project name or project directory")
+	disableCmd.Flags().String("project", "", "registered O3DE project name or project directory")
+	enableCmd.Flags().String("gem-path", "", "explicit Gem directory (alternative to the Gem name)")
+	disableCmd.Flags().String("gem-path", "", "explicit Gem directory (alternative to the Gem name)")
 	o3deGemCmd.AddCommand(enableCmd, disableCmd)
 }
