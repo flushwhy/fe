@@ -5,6 +5,41 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.5.0](https://github.com/flushwhy/fe/compare/v0.4.0...v0.5.0) (2026-10-14)
+
+
+### Features
+
+* add Chocolatey package metadata ([365850f](https://github.com/flushwhy/fe/commit/365850fdd3b35c8bb52c54b538319078d4712fbd))
+* add Chocolatey package metadata ([80cfb11](https://github.com/flushwhy/fe/commit/80cfb1113fce5c12e162172bd7560b46e2a8bacb))
+* add Chocolatey package metadata ([f8e6f45](https://github.com/flushwhy/fe/commit/f8e6f45c552c45fec9e244aaf04826d367b9cec6))
+* add O3DE discovery and doctor ([#23](https://github.com/flushwhy/fe/issues/23)) ([02d4c2e](https://github.com/flushwhy/fe/commit/02d4c2e883a5099364b8c4be94d11acc24ad87f6))
+* add safe Odin repository installer ([103c12d](https://github.com/flushwhy/fe/commit/103c12d66ecf785488a714eb1a3f161b30ced62b))
+* automate Chocolatey packaging on releases ([f42c748](https://github.com/flushwhy/fe/commit/f42c7484b8026d925fb9ed947e721bc90e8e69a0))
+* download and cache named project templates ([#22](https://github.com/flushwhy/fe/issues/22)) ([77346c2](https://github.com/flushwhy/fe/commit/77346c2a996b6d7e37c87973433525982b571b9b))
+* expose install and get commands ([61a805a](https://github.com/flushwhy/fe/commit/61a805a00c34f8ef8ca2c40b6f23a4c6bf668dce))
+* **o3de:** add Gem management commands ([#37](https://github.com/flushwhy/fe/issues/37)) ([0ae3712](https://github.com/flushwhy/fe/commit/0ae37124beb339a6cd52fe33849f4e8031d5872f))
+* **o3de:** expand project and engine workflows ([#38](https://github.com/flushwhy/fe/issues/38)) ([e5ec464](https://github.com/flushwhy/fe/commit/e5ec4642967c8712a373cf3ad7c29adb94a32984))
+* publish Debian packages for Linux ([#26](https://github.com/flushwhy/fe/issues/26)) ([e09f4e8](https://github.com/flushwhy/fe/commit/e09f4e844e20eacfd099a71390de60756814f49e))
+* support multiple named spritesheets ([#21](https://github.com/flushwhy/fe/issues/21)) ([a44bde1](https://github.com/flushwhy/fe/commit/a44bde15cda042988c7f546cb4c1f2200ddf7d5c))
+
+
+### Bug Fixes
+
+* align release Go version and smoke-test Debian install ([#27](https://github.com/flushwhy/fe/issues/27)) ([df0581d](https://github.com/flushwhy/fe/commit/df0581d19fe72ea092a624190022bb24f86d2e21))
+* build binaries and attach them to GitHub releases ([25c1b68](https://github.com/flushwhy/fe/commit/25c1b68fe95eccb94f971f240b99a79f90e0be6b))
+* conditionally publish Chocolatey package using secret ([b1ed148](https://github.com/flushwhy/fe/commit/b1ed1484ada18dd5fab1011a4e537140d5207c0d))
+* fail early when release build output is missing ([#32](https://github.com/flushwhy/fe/issues/32)) ([7e02d6f](https://github.com/flushwhy/fe/commit/7e02d6f7b3b76494b8def4e449405255de098099))
+* handle TUI executable lookup errors ([#19](https://github.com/flushwhy/fe/issues/19)) ([08c0da4](https://github.com/flushwhy/fe/commit/08c0da4cb38a9a5241a5e36f9fdaf9fe447c0224))
+* limit extracted archive size and tighten installer permissions ([4df259f](https://github.com/flushwhy/fe/commit/4df259fefe5bde0f140deeca88b9d6caebc3da6c))
+* limit total extracted archive size ([419f152](https://github.com/flushwhy/fe/commit/419f15248f44c43637f40847e3f85cbbe6d9f093))
+* make TUI command interaction reliable ([#24](https://github.com/flushwhy/fe/issues/24)) ([1dcd640](https://github.com/flushwhy/fe/commit/1dcd640ea083cb0ad03e4ef9866307c3c8d6758e))
+* support release-please tag names in Chocolatey ([5d40001](https://github.com/flushwhy/fe/commit/5d4000111221c8610cebe483c9a9cd06128fcda8))
+* update itch.io butler download URL ([3e155ba](https://github.com/flushwhy/fe/commit/3e155ba5fbc58f16b2a549e175542c29c1d8c66d))
+* use active itch.io butler download domain ([055e3f4](https://github.com/flushwhy/fe/commit/055e3f40c454091b422533ab780e40599e5c5c7f))
+* validate archive extraction paths ([1977a57](https://github.com/flushwhy/fe/commit/1977a57860cc04d0b8c3b0b203e86d961a170d5f))
+* validate only required project paths ([#16](https://github.com/flushwhy/fe/issues/16)) ([d1c5f67](https://github.com/flushwhy/fe/commit/d1c5f675d13a3b1140f1c4028d1b9638a1b1455a))
+
 ## [0.4.0](https://github.com/flushwhy/fe/compare/v0.3.2...v0.4.0) (2026-10-13)
 
 
