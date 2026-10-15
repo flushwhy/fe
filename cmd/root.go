@@ -23,6 +23,9 @@ var rootCmd = &cobra.Command{
     fe add <tool>                     wire up LSP/editor tooling (clangd, ols, zls, gopls)
     fe doctor                         check tools are installed and configs are correct
 
+  Development loop:
+    fe watch                          detect a workspace, watch files, and rebuild C++ changes
+
   O3DE workflow glue:
     fe o3de doctor                    diagnose engine and build prerequisites
     fe o3de find <kind>               find registered and local engines, projects, Gems, templates
