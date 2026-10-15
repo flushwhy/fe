@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.6.0](https://github.com/flushwhy/fe/compare/v0.5.0...v0.6.0) (2026-10-15)
+
+
+### Features
+
+* add workspace-aware fe watch command ([#39](https://github.com/flushwhy/fe/issues/39)) ([bff470f](https://github.com/flushwhy/fe/commit/bff470f74515e724bff730fdc306ebf85f2f200d))
+
 ## [0.5.0](https://github.com/flushwhy/fe/compare/v0.4.0...v0.5.0) (2026-10-14)
 
 
