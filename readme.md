@@ -72,13 +72,13 @@ On Windows, install the stable release from Chocolatey:
 choco install fe
 ```
 
-For the continuously updated development build, use the separate rolling package:
+For the continuously updated development build, opt into prereleases of the same package:
 
 ```powershell
-choco install fe-rolling --pre
+choco install fe --pre
 ```
 
-The [Fe Rolling Release page](https://github.com/flushwhy/fe/releases/tag/rolling) is updated from successful builds on `master`. Chocolatey package versions are immutable, so each workflow run publishes a new rolling prerelease version rather than overwriting a previously published package.
+The [Fe Rolling Release page](https://github.com/flushwhy/fe/releases/tag/rolling) is updated from successful builds on `master`. Rolling Chocolatey versions are prereleases based on the next patch after the latest stable release (for example, `1.2.4-rolling.123` after stable `1.2.3`). Chocolatey package versions are immutable, so each workflow run publishes a new prerelease version.
 
 Or build from source:
 
