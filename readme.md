@@ -66,6 +66,20 @@ brew tap flushwhy/tap
 brew install fe
 ```
 
+On Windows, install the stable release from Chocolatey:
+
+```powershell
+choco install fe
+```
+
+For the continuously updated development build, use the separate rolling package:
+
+```powershell
+choco install fe-rolling --pre
+```
+
+The [Fe Rolling Release page](https://github.com/flushwhy/fe/releases/tag/rolling) is updated from successful builds on `master`. Chocolatey package versions are immutable, so each workflow run publishes a new rolling prerelease version rather than overwriting a previously published package.
+
 Or build from source:
 
 ```sh
