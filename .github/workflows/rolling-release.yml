@@ -148,7 +148,7 @@ jobs:
           } | Sort-Object Major, Minor, Patch
           if (!$tags) { throw "No stable semver release tags found; cannot calculate rolling version" }
           $latest = $tags[-1]
-          $version = "$($latest.Major).$($latest.Minor).$($latest.Patch + 1)-rolling.$env:GITHUB_RUN_NUMBER"
+          $version = "$($latest.Major).$($latest.Minor).$($latest.Patch + 1)-rolling.g$($env:GITHUB_SHA.Substring(0,7))"
           $binary = Resolve-Path "dist/fe-windows-amd64.exe"
           $hash = (Get-FileHash $binary -Algorithm SHA256).Hash.ToLowerInvariant()
           $stage = Join-Path $env:RUNNER_TEMP "fe-choco-rolling"
