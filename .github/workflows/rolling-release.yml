@@ -156,7 +156,7 @@ jobs:
           Copy-Item "packaging/chocolatey/fe.nuspec" (Join-Path $stage "fe.nuspec")
           Copy-Item "packaging/chocolatey/tools/chocolateyInstall.ps1" (Join-Path $stage "tools/chocolateyInstall.ps1")
           $nuspecPath = Join-Path $stage "fe.nuspec"
-          $nuspec = (Get-Content $nuspecPath -Raw).Replace("<id>fe</id>", "<id>fe-rolling</id>").Replace("__VERSION__", $version)
+          $nuspec = (Get-Content $nuspecPath -Raw).Replace("__VERSION__", $version)
           Set-Content -Path $nuspecPath -Value $nuspec -NoNewline
           $installPath = Join-Path $stage "tools/chocolateyInstall.ps1"
           $install = (Get-Content $installPath -Raw).Replace("__TAG__", "rolling").Replace("__SHA256__", $hash)
