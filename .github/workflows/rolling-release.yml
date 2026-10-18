@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: rolling-release
@@ -15,12 +15,13 @@ concurrency:
 
 jobs:
   rolling:
-    name: Publish rolling build to itch.io
+    name: Build and publish rolling release
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           ref: master
+          fetch-depth: 0
 
       - uses: actions/setup-go@v5
         with:
@@ -30,16 +31,44 @@ jobs:
       - name: Test
         run: go test ./...
 
-      - name: Build and stage Fe for each platform
+      - name: Build binaries
         run: |
           set -euo pipefail
-          mkdir -p builds/linux-x64 builds/linux-arm64 builds/windows-x64 builds/macos-x64 builds/macos-arm64
+          mkdir -p dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o dist/fe-linux-amd64 .
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o dist/fe-linux-arm64 .
+          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o dist/fe-windows-amd64.exe .
+          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o dist/fe-macos-amd64 .
+          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o dist/fe-macos-arm64 .
+          sha256sum dist/fe-* > dist/SHA256SUMS
 
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o builds/linux-x64/fe .
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o builds/linux-arm64/fe .
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o builds/windows-x64/fe.exe .
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o builds/macos-x64/fe .
-          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o builds/macos-arm64/fe .
+      - name: Upload Windows binary for Chocolatey packaging
+        uses: actions/upload-artifact@v4
+        with:
+          name: fe-windows-rolling
+          path: dist/fe-windows-amd64.exe
+          if-no-files-found: error
+          retention-days: 1
+
+      - name: Update rolling GitHub Release page
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: rolling
+          name: Fe Rolling Release
+          body: |
+            Automatically updated from the latest successful build of `master`.
+
+            This is the continuously updated development channel. For stable releases, see the versioned releases.
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
+          files: |
+            dist/fe-linux-amd64
+            dist/fe-linux-arm64
+            dist/fe-windows-amd64.exe
+            dist/fe-macos-amd64
+            dist/fe-macos-arm64
+            dist/SHA256SUMS
 
       - name: Install butler
         run: |
@@ -51,8 +80,101 @@ jobs:
 
       - name: Publish rolling channels through Fe
         run: |
-          ./builds/linux-x64/fe release --skip-build --skip-pack --channel-suffix rolling --userversion "rolling-${GITHUB_SHA::7}"
+          mkdir -p builds/linux-x64 builds/linux-arm64 builds/windows-x64 builds/macos-x64 builds/macos-arm64
+          install -m 0755 dist/fe-linux-amd64 builds/linux-x64/fe
+          install -m 0755 dist/fe-linux-arm64 builds/linux-arm64/fe
+          install -m 0644 dist/fe-windows-amd64.exe builds/windows-x64/fe.exe
+          install -m 0755 dist/fe-macos-amd64 builds/macos-x64/fe
+          install -m 0755 dist/fe-macos-arm64 builds/macos-arm64/fe
+          ./dist/fe-linux-amd64 release --skip-build --skip-pack --channel-suffix rolling --userversion "rolling-${GITHUB_SHA::7}"
         env:
           ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
           ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+
+  chocolatey-rolling:
+    name: Publish rolling Chocolatey package
+    needs: rolling
+    runs-on: windows-latest
+    env:
+      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: fe-windows-rolling
+          path: dist
+
+      - name: Build rolling Chocolatey package
+        shell: pwsh
+        run: |
+          $tags = git tag --list | ForEach-Object {
+            if ($_ -match '^(?:fe-)?v?(\d+)\.(\d+)\.(\d+)
+          $binary = Resolve-Path "dist/fe-windows-amd64.exe"
+          $hash = (Get-FileHash $binary -Algorithm SHA256).Hash.ToLowerInvariant()
+          $stage = Join-Path $env:RUNNER_TEMP "fe-choco-rolling"
+          New-Item -ItemType Directory -Force -Path (Join-Path $stage "tools") | Out-Null
+          Copy-Item "packaging/chocolatey/fe.nuspec" (Join-Path $stage "fe.nuspec")
+          Copy-Item "packaging/chocolatey/tools/chocolateyInstall.ps1" (Join-Path $stage "tools/chocolateyInstall.ps1")
+          $nuspecPath = Join-Path $stage "fe.nuspec"
+          $nuspec = (Get-Content $nuspecPath -Raw).Replace("__VERSION__", $version)
+          Set-Content -Path $nuspecPath -Value $nuspec -NoNewline
+          $installPath = Join-Path $stage "tools/chocolateyInstall.ps1"
+          $install = (Get-Content $installPath -Raw).Replace("__TAG__", "rolling").Replace("__SHA256__", $hash)
+          Set-Content -Path $installPath -Value $install -NoNewline
+          choco pack $nuspecPath --outputdirectory .
+          if (!(Test-Path "fe.$version.nupkg")) { throw "Rolling Chocolatey package was not created" }
+
+      - name: Attach rolling Chocolatey package to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: rolling
+          name: Fe Rolling Release
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
+          files: fe.*.nupkg
+
+      - name: Publish to Chocolatey Community Repository
+        if: env.CHOCOLATEY_API_KEY != ''
+        shell: pwsh
+        run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
+) {
+              [PSCustomObject]@{ Major = [int]$Matches[1]; Minor = [int]$Matches[2]; Patch = [int]$Matches[3] }
+            }
+          } | Sort-Object Major, Minor, Patch
+          if (!$tags) { throw "No stable semver release tags found; cannot calculate rolling version" }
+          $latest = $tags[-1]
+          $version = "$($latest.Major).$($latest.Minor).$($latest.Patch + 1)-rolling.g$($env:GITHUB_SHA.Substring(0,7))"
+          $binary = Resolve-Path "dist/fe-windows-amd64.exe"
+          $hash = (Get-FileHash $binary -Algorithm SHA256).Hash.ToLowerInvariant()
+          $stage = Join-Path $env:RUNNER_TEMP "fe-choco-rolling"
+          New-Item -ItemType Directory -Force -Path (Join-Path $stage "tools") | Out-Null
+          Copy-Item "packaging/chocolatey/fe.nuspec" (Join-Path $stage "fe.nuspec")
+          Copy-Item "packaging/chocolatey/tools/chocolateyInstall.ps1" (Join-Path $stage "tools/chocolateyInstall.ps1")
+          $nuspecPath = Join-Path $stage "fe.nuspec"
+          $nuspec = (Get-Content $nuspecPath -Raw).Replace("__VERSION__", $version)
+          Set-Content -Path $nuspecPath -Value $nuspec -NoNewline
+          $installPath = Join-Path $stage "tools/chocolateyInstall.ps1"
+          $install = (Get-Content $installPath -Raw).Replace("__TAG__", "rolling").Replace("__SHA256__", $hash)
+          Set-Content -Path $installPath -Value $install -NoNewline
+          choco pack $nuspecPath --outputdirectory .
+          if (!(Test-Path "fe.$version.nupkg")) { throw "Rolling Chocolatey package was not created" }
+
+      - name: Attach rolling Chocolatey package to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: rolling
+          name: Fe Rolling Release
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
+          files: fe.*.nupkg
+
+      - name: Publish to Chocolatey Community Repository
+        if: env.CHOCOLATEY_API_KEY != ''
+        shell: pwsh
+        run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
