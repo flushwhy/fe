@@ -21,6 +21,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: master
+          fetch-depth: 0
 
       - uses: actions/setup-go@v5
         with:
@@ -110,7 +111,44 @@ jobs:
       - name: Build rolling Chocolatey package
         shell: pwsh
         run: |
-          $version = "0.0.0-rolling.$env:GITHUB_RUN_NUMBER"
+          $tags = git tag --list | ForEach-Object {
+            if ($_ -match '^(?:fe-)?v?(\d+)\.(\d+)\.(\d+)
+          $binary = Resolve-Path "dist/fe-windows-amd64.exe"
+          $hash = (Get-FileHash $binary -Algorithm SHA256).Hash.ToLowerInvariant()
+          $stage = Join-Path $env:RUNNER_TEMP "fe-choco-rolling"
+          New-Item -ItemType Directory -Force -Path (Join-Path $stage "tools") | Out-Null
+          Copy-Item "packaging/chocolatey/fe.nuspec" (Join-Path $stage "fe.nuspec")
+          Copy-Item "packaging/chocolatey/tools/chocolateyInstall.ps1" (Join-Path $stage "tools/chocolateyInstall.ps1")
+          $nuspecPath = Join-Path $stage "fe.nuspec"
+          $nuspec = (Get-Content $nuspecPath -Raw).Replace("__VERSION__", $version)
+          Set-Content -Path $nuspecPath -Value $nuspec -NoNewline
+          $installPath = Join-Path $stage "tools/chocolateyInstall.ps1"
+          $install = (Get-Content $installPath -Raw).Replace("__TAG__", "rolling").Replace("__SHA256__", $hash)
+          Set-Content -Path $installPath -Value $install -NoNewline
+          choco pack $nuspecPath --outputdirectory .
+          if (!(Test-Path "fe.$version.nupkg")) { throw "Rolling Chocolatey package was not created" }
+
+      - name: Attach rolling Chocolatey package to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: rolling
+          name: Fe Rolling Release
+          prerelease: true
+          make_latest: false
+          overwrite_files: true
+          files: fe.*.nupkg
+
+      - name: Publish to Chocolatey Community Repository
+        if: env.CHOCOLATEY_API_KEY != ''
+        shell: pwsh
+        run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
+) {
+              [PSCustomObject]@{ Major = [int]$Matches[1]; Minor = [int]$Matches[2]; Patch = [int]$Matches[3] }
+            }
+          } | Sort-Object Major, Minor, Patch
+          if (!$tags) { throw "No stable semver release tags found; cannot calculate rolling version" }
+          $latest = $tags[-1]
+          $version = "$($latest.Major).$($latest.Minor).$($latest.Patch + 1)-rolling.$env:GITHUB_RUN_NUMBER"
           $binary = Resolve-Path "dist/fe-windows-amd64.exe"
           $hash = (Get-FileHash $binary -Algorithm SHA256).Hash.ToLowerInvariant()
           $stage = Join-Path $env:RUNNER_TEMP "fe-choco-rolling"
@@ -124,7 +162,7 @@ jobs:
           $install = (Get-Content $installPath -Raw).Replace("__TAG__", "rolling").Replace("__SHA256__", $hash)
           Set-Content -Path $installPath -Value $install -NoNewline
           choco pack $nuspecPath --outputdirectory .
-          if (!(Test-Path "fe-rolling.$version.nupkg")) { throw "Rolling Chocolatey package was not created" }
+          if (!(Test-Path "fe.$version.nupkg")) { throw "Rolling Chocolatey package was not created" }
 
       - name: Attach rolling Chocolatey package to GitHub Release
         uses: softprops/action-gh-release@v2
@@ -134,9 +172,9 @@ jobs:
           prerelease: true
           make_latest: false
           overwrite_files: true
-          files: fe-rolling.*.nupkg
+          files: fe.*.nupkg
 
       - name: Publish to Chocolatey Community Repository
         if: env.CHOCOLATEY_API_KEY != ''
         shell: pwsh
-        run: choco push (Get-ChildItem "fe-rolling.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
+        run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
