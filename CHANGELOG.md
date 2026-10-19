@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.6.0](https://github.com/flushwhy/fe/compare/v0.5.0...v0.6.0) (2026-10-19)
+
+
+### Features
+
+* add Godot tooling and native extension workflow ([#43](https://github.com/flushwhy/fe/issues/43)) ([37dcc06](https://github.com/flushwhy/fe/commit/37dcc067b1966396c89ca1d2ae341696d7922c93))
+* add workspace-aware fe watch command ([#39](https://github.com/flushwhy/fe/issues/39)) ([bff470f](https://github.com/flushwhy/fe/commit/bff470f74515e724bff730fdc306ebf85f2f200d))
+
+
+### Bug Fixes
+
+* **godot:** Fixed issues with escape characters ([#44](https://github.com/flushwhy/fe/issues/44)) ([92823a8](https://github.com/flushwhy/fe/commit/92823a823079b9433d7bd91191ab013c06ff5962))
+* repair rolling release workflow YAML ([#42](https://github.com/flushwhy/fe/issues/42)) ([bff53c3](https://github.com/flushwhy/fe/commit/bff53c324ce2aec5f032174dec8e437d3eac54c7))
+
 ## [0.5.0](https://github.com/flushwhy/fe/compare/v0.4.0...v0.5.0) (2026-10-14)
 
 
