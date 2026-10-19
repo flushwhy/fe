@@ -26,6 +26,12 @@ var rootCmd = &cobra.Command{
   Development loop:
     fe watch                          detect a workspace, watch files, and rebuild C++ changes
 
+  Godot workflow glue:
+    fe godot engines                  detect installed Godot versions
+    fe godot open [--version 4.x]     open the current project with a matching engine
+    fe godot extension (ex|ext)       scaffold, build, and diagnose native extensions
+    fe godot doctor                   inspect project and native-extension prerequisites
+
   O3DE workflow glue:
     fe o3de doctor                    diagnose engine and build prerequisites
     fe o3de find <kind>               find registered and local engines, projects, Gems, templates
