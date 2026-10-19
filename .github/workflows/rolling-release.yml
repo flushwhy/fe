@@ -149,17 +149,3 @@ jobs:
         if: env.CHOCOLATEY_API_KEY != ''
         shell: pwsh
         run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
-      - name: Attach rolling Chocolatey package to GitHub Release
-        uses: softprops/action-gh-release@v2
-        with:
-          tag_name: rolling
-          name: Fe Rolling Release
-          prerelease: true
-          make_latest: false
-          overwrite_files: true
-          files: fe.*.nupkg
-
-      - name: Publish to Chocolatey Community Repository
-        if: env.CHOCOLATEY_API_KEY != ''
-        shell: pwsh
-        run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
