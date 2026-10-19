@@ -190,9 +190,9 @@ GDExtensionBool GDE_EXPORT fe_extension_init(
 
 This scaffold targets Godot 4 GDExtension and C++ via godot-cpp.
 
-1. Run `fe godot ex setup` to fetch godot-cpp.
-2. Run `fe godot ex build` to configure and compile.
-3. Add a `.gdextension` manifest and platform-specific library entries before loading the library from a project.
+1. Run "fe godot ex setup" to fetch godot-cpp.
+2. Run "fe godot ex build" to configure and compile.
+3. Add a ".gdextension" manifest and platform-specific library entries before loading the library from a project.
 
 Godot 3 GDNative uses a different API and is not compatible with this scaffold.
 `,
