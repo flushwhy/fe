@@ -217,7 +217,7 @@ This scaffold targets Godot 4 GDExtension and C++ via godot-cpp.
 
 1. Run "fe godot ex setup" to fetch godot-cpp.
 2. Run "fe godot ex build" to configure and compile.
-3. The generated `fe_godot_extension.gdextension` manifest is ready to use for x86_64 Linux and Windows, and macOS builds.
+3. The generated fe_godot_extension.gdextension manifest is ready to use for x86_64 Linux and Windows, and macOS builds.
 
 Godot 3 GDNative uses a different API and is not compatible with this scaffold.
 `,
