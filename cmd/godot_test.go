@@ -45,6 +45,12 @@ func TestGodotExtensionInitCreatesManifestAndBuildOutputs(t *testing.T) {
 }
 
 func TestGodotExportRequiresPreset(t *testing.T) {
+	if err := godotExportCmd.Flags().Set("preset", ""); err != nil {
+		t.Fatal(err)
+	}
+	if err := godotExportCmd.Flags().Set("output", ""); err != nil {
+		t.Fatal(err)
+	}
 	project := t.TempDir()
 	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\n"), 0o644); err != nil {
 		t.Fatal(err)
