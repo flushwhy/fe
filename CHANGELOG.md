@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.7.0](https://github.com/flushwhy/fe/compare/v0.6.0...v0.7.0) (2026-10-21)
+
+
+### Features
+
+* **godot:** add headless project export command ([#47](https://github.com/flushwhy/fe/issues/47)) ([1983754](https://github.com/flushwhy/fe/commit/19837540b299140394c052873c788fec142131d3))
+
+
+### Bug Fixes
+
+* make generated Godot extensions loadable ([#45](https://github.com/flushwhy/fe/issues/45)) ([8a73b4c](https://github.com/flushwhy/fe/commit/8a73b4c62d5e9c5390d1b196d21b4d46e8a5b3a4))
+* remove stale Chocolatey packages from rolling release ([#49](https://github.com/flushwhy/fe/issues/49)) ([2fc4971](https://github.com/flushwhy/fe/commit/2fc49713a0d0b181589e349d7888fe97be2b85aa))
+* retry transient Chocolatey rolling push failures ([#48](https://github.com/flushwhy/fe/issues/48)) ([c07c205](https://github.com/flushwhy/fe/commit/c07c20501179309e2400046e34f7694c92f3e03a))
+
 ## [0.6.0](https://github.com/flushwhy/fe/compare/v0.5.0...v0.6.0) (2026-10-19)
 
 
