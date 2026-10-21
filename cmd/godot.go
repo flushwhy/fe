@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -51,29 +50,54 @@ var godotOpenCmd = &cobra.Command{
 			return err
 		}
 		requested, _ := cmd.Flags().GetString("version")
-		engines := detectGodotEngines()
-		var chosen *godotEngine
-		for i := range engines {
-			if requested != "" && !strings.Contains(engines[i].Version, requested) {
-				continue
-			}
-			if requested == "" && !projectVersionMatches(project, engines[i].Version) {
-				continue
-			}
-			chosen = &engines[i]
-			break
-		}
-		if chosen == nil && requested == "" && len(engines) == 1 {
-			chosen = &engines[0]
-		}
-		if chosen == nil {
-			if requested == "" {
-				return fmt.Errorf("could not choose an installed engine matching this project; use --version (for example --version 4.3) or run 'fe godot engines'")
-			}
-			return fmt.Errorf("no installed Godot engine matches version %q; run 'fe godot engines'", requested)
+		chosen, err := selectGodotEngine(project, requested)
+		if err != nil {
+			return err
 		}
 		c := exec.Command(chosen.Path, "--editor", "--path", project)
 		c.Stdin, c.Stdout, c.Stderr = os.Stdin, os.Stdout, os.Stderr
+		return c.Run()
+	},
+}
+
+var godotExportCmd = &cobra.Command{
+	Use:   "export",
+	Short: "Export the current Godot project using an export preset.",
+	Long:  "Run a headless Godot export. Create export presets in the Godot editor first.",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		project, err := findGodotProject(".")
+		if err != nil {
+			return err
+		}
+		preset, _ := cmd.Flags().GetString("preset")
+		if strings.TrimSpace(preset) == "" {
+			return errors.New("an export preset is required; pass --preset")
+		}
+		output, _ := cmd.Flags().GetString("output")
+		if strings.TrimSpace(output) == "" {
+			return errors.New("an output path is required; pass --output")
+		}
+		if _, err := os.Stat(filepath.Join(project, "export_presets.cfg")); err != nil {
+			return errors.New("export presets not found; create one in the Godot editor and save export_presets.cfg")
+		}
+		requested, _ := cmd.Flags().GetString("version")
+		engine, err := selectGodotEngine(project, requested)
+		if err != nil {
+			return err
+		}
+		if !filepath.IsAbs(output) {
+			output = filepath.Join(project, output)
+		}
+		if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
+			return fmt.Errorf("create export output directory: %w", err)
+		}
+		mode := "--export-release"
+		if debug, _ := cmd.Flags().GetBool("debug"); debug {
+			mode = "--export-debug"
+		}
+		c := exec.Command(engine.Path, "--headless", "--path", project, mode, preset, output)
+		c.Stdin, c.Stdout, c.Stderr = cmd.InOrStdin(), cmd.OutOrStdout(), cmd.ErrOrStderr()
 		return c.Run()
 	},
 }
@@ -333,8 +357,12 @@ var godotExtensionDoctorCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(godotCmd)
-	godotCmd.AddCommand(godotEnginesCmd, godotOpenCmd, godotDoctorCmd, godotExtensionCmd)
+	godotCmd.AddCommand(godotEnginesCmd, godotOpenCmd, godotExportCmd, godotDoctorCmd, godotExtensionCmd)
 	godotOpenCmd.Flags().String("version", "", "installed Godot version to use (for example 4.3 or 3.5)")
+	godotExportCmd.Flags().String("preset", "", "export preset name from export_presets.cfg")
+	godotExportCmd.Flags().String("output", "", "export output path (relative to the project or absolute)")
+	godotExportCmd.Flags().Bool("debug", false, "create a debug export instead of a release export")
+	godotExportCmd.Flags().String("version", "", "installed Godot version to use (for example 4.3 or 3.5)")
 	godotExtensionCmd.AddCommand(godotExtensionInitCmd, godotExtensionSetupCmd, godotExtensionBuildCmd, godotExtensionDoctorCmd)
 }
 
@@ -367,6 +395,26 @@ func detectGodotEngines() []godotEngine {
 		engines = append(engines, godotEngine{Path: path, Version: version})
 	}
 	return engines
+}
+
+func selectGodotEngine(project, requested string) (*godotEngine, error) {
+	engines := detectGodotEngines()
+	for i := range engines {
+		if requested != "" && !strings.Contains(engines[i].Version, requested) {
+			continue
+		}
+		if requested == "" && !projectVersionMatches(project, engines[i].Version) {
+			continue
+		}
+		return &engines[i], nil
+	}
+	if requested == "" && len(engines) == 1 {
+		return &engines[0], nil
+	}
+	if requested == "" {
+		return nil, fmt.Errorf("could not choose an installed engine matching this project; use --version (for example --version 4.3) or run 'fe godot engines'")
+	}
+	return nil, fmt.Errorf("no installed Godot engine matches version %q; run 'fe godot engines'", requested)
 }
 
 func findGodotProject(start string) (string, error) {
@@ -412,4 +460,3 @@ func projectVersionMatches(project, version string) bool {
 	return strings.HasPrefix(version, projectVersion)
 }
 
-var _ = json.Valid
