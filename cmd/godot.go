@@ -158,7 +158,32 @@ add_subdirectory("${CMAKE_CURRENT_SOURCE_DIR}/../godot-cpp" godot-cpp)
 add_library(fe_godot_extension SHARED src/register_types.cpp)
 target_link_libraries(fe_godot_extension PRIVATE godot-cpp)
 set_target_properties(fe_godot_extension PROPERTIES
-  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../bin")
+  LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../bin"
+  LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/../bin"
+  LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/../bin"
+  RUNTIME_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/../bin"
+  RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_CURRENT_SOURCE_DIR}/../bin"
+  RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_CURRENT_SOURCE_DIR}/../bin")
+if(WIN32)
+  set_target_properties(fe_godot_extension PROPERTIES PREFIX "" SUFFIX ".dll")
+elseif(APPLE)
+  set_target_properties(fe_godot_extension PROPERTIES PREFIX "lib" SUFFIX ".dylib")
+else()
+  set_target_properties(fe_godot_extension PROPERTIES PREFIX "lib" SUFFIX ".so")
+endif()
+`,
+			"../fe_godot_extension.gdextension": `[configuration]
+entry_symbol = "fe_extension_init"
+compatibility_minimum = "4.3"
+reloadable = true
+
+[libraries]
+linux.debug.x86_64 = "res://bin/libfe_godot_extension.so"
+linux.release.x86_64 = "res://bin/libfe_godot_extension.so"
+windows.debug.x86_64 = "res://bin/fe_godot_extension.dll"
+windows.release.x86_64 = "res://bin/fe_godot_extension.dll"
+macos.debug = "res://bin/libfe_godot_extension.dylib"
+macos.release = "res://bin/libfe_godot_extension.dylib"
 `,
 			"src/register_types.cpp": `#include <godot_cpp/core/class_db.hpp>
 #include <godot_cpp/godot.hpp>
@@ -192,7 +217,7 @@ This scaffold targets Godot 4 GDExtension and C++ via godot-cpp.
 
 1. Run "fe godot ex setup" to fetch godot-cpp.
 2. Run "fe godot ex build" to configure and compile.
-3. Add a ".gdextension" manifest and platform-specific library entries before loading the library from a project.
+3. The generated fe_godot_extension.gdextension manifest is ready to use for x86_64 Linux and Windows, and macOS builds.
 
 Godot 3 GDNative uses a different API and is not compatible with this scaffold.
 `,
