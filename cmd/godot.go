@@ -60,7 +60,6 @@ var godotOpenCmd = &cobra.Command{
 	},
 }
 
-
 var godotExportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Export the current Godot project using an export preset.",
@@ -80,7 +79,7 @@ var godotExportCmd = &cobra.Command{
 			return errors.New("an output path is required; pass --output")
 		}
 		if _, err := os.Stat(filepath.Join(project, "export_presets.cfg")); err != nil {
-			return fmt.Errorf("export presets not found; create one in the Godot editor and save export_presets.cfg")
+			return errors.New("export presets not found; create one in the Godot editor and save export_presets.cfg")
 		}
 		requested, _ := cmd.Flags().GetString("version")
 		engine, err := selectGodotEngine(project, requested)
@@ -397,7 +396,6 @@ func detectGodotEngines() []godotEngine {
 	}
 	return engines
 }
-
 
 func selectGodotEngine(project, requested string) (*godotEngine, error) {
 	engines := detectGodotEngines()
