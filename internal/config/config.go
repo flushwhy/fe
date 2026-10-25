@@ -60,7 +60,13 @@ type GodotConfig struct {
 }
 
 type BuildConfig struct {
-	Targets []BuildTarget `mapstructure:"targets"`
+	Targets   []BuildTarget    `mapstructure:"targets"`
+	Container ContainerBuild   `mapstructure:"container"`
+}
+
+type ContainerBuild struct {
+	Image   string `mapstructure:"image"`
+	Command string `mapstructure:"command"`
 }
 
 // BuildTarget represents a single platform build.
