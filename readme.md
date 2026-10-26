@@ -172,7 +172,7 @@ fe is designed to drop into any Git runner with zero extra config if you set the
 
 ## Godot exports
 
-For Godot projects, configure export presets in Godot and commit `export_presets.cfg`. Then run `fe export` to export every preset, or `fe export --preset "Windows Desktop"` to export one exact preset. `godot` must be on your PATH (or set `godot.executable`), and the matching export templates/platform requirements must be installed. Preset output filenames/extensions are retained while `godot.output_dir` controls the output root.
+For Godot projects, configure export presets in Godot and commit `export_presets.cfg`. Then run `fe export` to export every preset, `fe export --preset "Windows Desktop"` to export one exact preset, or `fe export --list-presets` to inspect preset names and expected output paths without exporting. `godot` must be on your PATH (or set `godot.executable`), and the matching export templates/platform requirements must be installed. Preset output filenames/extensions are retained while `godot.output_dir` controls the output root.
 
 Godot presets for Windows Desktop, Linux, and macOS are placed in `windows-x64/`, `linux-x64/`, and `macos-arm64/` respectively, ready for the existing Butler folder convention. Adjust `godot.output_dir` in `.fe.yaml` if you use a different build root. `fe release` automatically exports presets when run from a directory containing `project.godot`; non-Godot projects continue to use `build.targets`.
 
@@ -235,6 +235,16 @@ Run `fe tui` from an interactive terminal to open the Bubble Tea menu for common
 - When the TUI is idle, press **Ctrl+C** or **q** to exit.
 
 The TUI calls the existing `fe` commands, so command behavior remains consistent with using the CLI directly.
+
+## Watch mode
+
+Run `fe watch` to monitor supported project files and trigger the configured development actions. Use repeatable `--ignore-dir` flags to exclude extra directory names, such as generated output or asset caches:
+
+```sh
+fe watch --ignore-dir generated --ignore-dir cache
+```
+
+Custom ignored directory names are matched case-insensitively and apply to nested directories, including matching directories created while watch mode is running.
 
 ## Release preview and artifact manifest
 
