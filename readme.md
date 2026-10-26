@@ -238,13 +238,13 @@ The TUI calls the existing `fe` commands, so command behavior remains consistent
 
 ## Watch mode
 
-Run `fe watch` to monitor supported project files and trigger the configured development actions. Use repeatable `--ignore-dir` flags to exclude extra directory names, such as generated output or asset caches:
+Run `fe watch` to monitor supported project files and trigger the configured development actions. Pass multiple directory names after one `--ignore-dir` flag to exclude extra directories, such as generated output or asset caches:
 
 ```sh
-fe watch --ignore-dir generated --ignore-dir cache
+fe watch --ignore-dir generated cache
 ```
 
-Custom ignored directory names are matched case-insensitively and apply to nested directories, including matching directories created while watch mode is running.
+The directory names are collected until the next flag (starting with `--`), so you can still add other options afterward. Custom ignored directory names are matched case-insensitively and apply to nested directories, including matching directories created while watch mode is running.
 
 ## Release preview and artifact manifest
 
