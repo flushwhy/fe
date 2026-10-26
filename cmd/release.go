@@ -42,6 +42,10 @@ CI example:
 		skipPack, _ := cmd.Flags().GetBool("skip-pack")
 		skipBmp, _ := cmd.Flags().GetBool("skip-bmp")
 		channelSuffix, _ := cmd.Flags().GetString("channel-suffix")
+		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		if dryRun {
+			return printReleasePlan(cfg, skipBuild, skipPack, skipBmp, channelSuffix)
+		}
 
 		ui.Title("Release Pipeline")
 		start := time.Now()
@@ -180,8 +184,88 @@ func releaseSpriteInputsAvailable(cfg config.PackConfig) bool {
 	return false
 }
 
+func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, channelSuffix string) error {
+	fmt.Println("Release dry run — no builds, exports, packing, or uploads will be performed.")
+	fmt.Println()
+	problems := 0
+	if skipBuild {
+		fmt.Println("1. Build/export: skipped by --skip-build")
+	} else if _, err := os.Stat("project.godot"); err == nil {
+		presets, err := godot.ReadPresets(filepath.Join(".", "export_presets.cfg"))
+		if err != nil {
+			fmt.Printf("1. Build/export: cannot inspect Godot presets: %v\n", err)
+			problems++
+		} else {
+			fmt.Printf("1. Build/export: %d Godot preset(s) from export_presets.cfg\n", len(presets))
+			for _, preset := range presets {
+				dir, err := godot.PlatformDir(preset.Platform)
+				if err != nil {
+					fmt.Printf("   - %s (%s): unsupported platform\n", preset.Name, preset.Platform)
+					problems++
+					continue
+				}
+				name := filepath.Base(preset.ExportPath)
+				if name == "." || name == string(filepath.Separator) || name == "" {
+					name = filepath.Base(".")
+				}
+				fmt.Printf("   - %s -> %s\n", preset.Name, filepath.Join(cfg.Godot.OutputDir, dir, name))
+			}
+		}
+	} else if len(cfg.Build.Targets) == 0 {
+		fmt.Println("1. Build: no targets configured (will be skipped)")
+	} else {
+		fmt.Printf("1. Build: %d configured target(s)\n", len(cfg.Build.Targets))
+		for _, target := range cfg.Build.Targets {
+			if target.Cmd == "" {
+				fmt.Printf("   - %s: missing command\n", target.Platform)
+				problems++
+			} else {
+				fmt.Printf("   - %s: %s\n", target.Platform, target.Cmd)
+			}
+		}
+	}
+
+	if skipPack {
+		fmt.Println("2. Sprite packing: skipped by --skip-pack")
+	} else if releaseSpriteInputsAvailable(cfg.Pack) {
+		fmt.Printf("2. Sprite packing: %s -> %s\n", cfg.Pack.Input, cfg.Pack.Output)
+	} else {
+		fmt.Println("2. Sprite packing: skipped (no configured sprite input directory)")
+	}
+
+	if skipBmp {
+		fmt.Println("3. itch.io upload: skipped by --skip-bmp")
+	} else {
+		fmt.Printf("3. itch.io upload: %s/%s from %s\n", cfg.Itchio.Username, cfg.Itchio.Game, cfg.Butler.Directory)
+		if cfg.Itchio.Username == "" {
+			fmt.Println("   - missing ITCHIO_USERNAME / itchio.username")
+			problems++
+		}
+		if cfg.Itchio.Game == "" {
+			fmt.Println("   - missing ITCHIO_GAME / itchio.game")
+			problems++
+		}
+		if cfg.Butler.Userversion == "" {
+			fmt.Println("   - version not set; Butler will use its default version behavior")
+		} else {
+			fmt.Printf("   - version: %s\n", cfg.Butler.Userversion)
+		}
+		if channelSuffix != "" {
+			fmt.Printf("   - channel suffix: %s\n", channelSuffix)
+		}
+		if _, err := os.Stat(cfg.Butler.Directory); err != nil {
+			fmt.Printf("   - build directory not currently available: %s\n", cfg.Butler.Directory)
+		}
+	}
+	if problems > 0 {
+		return fmt.Errorf("dry run found %d issue(s) to review", problems)
+	}
+	return nil
+}
+
 func init() {
 	rootCmd.AddCommand(releaseCmd)
+	releaseCmd.Flags().Bool("dry-run", false, "show the release plan without running commands or publishing")
 	releaseCmd.Flags().Bool("skip-build", false, "skip the build step")
 	releaseCmd.Flags().Bool("skip-pack", false, "skip the sprite pack step")
 	releaseCmd.Flags().Bool("skip-bmp", false, "skip the itch.io push step")
