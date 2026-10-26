@@ -21,6 +21,7 @@ func TestWatchIgnoreDirPositionalValues(t *testing.T) {
 	if err := cmd.Args(cmd, []string{"cache"}); err == nil {
 		t.Fatal("expected positional directory names without --ignore-dir to fail")
 	}
+	if err := cmd.Flags().Set("ignore-dir", "generated"); err != nil { t.Fatal(err) }
 	if err := cmd.Args(cmd, []string{"generated", "cache"}); err != nil {
 		t.Fatalf("expected positional directory names with --ignore-dir to be accepted: %v", err)
 	}
