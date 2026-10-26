@@ -51,5 +51,6 @@ Use --preset to export one named preset.`,
 func init() {
 	rootCmd.AddCommand(exportCmd)
 	exportCmd.Flags().String("preset", "", "export only this exact Godot preset name")
+	exportCmd.Flags().Bool("list-presets", false, "list configured presets and expected output paths without exporting")
 }
 
