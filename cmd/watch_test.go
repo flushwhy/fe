@@ -15,3 +15,13 @@ func TestWatchDirIgnored(t *testing.T) {
 		t.Fatal("unexpectedly ignored src")
 	}
 }
+
+func TestWatchIgnoreDirPositionalValues(t *testing.T) {
+	cmd := watchCmd
+	if err := cmd.Args(cmd, []string{"cache"}); err == nil {
+		t.Fatal("expected positional directory names without --ignore-dir to fail")
+	}
+	if err := cmd.Args(cmd, []string{"generated", "cache"}); err != nil {
+		t.Fatalf("expected positional directory names with --ignore-dir to be accepted: %v", err)
+	}
+}
