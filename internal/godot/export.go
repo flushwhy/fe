@@ -76,30 +76,16 @@ func Export(projectDir, executable, outputDir, onlyPreset string, runner func(st
 		outputDir = "builds"
 	}
 
-	projectName := filepath.Base(projectDir)
 	found := onlyPreset == ""
 	for _, preset := range presets {
 		if onlyPreset != "" && preset.Name != onlyPreset {
 			continue
 		}
 		found = true
-		platformDir, err := PlatformDir(preset.Platform)
+		destination, err := ExpectedOutputPath(projectDir, outputDir, preset)
 		if err != nil {
 			return err
 		}
-		filename := filepath.Base(preset.ExportPath)
-		if filename == "." || filename == string(filepath.Separator) || filename == "" {
-			filename = projectName
-			switch platformDir {
-			case "windows-x64":
-				filename += ".exe"
-			case "web":
-				filename += ".zip"
-			case "macos-arm64":
-				filename += ".zip"
-			}
-		}
-		destination := filepath.Join(outputDir, platformDir, filename)
 		if err := os.MkdirAll(filepath.Dir(destination), 0o750); err != nil {
 			return fmt.Errorf("create export directory: %w", err)
 		}
@@ -115,4 +101,26 @@ func Export(projectDir, executable, outputDir, onlyPreset string, runner func(st
 		return fmt.Errorf("Godot export preset %q not found", onlyPreset)
 	}
 	return nil
+}
+
+ // ExpectedOutputPath returns the path Fe will write for a configured preset.
+func ExpectedOutputPath(projectDir, outputDir string, preset Preset) (string, error) {
+	if outputDir == "" {
+		outputDir = "builds"
+	}
+	platformDir, err := PlatformDir(preset.Platform)
+	if err != nil {
+		return "", err
+	}
+	filename := filepath.Base(preset.ExportPath)
+	if filename == "." || filename == string(filepath.Separator) || filename == "" {
+		filename = filepath.Base(projectDir)
+		switch platformDir {
+		case "windows-x64":
+			filename += ".exe"
+		case "web", "macos-arm64":
+			filename += ".zip"
+		}
+	}
+	return filepath.Join(outputDir, platformDir, filename), nil
 }
