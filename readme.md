@@ -56,6 +56,11 @@ curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-arm64 -
 chmod +x fe
 sudo mv fe /usr/local/bin/
 
+# Linux RISC-V 64-bit (native riscv64)
+curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-riscv64 -o fe
+chmod +x fe
+sudo mv fe /usr/local/bin/
+
 # macOS arm64
 curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-macos-arm64 -o fe
 chmod +x fe
