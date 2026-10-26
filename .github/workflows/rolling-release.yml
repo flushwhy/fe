@@ -260,22 +260,6 @@ jobs:
             Write-Warning "Chocolatey push attempt $attempt failed; retrying in $delay seconds."
             Start-Sleep -Seconds $delay
           }
- | sort -V)"
-          if [ -z "$tags" ]; then echo "No stable semver release tags found" >&2; exit 1; fi
-          latest="$(echo "$tags" | tail -n 1)"
-          major="${latest%%.*}"
-          rest="${latest#*.}"
-          minor="${rest%%.*}"
-          patch="${rest#*.}"
-          version="$major.$minor.$((patch + 1))"
-          bash scripts/package-linux.sh "$version" "rolling.g${GITHUB_SHA:0:7}" arm64
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: fe-linux-arm64-packages
-          path: dist/packages/*
-          if-no-files-found: error
-          retention-days: 1
 
   rolling:
     name: Build and publish rolling release
