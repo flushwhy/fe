@@ -36,12 +36,9 @@ Use --preset to export one named preset.`,
 			}
 			fmt.Printf("%-28s %-20s %s\n", "PRESET", "PLATFORM", "OUTPUT")
 			for _, p := range presets {
-				platformDir, mapErr := godot.PlatformDir(p.Platform)
-				output := p.ExportPath
-				if mapErr == nil {
-					output = filepath.Join(cfg.Godot.OutputDir, platformDir, filepath.Base(p.ExportPath))
-				} else {
-					output += " (unsupported platform)"
+				output, mapErr := godot.ExpectedOutputPath(projectDir, cfg.Godot.OutputDir, p)
+				if mapErr != nil {
+					output = p.ExportPath + " (unsupported platform)"
 				}
 				fmt.Printf("%-28s %-20s %s\n", p.Name, p.Platform, output)
 			}
