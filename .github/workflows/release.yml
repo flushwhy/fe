@@ -81,35 +81,17 @@ jobs:
           path: dist
           merge-multiple: true
 
-      - name: Build .deb packages
-        env:
-          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+      - name: Build Linux packages
         run: |
+          sudo apt-get update
+          sudo apt-get install -y rpm
           version="${RELEASE_TAG#fe-v}"
           version="${version#v}"
-          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([.+~:-][0-9A-Za-z.+~:-]*)?$'; then
-            echo "Tag must contain a Debian-compatible version (for example v1.2.3); got $RELEASE_TAG" >&2
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\\.[0-9]+\\.[0-9]+([.+~:-][0-9A-Za-z.+~:-]*)?$'; then
+            echo "Tag must contain a package-compatible version (for example v1.2.3); got $RELEASE_TAG" >&2
             exit 1
           fi
-
-          mkdir -p dist/packages
-          for target in amd64 arm64; do
-            package="dist/packages/fe_${version}_${target}"
-            mkdir -p "$package/DEBIAN" "$package/usr/bin"
-            cp "dist/fe-linux-$target" "$package/usr/bin/fe"
-            chmod 0755 "$package/usr/bin/fe"
-            cat > "$package/DEBIAN/control" <<EOF
-          Package: fe
-          Version: $version
-          Section: devel
-          Priority: optional
-          Architecture: $target
-          Maintainer: flushwhy
-          Description: Local middleware CLI for game and software development
-           Glue between your engine/compiler and shipping workflows.
-          EOF
-            dpkg-deb --root-owner-group --build "$package" "dist/fe_${version}_${target}.deb"
-          done
+          scripts/package-linux.sh "$version"
 
       - name: Smoke-test clean amd64 Debian package install
         env:
@@ -126,7 +108,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: deb-packages
-          path: dist/*.deb
+          path: dist/packages/*
           if-no-files-found: error
           retention-days: 1
 
