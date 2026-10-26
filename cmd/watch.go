@@ -25,8 +25,13 @@ Run from a project or Gem directory:
   fe watch
   fe watch --build-dir build/linux
   fe watch --target MyGem --target MyGem.Editor
-  fe watch --ignore-dir Assets --ignore-dir generated`,
-	Args: cobra.NoArgs,
+  fe watch --ignore-dir Assets generated cache`,
+	Args: func(cmd *cobra.Command, args []string) error {
+		if len(args) > 0 && !cmd.Flags().Changed("ignore-dir") {
+			return fmt.Errorf("extra directory names require --ignore-dir")
+		}
+		return nil
+	},
 	RunE: runWatch,
 }
 
@@ -39,7 +44,7 @@ func init() {
 	watchCmd.Flags().StringArray("ignore-dir", nil, "additional directory name to ignore (repeatable)")
 }
 
-func runWatch(cmd *cobra.Command, _ []string) error {
+func runWatch(cmd *cobra.Command, args []string) error {
 	path, _ := cmd.Flags().GetString("path")
 	root, kind, err := detectWatchWorkspace(path)
 	if err != nil {
@@ -60,6 +65,7 @@ func runWatch(cmd *cobra.Command, _ []string) error {
 	}
 	targets, _ := cmd.Flags().GetStringArray("target")
 	ignoreDirs, _ := cmd.Flags().GetStringArray("ignore-dir")
+	ignoreDirs = append(ignoreDirs, args...)
 	debounce, _ := cmd.Flags().GetDuration("debounce")
 	if debounce < 0 {
 		return fmt.Errorf("--debounce cannot be negative")
