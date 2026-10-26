@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/flushwhy/fe/internal/build"
@@ -97,7 +98,7 @@ CI example:
 				return pack.Run(cfg.Pack)
 			})
 			if err != nil {
-				ui.Warn("Pack step: %v (continuing)", err)
+				return fmt.Errorf("pack step failed; refusing to publish an incomplete release: %w", err)
 			}
 		}
 
@@ -105,6 +106,16 @@ CI example:
 		fmt.Println()
 		ui.Step(3, 3, "Push to itch.io")
 		if !skipBmp {
+			commit := os.Getenv("GITHUB_SHA")
+			if commit == "" {
+				if result, err := exec.Command("git", "rev-parse", "HEAD").Output(); err == nil {
+					commit = strings.TrimSpace(string(result))
+				}
+			}
+			manifestPath := filepath.Join(cfg.Butler.Directory, "artifact-manifest.json")
+			if err := writeArtifactManifest(cfg.Butler.Directory, manifestPath, cfg.Butler.Userversion, commit); err != nil {
+				return fmt.Errorf("create artifact manifest: %w", err)
+			}
 			if errs := cfg.Validate("bmp"); len(errs) > 0 {
 				for _, e := range errs {
 					ui.Fail("%s", e)
