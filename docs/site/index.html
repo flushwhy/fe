@@ -3,46 +3,49 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#10130f">
-  <meta name="description" content="Fe is a command-line-first toolkit for game development: project templates, engine tooling, asset utilities, and release automation.">
+  <meta name="theme-color" content="#f6f3ec">
+  <meta name="description" content="Fe is the practical command-line toolkit for game development: project templates, engine workflows, asset utilities, and release automation. Find the docs and get building.">
   <title>Fe — ship games, not glue code</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
   <style>
     :root {
-      color-scheme: light dark;
-      --bg: #10130f;
-      --panel: #181d17;
-      --panel-2: #20271e;
-      --text: #f1f4e9;
-      --muted: #a4b09c;
-      --line: #34402f;
-      --green: #b8f36a;
-      --green-dark: #233b15;
-      --orange: #ffb86b;
-      --code: #0b0e0a;
+      color-scheme: light;
+      --bg: #f6f3ec;
+      --panel: #fffdf8;
+      --panel-2: #e9eee5;
+      --text: #202a24;
+      --muted: #657168;
+      --line: #deddd3;
+      --green: #315c45;
+      --green-dark: #e2ebdf;
+      --orange: #b96d4a;
+      --code: #1c2922;
       --max: 1160px;
     }
     * { box-sizing: border-box; }
     html { scroll-behavior: smooth; scroll-padding-top: 88px; }
-    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.65 ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.7 "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     a { color: var(--green); text-decoration: none; }
     a:hover { text-decoration: underline; }
     button, input { font: inherit; }
     .wrap { width: min(var(--max), calc(100% - 40px)); margin-inline: auto; }
-    .topbar { position: sticky; top: 0; z-index: 10; background: rgba(16,19,15,.92); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
+    .topbar { position: sticky; top: 0; z-index: 10; background: rgba(246,243,236,.94); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
     .nav { min-height: 72px; display: flex; align-items: center; gap: 28px; }
     .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); font-size: 1.25rem; font-weight: 850; letter-spacing: -.04em; }
-    .mark { display: grid; place-items: center; width: 34px; height: 34px; background: var(--green); color: #17210f; border-radius: 10px; font-weight: 950; }
+    .mark { display: grid; place-items: center; width: 34px; height: 34px; background: var(--green); color: #fffdf8; border-radius: 10px; font-weight: 950; }
     .navlinks { display: flex; align-items: center; gap: 22px; margin-left: auto; color: var(--muted); font-size: .92rem; }
     .navlinks a { color: inherit; }
     .navlinks a:hover { color: var(--text); }
     .github { border: 1px solid var(--line); border-radius: 9px; padding: 8px 13px; color: var(--text) !important; }
     .hero { padding: 94px 0 82px; border-bottom: 1px solid var(--line); overflow: hidden; position: relative; }
-    .hero:after { content: ""; position: absolute; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(184,243,106,.12), transparent 68%); right: -70px; top: -90px; pointer-events: none; }
+    .hero:after { content: ""; position: absolute; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(49,92,69,.13), transparent 68%); right: -70px; top: -90px; pointer-events: none; }
     .eyebrow { display: inline-flex; gap: 9px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .11em; font-weight: 750; }
-    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 16px rgba(184,243,106,.6); }
-    h1 { font-size: clamp(3.2rem, 8vw, 6.5rem); letter-spacing: -.085em; line-height: .98; max-width: 850px; margin: 26px 0; font-weight: 900; }
+    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 14px rgba(49,92,69,.24); }
+    h1 { font-family: "Fraunces", Georgia, serif; font-size: clamp(3.2rem, 8vw, 6.5rem); letter-spacing: -.085em; line-height: .98; max-width: 850px; margin: 26px 0; font-weight: 900; }
     h1 span { color: var(--green); }
-    .lead { color: #c3cdbb; max-width: 690px; font-size: clamp(1.08rem, 2vw, 1.28rem); }
+    .lead { color: #59665d; max-width: 690px; font-size: clamp(1.08rem, 2vw, 1.28rem); }
     .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
     .btn { display: inline-flex; justify-content: center; align-items: center; gap: 9px; padding: 12px 17px; border-radius: 10px; border: 1px solid var(--line); font-weight: 750; color: var(--text); }
     .btn.primary { background: var(--green); color: #17210f; border-color: var(--green); }
@@ -57,12 +60,13 @@
     .section { padding: 78px 0; border-bottom: 1px solid var(--line); }
     .section-head { display: flex; gap: 28px; align-items: end; justify-content: space-between; margin-bottom: 30px; }
     .kicker { color: var(--green); font-size: .78rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
-    h2 { margin: 7px 0 0; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.12; letter-spacing: -.055em; }
+    h1 span { font-style: italic; }
+    h2 { font-family: "Fraunces", Georgia, serif; font-weight: 600; margin: 7px 0 0; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.12; letter-spacing: -.055em; }
     h3 { margin: 0 0 8px; font-size: 1.15rem; letter-spacing: -.02em; }
     p { margin: 0 0 14px; }
     .muted { color: var(--muted); }
     .grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
-    .card { border: 1px solid var(--line); border-radius: 14px; padding: 22px; background: linear-gradient(145deg, var(--panel), rgba(24,29,23,.62)); min-width: 0; }
+    .card { border: 1px solid var(--line); border-radius: 14px; padding: 22px; background: linear-gradient(145deg, var(--panel), #f0eee6); min-width: 0; }
     .card p { color: var(--muted); font-size: .94rem; }
     .icon { width: 36px; height: 36px; display: grid; place-items: center; background: var(--green-dark); color: var(--green); border-radius: 10px; margin-bottom: 17px; font-size: 1.1rem; font-weight: 800; }
     .two-col { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 35px; align-items: start; }
@@ -72,13 +76,13 @@
     .doc-section { padding: 0 0 36px; margin-bottom: 35px; border-bottom: 1px solid var(--line); }
     .doc-section:last-child { border: 0; }
     .doc-section h3 { font-size: 1.35rem; margin-bottom: 10px; }
-    code { font: .9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--panel-2); border: 1px solid var(--line); padding: 2px 5px; border-radius: 5px; color: #d6f9ad; }
+    code { font: .9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--panel-2); border: 1px solid var(--line); padding: 2px 5px; border-radius: 5px; color: #315c45; }
     pre code { border: 0; padding: 0; background: transparent; color: inherit; }
     .copyline { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 10px 16px; margin: 12px 0 18px; }
     .copyline code { border: 0; background: none; padding: 0; overflow-x: auto; white-space: nowrap; }
     .copy { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 7px; padding: 6px 10px; cursor: pointer; font-size: .82rem; flex-shrink: 0; }
     .copy:hover { border-color: var(--green); }
-    .callout { border-left: 3px solid var(--orange); background: #211d16; padding: 14px 16px; border-radius: 0 9px 9px 0; color: #e7d4b9; font-size: .93rem; }
+    .callout { border-left: 3px solid var(--orange); background: #f1e8df; padding: 14px 16px; border-radius: 0 9px 9px 0; color: #624332; font-size: .93rem; }
     .command-list { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
     .command { padding: 15px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
     .command code { display: inline-block; margin-bottom: 6px; }
@@ -113,10 +117,10 @@
     <div class="wrap nav">
       <a class="brand" href="#top" aria-label="Fe home"><span class="mark">fe</span><span>Fe</span></a>
       <nav class="navlinks" aria-label="Main navigation">
-        <a href="#features">Features</a>
+        <a href="#docs">Docs</a>
         <a href="#quickstart">Quick start</a>
         <a href="#commands">Commands</a>
-        <a href="#configuration">Configuration</a>
+        <a href="#features">Features</a>
       </nav>
       <a class="github" href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">GitHub ↗</a>
     </div>
@@ -141,6 +145,24 @@
 <span class="comment"># Build, then ship</span>
 <span class="prompt">$</span> fe build
 <span class="prompt">$</span> fe release</pre>
+        </div>
+      </div>
+    </section>
+
+
+    <section class="section" id="docs">
+      <div class="wrap">
+        <div class="section-head">
+          <div><div class="kicker">Start here</div><h2>Everything you need to get moving.</h2></div>
+          <p class="muted" style="max-width:390px">Practical guides first, searchable commands close at hand, and configuration examples you can adapt to your project.</p>
+        </div>
+        <div class="grid">
+          <article class="card"><div class="icon">01</div><h3>Quick start</h3><p>Install Fe, choose a template, and get your first project scaffolded.</p><a href="#quickstart">Start building ↗</a></article>
+          <article class="card"><div class="icon">02</div><h3>Command reference</h3><p>Search commands for builds, templates, assets, engines, and releases.</p><a href="#commands">Browse commands ↗</a></article>
+          <article class="card"><div class="icon">03</div><h3>Project configuration</h3><p>Learn how <code>.fe.yaml</code> keeps build targets, output paths, and publishing settings with your project.</p><a href="#configuration">Explore configuration ↗</a></article>
+          <article class="card"><div class="icon">04</div><h3>Container builds</h3><p>Read the guide for building Fe in container-based environments.</p><a href="https://github.com/flushwhy/fe/blob/master/docs/container-builds.md" target="_blank" rel="noreferrer">Read the guide ↗</a></article>
+          <article class="card"><div class="icon">05</div><h3>Templates</h3><p>Browse reusable starter projects maintained in the companion templates repository.</p><a href="https://github.com/flushwhy/fe-templates" target="_blank" rel="noreferrer">Explore templates ↗</a></article>
+          <article class="card"><div class="icon">06</div><h3>Troubleshooting</h3><p>Run <code>fe doctor</code> for local checks, or open an issue for reproducible problems.</p><a href="https://github.com/flushwhy/fe/issues" target="_blank" rel="noreferrer">Get help on GitHub ↗</a></article>
         </div>
       </div>
     </section>
@@ -264,6 +286,17 @@ itchio:
       </div>
     </section>
 
+
+    <section class="section" id="support">
+      <div class="wrap two-col">
+        <div><div class="kicker">Independent and open source</div><h2>Help keep Fe moving.</h2><p class="muted" style="margin-top:14px">If Fe saves you time, a star, a bug report, or a contribution helps the project grow. A direct donation link can be added here when you have a preferred platform.</p></div>
+        <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
+          <article class="card"><div class="icon">★</div><h3>Spread the word</h3><p>Star the repository so more developers can discover Fe.</p><a href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">Star Fe on GitHub ↗</a></article>
+          <article class="card"><div class="icon">↗</div><h3>Contribute</h3><p>Share a bug report, suggest an improvement, or help with code and docs.</p><a href="https://github.com/flushwhy/fe/issues" target="_blank" rel="noreferrer">Help shape Fe ↗</a></article>
+        </div>
+      </div>
+    </section>
+
     <section class="section">
       <div class="wrap" style="display:flex;gap:24px;justify-content:space-between;align-items:center;flex-wrap:wrap">
         <div><div class="kicker">Made to be useful</div><h2>Build something worth shipping.</h2><p class="muted" style="margin-top:12px">Fe is open source. Follow development, report issues, and help shape the workflow.</p></div>
@@ -272,7 +305,7 @@ itchio:
     </section>
   </main>
   <footer class="footer">
-    <div class="wrap footer-inner"><span>© Fe · Open-source game development toolkit</span><span><a href="https://github.com/flushwhy/fe">Source</a> · <a href="https://github.com/flushwhy/fe/issues">Issues</a> · <a href="https://github.com/flushwhy/fe-templates">Templates</a></span></div>
+    <div class="wrap footer-inner"><span>© Fe · Open-source game development toolkit</span><span><a href="#docs">Documentation</a> · <a href="#support">Support</a> · <a href="https://github.com/flushwhy/fe">Source</a> · <a href="https://github.com/flushwhy/fe/issues">Issues</a> · <a href="https://github.com/flushwhy/fe-templates">Templates</a></span></div>
   </footer>
   <script>
     document.querySelectorAll("[data-copy]").forEach(function (button) {
