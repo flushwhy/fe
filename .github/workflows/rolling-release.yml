@@ -35,7 +35,27 @@ jobs:
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o dist/fe-linux-arm64 .
           sudo apt-get update
           sudo apt-get install -y rpm
-          tags="$(git tag --list | sed -E 's/^(fe-)?v//' | grep -E '^[0-9]+[.][0-9]+[.][0-9]+
+          tags="$(git tag --list | sed -E 's/^(fe-)?v//' | grep -E '^[0-9]+[.][0-9]+[.][0-9]+$' | sort -V)"
+          if [ -z "$tags" ]; then echo "No stable semver release tags found" >&2; exit 1; fi
+          latest="$(echo "$tags" | tail -n 1)"
+          major="${latest%%.*}"
+          rest="${latest#*.}"
+          minor="${rest%%.*}"
+          patch="${rest#*.}"
+          version="$major.$minor.$((patch + 1))"
+          bash scripts/package-linux.sh "$version" "rolling.g${GITHUB_SHA:0:7}" arm64
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fe-linux-arm64-packages
+          path: dist/packages/*
+          if-no-files-found: error
+          retention-days: 1
+
+  rolling:
+    name: Build and publish rolling release
+    needs: arm64-packages
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
