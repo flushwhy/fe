@@ -1,0 +1,17 @@
+package cmd
+
+import "testing"
+
+func TestWatchDirIgnored(t *testing.T) {
+	for _, name := range []string{".git", "build", "node_modules"} {
+		if !watchDirIgnored(name, nil) {
+			t.Errorf("expected default directory %q to be ignored", name)
+		}
+	}
+	if !watchDirIgnored("Generated", []string{"generated"}) {
+		t.Fatal("custom ignored directory names should be case-insensitive")
+	}
+	if watchDirIgnored("src", []string{"generated"}) {
+		t.Fatal("unexpectedly ignored src")
+	}
+}
