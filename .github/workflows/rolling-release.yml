@@ -85,9 +85,39 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  riscv-binary:
+    if: needs.check-changes.outputs.changed == 'true'
+    needs: check-changes
+    name: Build Linux RISC-V 64-bit binary on native hardware
+    runs-on: ubuntu-24.04-riscv
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache: true
+
+      - name: Test and build RISC-V binary
+        run: |
+          set -euo pipefail
+          go test ./...
+          mkdir -p dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 go build -trimpath -ldflags="-s -w" -o dist/fe-linux-riscv64 .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fe-linux-riscv64
+          path: dist/fe-linux-riscv64
+          if-no-files-found: error
+          retention-days: 1
+
   rolling:
     name: Build and publish rolling release
-    needs: [check-changes, arm64-packages]
+    needs: [check-changes, arm64-packages, riscv-binary]
     if: needs.check-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
@@ -108,6 +138,11 @@ jobs:
         with:
           name: fe-linux-arm64-packages
           path: dist/packages
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: fe-linux-riscv64
+          path: dist
 
       - name: Build binaries and Linux packages
         run: |
@@ -159,6 +194,7 @@ jobs:
           files: |
             dist/fe-linux-amd64
             dist/fe-linux-arm64
+            dist/fe-linux-riscv64
             dist/fe-windows-amd64.exe
             dist/fe-macos-amd64
             dist/fe-macos-arm64

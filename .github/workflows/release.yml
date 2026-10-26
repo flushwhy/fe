@@ -71,6 +71,33 @@ jobs:
           if-no-files-found: error
           retention-days: 1
 
+  riscv-binary:
+    name: Build Linux RISC-V 64-bit binary on native hardware
+    runs-on: ubuntu-24.04-riscv
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.25.x"
+          cache: true
+
+      - name: Test and build RISC-V binary
+        run: |
+          set -euo pipefail
+          go test ./...
+          mkdir -p dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 go build -trimpath -ldflags="-s -w" -o dist/fe-linux-riscv64 .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: fe-linux-riscv64
+          path: dist/fe-linux-riscv64
+          if-no-files-found: error
+          retention-days: 1
+
   deb-packages:
     name: Build Debian packages
     needs: binaries
@@ -118,7 +145,7 @@ jobs:
 
   github-release:
     name: Publish GitHub Release assets
-    needs: [binaries, deb-packages]
+    needs: [binaries, riscv-binary, deb-packages]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -129,9 +156,9 @@ jobs:
       - name: Verify and checksum release assets
         run: |
           ls -lah dist
-          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 11
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 12
           sha256sum dist/fe-* dist/*.deb dist/*.rpm dist/*.tar.gz > dist/SHA256SUMS
-          test "$(wc -l < dist/SHA256SUMS)" -eq 11
+          test "$(wc -l < dist/SHA256SUMS)" -eq 12
           cat dist/SHA256SUMS
 
       - name: Create release and upload binaries
