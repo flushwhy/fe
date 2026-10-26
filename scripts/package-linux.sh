@@ -15,13 +15,13 @@ fi
 
 for target in amd64 arm64; do
   binary="dist/fe-linux-$target"
-  test -x "$binary" || chmod 0755 "$binary"
+  test -f "$binary"
+  chmod 0755 "$binary"
   case "$target" in
     amd64) deb_arch="amd64"; rpm_arch="x86_64" ;;
     arm64) deb_arch="arm64"; rpm_arch="aarch64" ;;
   esac
 
-  # Debian package
   package="dist/packages/deb-$target"
   mkdir -p "$package/DEBIAN" "$package/usr/bin"
   install -m 0755 "$binary" "$package/usr/bin/fe"
@@ -38,7 +38,6 @@ EOF
   dpkg-deb --root-owner-group --build "$package" "dist/packages/fe_${archive_suffix}_$target.deb"
   rm -rf "$package"
 
-  # RPM package
   top="$(mktemp -d)"
   mkdir -p "$top"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
   cp "$binary" "$top/SOURCES/fe"
@@ -60,11 +59,13 @@ install -m 0755 %{_sourcedir}/fe %{buildroot}/usr/bin/fe
 %files
 /usr/bin/fe
 EOF
-  rpmbuild --target "$rpm_arch" -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
-  find "$top/RPMS" -type f -name '*.rpm' -exec cp {} "dist/packages/fe-${archive_suffix}-$rpm_arch.rpm" \;
+  # Use a complete target platform; bare "aarch64" is rejected by Ubuntu's RPM macros.
+  rpmbuild --target "${rpm_arch}-linux" -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
+  rpm_file="$(find "$top/RPMS" -type f -name '*.rpm' -print -quit)"
+  test -n "$rpm_file"
+  cp "$rpm_file" "dist/packages/fe-${archive_suffix}-$rpm_arch.rpm"
   rm -rf "$top"
 
-  # Portable archive for distributions without a native package manager.
   archive="$(mktemp -d)"
   mkdir -p "$archive/fe"
   install -m 0755 "$binary" "$archive/fe/fe"
