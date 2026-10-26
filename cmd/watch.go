@@ -44,7 +44,7 @@ func init() {
 	watchCmd.Flags().StringArray("ignore-dir", nil, "additional directory name to ignore (repeatable)")
 }
 
-func runWatch(cmd *cobra.Command, _ []string) error {
+func runWatch(cmd *cobra.Command, args []string) error {
 	path, _ := cmd.Flags().GetString("path")
 	root, kind, err := detectWatchWorkspace(path)
 	if err != nil {
