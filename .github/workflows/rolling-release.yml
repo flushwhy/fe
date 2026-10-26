@@ -14,7 +14,40 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  check-changes:
+    name: Check for release-relevant changes
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.check.outputs.changed }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: master
+          fetch-depth: 0
+
+      - name: Compare with the previous rolling release
+        id: check
+        run: |
+          if ! git rev-parse --verify refs/tags/rolling >/dev/null 2>&1; then
+            echo "No previous rolling tag; publish the initial rolling release."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          elif git diff --quiet refs/tags/rolling HEAD -- . \
+            ':(exclude)docs/**' \
+            ':(exclude)**/*.md' \
+            ':(exclude)readme.md' \
+            ':(exclude)CHANGELOG.md' \
+            ':(exclude)LICENSE' \
+            ':(exclude).release-please-manifest.json'; then
+            echo "No release-relevant changes since the last rolling release."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "Release-relevant changes found."
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
   arm64-packages:
+    if: needs.check-changes.outputs.changed == 'true'
+    needs: check-changes
     name: Build ARM64 Linux packages natively
     runs-on: ubuntu-24.04-arm
     steps:
@@ -54,7 +87,8 @@ jobs:
 
   rolling:
     name: Build and publish rolling release
-    needs: arm64-packages
+    needs: [check-changes, arm64-packages]
+    if: needs.check-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
