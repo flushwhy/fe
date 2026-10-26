@@ -1,8 +1,13 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-version="${1:?Usage: package-linux.sh VERSION [CHANNEL]}"
+version="${1:?Usage: package-linux.sh VERSION [CHANNEL] [ARCH]}"
 channel="${2:-}"
+target_arch="${3:-all}"
+case "$target_arch" in
+  all|amd64|arm64) ;;
+  *) echo "Unsupported architecture: $target_arch" >&2; exit 2 ;;
+esac
 mkdir -p dist/packages
 deb_version="$version"
 rpm_release="1"
@@ -13,7 +18,9 @@ if [[ -n "$channel" ]]; then
   archive_suffix="${version}-${channel}"
 fi
 
-for target in amd64 arm64; do
+targets="amd64 arm64"
+if [[ "$target_arch" != all ]]; then targets="$target_arch"; fi
+for target in $targets; do
   binary="dist/fe-linux-$target"
   test -f "$binary"
   chmod 0755 "$binary"
@@ -59,8 +66,8 @@ install -m 0755 %{_sourcedir}/fe %{buildroot}/usr/bin/fe
 %files
 /usr/bin/fe
 EOF
-  # Use RPM standard arch-vendor-os target triplets for native and cross-architecture packages.
-  rpmbuild --target "${rpm_arch}-redhat-linux" -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
+  # rpmbuild uses the runner's native architecture.
+  rpmbuild -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
   rpm_file="$(find "$top/RPMS" -type f -name '*.rpm' -print -quit)"
   test -n "$rpm_file"
   cp "$rpm_file" "dist/packages/fe-${archive_suffix}-$rpm_arch.rpm"
