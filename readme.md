@@ -11,6 +11,7 @@ fe transcode      convert audio/video via ffmpeg
 fe bmp            push builds to itch.io via butler
 fe release        build → pack → push in one shot
 fe release --dry-run  preview the release plan without side effects
+fe export --list-presets  inspect Godot export presets and output paths
 fe manifest       write artifact inventory and SHA-256 checksums
 fe validate       pre-flight config & path check
 fe doctor         diagnose local toolchain and config issues
@@ -237,9 +238,11 @@ The TUI calls the existing `fe` commands, so command behavior remains consistent
 
 ## Release preview and artifact manifest
 
-Run `fe release --dry-run` to inspect configured build/export targets, sprite packing, and itch.io publishing requirements without running build commands or uploading anything. The dry run reports missing credentials and unsupported Godot export platforms.
+Run `fe release --dry-run` to inspect configured build/export targets, sprite packing, and itch.io publishing requirements without running build commands or uploading anything. The dry run reports missing credentials and unsupported Godot export platforms. It may still inspect local configuration and files, but does not build, pack, or publish.
 
-`fe manifest` writes `builds/artifact-manifest.json` by default (or use `--dir`, `--output`, and `--version`). The JSON lists each artifact path, platform folder, file size, SHA-256 checksum, version, and commit when available. `fe release` creates this manifest automatically before publishing. A failed sprite pack now stops the release instead of uploading potentially incomplete output.
+`fe manifest` writes `builds/artifact-manifest.json` by default (or use `--dir`, `--output`, and `--version`). The JSON lists each artifact path, platform folder, file size, SHA-256 checksum, version, and commit when available. Symlinks are excluded and an empty artifact directory is treated as an error. `fe release` creates this manifest automatically before publishing. A failed sprite pack now stops the release instead of uploading potentially incomplete output.
+
+`fe doctor` includes checks for Fe build target configuration and, in Godot projects, the configured Godot executable and export presets. Use `fe validate` for configuration validation and `fe doctor` for environment-oriented diagnostics.
 
 ## Dependencies
 
