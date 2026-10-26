@@ -51,7 +51,7 @@ jobs:
           minor="${rest%%.*}"
           patch="${rest#*.}"
           version="$major.$minor.$((patch + 1))"
-          scripts/package-linux.sh "$version" "rolling.g${GITHUB_SHA:0:7}"
+          bash scripts/package-linux.sh "$version" "rolling.g${GITHUB_SHA:0:7}"
           cp dist/packages/* dist/
           sha256sum dist/fe-* dist/*.deb dist/*.rpm dist/*.tar.gz > dist/SHA256SUMS
 
