@@ -59,8 +59,8 @@ install -m 0755 %{_sourcedir}/fe %{buildroot}/usr/bin/fe
 %files
 /usr/bin/fe
 EOF
-  # Use a complete target platform; bare "aarch64" is rejected by Ubuntu's RPM macros.
-  rpmbuild --target "${rpm_arch}-linux" -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
+  # Use RPM standard arch-vendor-os target triplets for native and cross-architecture packages.
+  rpmbuild --target "${rpm_arch}-redhat-linux" -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
   rpm_file="$(find "$top/RPMS" -type f -name '*.rpm' -print -quit)"
   test -n "$rpm_file"
   cp "$rpm_file" "dist/packages/fe-${archive_suffix}-$rpm_arch.rpm"
