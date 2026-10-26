@@ -35,7 +35,7 @@ Maintainer: flushwhy
 Description: Local middleware CLI for game and software development
  Glue between your engine/compiler and shipping workflows.
 EOF
-  dpkg-deb --root-owner-group --build "$package" "dist/packages/fe_${archive_suffix}_linux_$target.deb"
+  dpkg-deb --root-owner-group --build "$package" "dist/packages/fe_${archive_suffix}_$target.deb"
   rm -rf "$package"
 
   # RPM package
@@ -61,7 +61,7 @@ install -m 0755 %{_sourcedir}/fe %{buildroot}/usr/bin/fe
 /usr/bin/fe
 EOF
   rpmbuild -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
-  find "$top/RPMS" -type f -name '*.rpm' -exec cp {} "dist/packages/fe_${archive_suffix}_linux_$target.rpm" \;
+  find "$top/RPMS" -type f -name '*.rpm' -exec cp {} "dist/packages/fe-${archive_suffix}-$rpm_arch.rpm" \;
   rm -rf "$top"
 
   # Portable archive for distributions without a native package manager.
