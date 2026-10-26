@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"os"
+	"fmt"
 
 	"github.com/flushwhy/fe/internal/doctor"
 	"github.com/spf13/cobra"
@@ -25,7 +25,7 @@ Run 'fe add <tool>' to fix most issues.`,
 		results := doctor.Run()
 		allOK := doctor.Print(results)
 		if !allOK {
-			os.Exit(1)
+			return fmt.Errorf("doctor found one or more problems")
 		}
 		return nil
 	},
