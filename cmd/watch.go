@@ -24,7 +24,8 @@ restart the editor or claim to hot-reload native C++ modules.
 Run from a project or Gem directory:
   fe watch
   fe watch --build-dir build/linux
-  fe watch --target MyGem --target MyGem.Editor`,
+  fe watch --target MyGem --target MyGem.Editor
+  fe watch --ignore-dir Assets --ignore-dir generated`,
 	Args: cobra.NoArgs,
 	RunE: runWatch,
 }
@@ -35,6 +36,7 @@ func init() {
 	watchCmd.Flags().String("build-dir", "", "configured CMake build directory (auto-detected when possible)")
 	watchCmd.Flags().StringArray("target", nil, "CMake target to build for C++ changes (repeatable)")
 	watchCmd.Flags().Duration("debounce", 500*time.Millisecond, "quiet period after file changes before rebuilding")
+	watchCmd.Flags().StringArray("ignore-dir", nil, "additional directory name to ignore (repeatable)")
 }
 
 func runWatch(cmd *cobra.Command, _ []string) error {
@@ -57,6 +59,7 @@ func runWatch(cmd *cobra.Command, _ []string) error {
 		}
 	}
 	targets, _ := cmd.Flags().GetStringArray("target")
+	ignoreDirs, _ := cmd.Flags().GetStringArray("ignore-dir")
 	debounce, _ := cmd.Flags().GetDuration("debounce")
 	if debounce < 0 {
 		return fmt.Errorf("--debounce cannot be negative")
@@ -67,7 +70,7 @@ func runWatch(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("create file watcher: %w", err)
 	}
 	defer watcher.Close()
-	if err := addWatchTree(watcher, root); err != nil {
+	if err := addWatchTreeWithIgnores(watcher, root, ignoreDirs); err != nil {
 		return err
 	}
 
@@ -95,7 +98,7 @@ func runWatch(cmd *cobra.Command, _ []string) error {
 				continue
 			}
 			if info, statErr := os.Stat(event.Name); statErr == nil && info.IsDir() && event.Op&fsnotify.Create != 0 {
-				if err := addWatchTree(watcher, event.Name); err != nil {
+				if err := addWatchTreeWithIgnores(watcher, event.Name, ignoreDirs); err != nil {
 					fmt.Fprintf(os.Stderr, "watch directory: %v\n", err)
 				}
 				continue
@@ -186,9 +189,20 @@ func findWatchBuildDir(root string) string {
 }
 
 func addWatchTree(watcher *fsnotify.Watcher, root string) error {
+	return addWatchTreeWithIgnores(watcher, root, nil)
+}
+
+func addWatchTreeWithIgnores(watcher *fsnotify.Watcher, root string, extraIgnored []string) error {
+	ignored := make(map[string]bool, len(extraIgnored))
+	for _, name := range extraIgnored {
+		name = strings.TrimSpace(name)
+		if name != "" {
+			ignored[strings.ToLower(name)] = true
+		}
+	}
 	return filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil { return nil }
-		if entry.IsDir() && path != root && ignoredWatchDir(entry.Name()) { return filepath.SkipDir }
+		if entry.IsDir() && path != root && (ignoredWatchDir(entry.Name()) || ignored[strings.ToLower(entry.Name())]) { return filepath.SkipDir }
 		if entry.IsDir() {
 			if err := watcher.Add(path); err != nil { return fmt.Errorf("watch %q: %w", path, err) }
 		}
