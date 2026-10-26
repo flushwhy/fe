@@ -209,17 +209,13 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, cha
 		} else {
 			fmt.Printf("1. Build/export: %d Godot preset(s) from export_presets.cfg\n", len(presets))
 			for _, preset := range presets {
-				dir, err := godot.PlatformDir(preset.Platform)
+				output, err := godot.ExpectedOutputPath(".", cfg.Godot.OutputDir, preset)
 				if err != nil {
 					fmt.Printf("   - %s (%s): unsupported platform\n", preset.Name, preset.Platform)
 					problems++
 					continue
 				}
-				name := filepath.Base(preset.ExportPath)
-				if name == "." || name == string(filepath.Separator) || name == "" {
-					name = filepath.Base(".")
-				}
-				fmt.Printf("   - %s -> %s\n", preset.Name, filepath.Join(cfg.Godot.OutputDir, dir, name))
+				fmt.Printf("   - %s -> %s\n", preset.Name, output)
 			}
 		}
 	} else if len(cfg.Build.Targets) == 0 {
