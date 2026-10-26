@@ -10,6 +10,8 @@ fe pack           pack sprites into a spritesheet
 fe transcode      convert audio/video via ffmpeg
 fe bmp            push builds to itch.io via butler
 fe release        build → pack → push in one shot
+fe release --dry-run  preview the release plan without side effects
+fe manifest       write artifact inventory and SHA-256 checksums
 fe validate       pre-flight config & path check
 fe doctor         diagnose local toolchain and config issues
 fe tui            interactive terminal UI (local only)
@@ -93,7 +95,8 @@ fe init go --name my-game
 cd my-game
 # edit .fe.yaml
 fe build
-fe export   # Godot projects: export all configured presets
+fe export --list-presets  # inspect Godot presets and output paths
+fe export                 # export all configured presets
 fe release
 ```
 
@@ -231,6 +234,12 @@ Run `fe tui` from an interactive terminal to open the Bubble Tea menu for common
 - When the TUI is idle, press **Ctrl+C** or **q** to exit.
 
 The TUI calls the existing `fe` commands, so command behavior remains consistent with using the CLI directly.
+
+## Release preview and artifact manifest
+
+Run `fe release --dry-run` to inspect configured build/export targets, sprite packing, and itch.io publishing requirements without running build commands or uploading anything. The dry run reports missing credentials and unsupported Godot export platforms.
+
+`fe manifest` writes `builds/artifact-manifest.json` by default (or use `--dir`, `--output`, and `--version`). The JSON lists each artifact path, platform folder, file size, SHA-256 checksum, version, and commit when available. `fe release` creates this manifest automatically before publishing. A failed sprite pack now stops the release instead of uploading potentially incomplete output.
 
 ## Dependencies
 
