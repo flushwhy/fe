@@ -28,6 +28,14 @@ Example .fe.yaml:
 		if err != nil {
 			return err
 		}
+		containerBuild, _ := cmd.Flags().GetBool("container")
+		if containerBuild {
+			runtimeName, _ := cmd.Flags().GetString("runtime")
+			if err := build.RunContainer(cfg.Build.Container, runtimeName); err != nil {
+				return err
+			}
+			return nil
+		}
 		if errs := cfg.Validate("build"); len(errs) > 0 {
 			for _, e := range errs {
 				ui.Fail("config: %s", e)
@@ -70,5 +78,8 @@ Example .fe.yaml:
 func init() {
 	rootCmd.AddCommand(buildCmd)
 	buildCmd.Flags().String("platform", "", "build only this platform (e.g. linux-x64)")
+	buildCmd.Flags().Bool("container", false, "build in a temporary container")
+	buildCmd.Flags().String("runtime", "docker", "container runtime to use: docker or podman")
 	viper.BindPFlag("build.platform", buildCmd.Flags().Lookup("platform"))
+	viper.BindPFlag("build.container.runtime", buildCmd.Flags().Lookup("runtime"))
 }

@@ -60,7 +60,13 @@ type GodotConfig struct {
 }
 
 type BuildConfig struct {
-	Targets []BuildTarget `mapstructure:"targets"`
+	Targets   []BuildTarget    `mapstructure:"targets"`
+	Container ContainerBuild   `mapstructure:"container"`
+}
+
+type ContainerBuild struct {
+	Image   string `mapstructure:"image"`
+	Command string `mapstructure:"command"`
 }
 
 // BuildTarget represents a single platform build.
@@ -190,6 +196,11 @@ transcode:
   bitrate: "128k"
 
 build:
+  # Optional: build inside a temporary Docker/Podman container.
+  # Run with: fe build --container [--runtime docker|podman]
+  # container:
+  #   image: flushy/odin:nightly
+  #   command: "odin build . -out:builds/game"
   targets:
     - platform: linux-x64
       cmd: "gcc -o builds/linux-x64/game src/main.c"
