@@ -98,6 +98,9 @@ func runWatch(cmd *cobra.Command, _ []string) error {
 				continue
 			}
 			if info, statErr := os.Stat(event.Name); statErr == nil && info.IsDir() && event.Op&fsnotify.Create != 0 {
+				if watchDirIgnored(filepath.Base(event.Name), ignoreDirs) {
+					continue
+				}
 				if err := addWatchTreeWithIgnores(watcher, event.Name, ignoreDirs); err != nil {
 					fmt.Fprintf(os.Stderr, "watch directory: %v\n", err)
 				}
@@ -202,12 +205,24 @@ func addWatchTreeWithIgnores(watcher *fsnotify.Watcher, root string, extraIgnore
 	}
 	return filepath.WalkDir(root, func(path string, entry os.DirEntry, err error) error {
 		if err != nil { return nil }
-		if entry.IsDir() && path != root && (ignoredWatchDir(entry.Name()) || ignored[strings.ToLower(entry.Name())]) { return filepath.SkipDir }
+		if entry.IsDir() && path != root && (watchDirIgnored(entry.Name(), extraIgnored) || ignored[strings.ToLower(entry.Name())]) { return filepath.SkipDir }
 		if entry.IsDir() {
 			if err := watcher.Add(path); err != nil { return fmt.Errorf("watch %q: %w", path, err) }
 		}
 		return nil
 	})
+}
+
+func watchDirIgnored(name string, extraIgnored []string) bool {
+	if ignoredWatchDir(name) {
+		return true
+	}
+	for _, ignored := range extraIgnored {
+		if strings.EqualFold(strings.TrimSpace(ignored), name) {
+			return true
+		}
+	}
+	return false
 }
 
 func ignoredWatchDir(name string) bool {
