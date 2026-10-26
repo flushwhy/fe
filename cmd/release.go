@@ -209,7 +209,8 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, cha
 		} else {
 			fmt.Printf("1. Build/export: %d Godot preset(s) from export_presets.cfg\n", len(presets))
 			for _, preset := range presets {
-				output, err := godot.ExpectedOutputPath(".", cfg.Godot.OutputDir, preset)
+				projectDir, _ := filepath.Abs(".")
+				output, err := godot.ExpectedOutputPath(projectDir, cfg.Godot.OutputDir, preset)
 				if err != nil {
 					fmt.Printf("   - %s (%s): unsupported platform\n", preset.Name, preset.Platform)
 					problems++
@@ -243,7 +244,8 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, cha
 	if skipBmp {
 		fmt.Println("3. itch.io upload: skipped by --skip-bmp")
 	} else {
-		fmt.Printf("3. itch.io upload: %s/%s from %s\n", cfg.Itchio.Username, cfg.Itchio.Game, cfg.Butler.Directory)
+		fmt.Printf("3. Artifact manifest: %s\n", filepath.Join(cfg.Butler.Directory, "artifact-manifest.json"))
+		fmt.Printf("4. itch.io upload: %s/%s from %s\n", cfg.Itchio.Username, cfg.Itchio.Game, cfg.Butler.Directory)
 		if cfg.Itchio.Username == "" {
 			fmt.Println("   - missing ITCHIO_USERNAME / itchio.username")
 			problems++
