@@ -3,12 +3,12 @@ version: 2.1
 jobs:
   build-and-test:
     docker:
-      - image: cimg/go:1.23.2
+      - image: cimg/go:1.25.2
     steps:
       - checkout
       - run:
           name: "Run Go Tests"
-          command: go test -v ./... | tee /dev/stderr
+          command: set -o pipefail && go test -v ./... 2>&1 | tee /dev/stderr
 
   build-and-release:
     docker:
