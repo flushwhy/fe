@@ -139,6 +139,11 @@ jobs:
           name: fe-linux-arm64-packages
           path: dist/packages
 
+      - uses: actions/download-artifact@v4
+        with:
+          name: fe-linux-riscv64
+          path: dist
+
       - name: Build binaries and Linux packages
         run: |
           set -euo pipefail
@@ -189,6 +194,7 @@ jobs:
           files: |
             dist/fe-linux-amd64
             dist/fe-linux-arm64
+            dist/fe-linux-riscv64
             dist/fe-windows-amd64.exe
             dist/fe-macos-amd64
             dist/fe-macos-arm64
