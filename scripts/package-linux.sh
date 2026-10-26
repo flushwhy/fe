@@ -60,7 +60,7 @@ install -m 0755 %{_sourcedir}/fe %{buildroot}/usr/bin/fe
 %files
 /usr/bin/fe
 EOF
-  rpmbuild -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
+  rpmbuild --target "$rpm_arch" -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
   find "$top/RPMS" -type f -name '*.rpm' -exec cp {} "dist/packages/fe-${archive_suffix}-$rpm_arch.rpm" \;
   rm -rf "$top"
 
