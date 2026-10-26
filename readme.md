@@ -10,6 +10,9 @@ fe pack           pack sprites into a spritesheet
 fe transcode      convert audio/video via ffmpeg
 fe bmp            push builds to itch.io via butler
 fe release        build → pack → push in one shot
+fe release --dry-run  preview the release plan without side effects
+fe export --list-presets  inspect Godot export presets and output paths
+fe manifest       write artifact inventory and SHA-256 checksums
 fe validate       pre-flight config & path check
 fe doctor         diagnose local toolchain and config issues
 fe tui            interactive terminal UI (local only)
@@ -93,7 +96,8 @@ fe init go --name my-game
 cd my-game
 # edit .fe.yaml
 fe build
-fe export   # Godot projects: export all configured presets
+fe export --list-presets  # inspect Godot presets and output paths
+fe export                 # export all configured presets
 fe release
 ```
 
@@ -168,7 +172,7 @@ fe is designed to drop into any Git runner with zero extra config if you set the
 
 ## Godot exports
 
-For Godot projects, configure export presets in Godot and commit `export_presets.cfg`. Then run `fe export` to export every preset, or `fe export --preset "Windows Desktop"` to export one exact preset. `godot` must be on your PATH (or set `godot.executable`), and the matching export templates/platform requirements must be installed. Preset output filenames/extensions are retained while `godot.output_dir` controls the output root.
+For Godot projects, configure export presets in Godot and commit `export_presets.cfg`. Then run `fe export` to export every preset, `fe export --preset "Windows Desktop"` to export one exact preset, or `fe export --list-presets` to inspect preset names and expected output paths without exporting. `godot` must be on your PATH (or set `godot.executable`), and the matching export templates/platform requirements must be installed. Preset output filenames/extensions are retained while `godot.output_dir` controls the output root.
 
 Godot presets for Windows Desktop, Linux, and macOS are placed in `windows-x64/`, `linux-x64/`, and `macos-arm64/` respectively, ready for the existing Butler folder convention. Adjust `godot.output_dir` in `.fe.yaml` if you use a different build root. `fe release` automatically exports presets when run from a directory containing `project.godot`; non-Godot projects continue to use `build.targets`.
 
@@ -231,6 +235,24 @@ Run `fe tui` from an interactive terminal to open the Bubble Tea menu for common
 - When the TUI is idle, press **Ctrl+C** or **q** to exit.
 
 The TUI calls the existing `fe` commands, so command behavior remains consistent with using the CLI directly.
+
+## Watch mode
+
+Run `fe watch` to monitor supported project files and trigger the configured development actions. Use repeatable `--ignore-dir` flags to exclude extra directory names, such as generated output or asset caches:
+
+```sh
+fe watch --ignore-dir generated --ignore-dir cache
+```
+
+Custom ignored directory names are matched case-insensitively and apply to nested directories, including matching directories created while watch mode is running.
+
+## Release preview and artifact manifest
+
+Run `fe release --dry-run` to inspect configured build/export targets, sprite packing, and itch.io publishing requirements without running build commands or uploading anything. The dry run reports missing credentials and unsupported Godot export platforms. It may still inspect local configuration and files, but does not build, pack, or publish.
+
+`fe manifest` writes `builds/artifact-manifest.json` by default (or use `--dir`, `--output`, and `--version`). The JSON lists each artifact path, platform folder, file size, SHA-256 checksum, version, and commit when available. Symlinks are excluded and an empty artifact directory is treated as an error. `fe release` creates this manifest automatically before publishing. A failed sprite pack now stops the release instead of uploading potentially incomplete output.
+
+`fe doctor` includes checks for Fe build target configuration and, in Godot projects, the configured Godot executable and export presets. Use `fe validate` for configuration validation and `fe doctor` for environment-oriented diagnostics.
 
 ## Dependencies
 

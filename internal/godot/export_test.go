@@ -41,3 +41,26 @@ func TestReadPresets(t *testing.T) {
 		t.Fatalf("unexpected presets: %#v", presets)
 	}
 }
+
+func TestExpectedOutputPath(t *testing.T) {
+	got, err := ExpectedOutputPath("/projects/my-game", "builds", Preset{
+		Name: "Windows Desktop", Platform: "Windows Desktop",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join("builds", "windows-x64", "my-game.exe")
+	if got != want {
+		t.Fatalf("ExpectedOutputPath() = %q, want %q", got, want)
+	}
+	got, err = ExpectedOutputPath("/projects/my-game", "builds", Preset{
+		Name: "Linux", Platform: "Linux", ExportPath: "game.x86_64",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	want = filepath.Join("builds", "linux-x64", "game.x86_64")
+	if got != want {
+		t.Fatalf("ExpectedOutputPath() = %q, want %q", got, want)
+	}
+}

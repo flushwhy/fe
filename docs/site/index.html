@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#f6f3ec">
-  <meta name="description" content="Fe is the practical command-line toolkit for game development: project templates, engine workflows, asset utilities, and release automation. Find the docs and get building.">
+  <meta name="description" content="Fe is the practical command-line toolkit for game development: project templates, engine workflows, asset utilities, release previews, artifact manifests, and publishing automation. Find the docs and get building.">
   <title>Fe — ship games, not glue code</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -144,6 +144,7 @@
 
 <span class="comment"># Build, then ship</span>
 <span class="prompt">$</span> fe build
+<span class="prompt">$</span> fe release --dry-run
 <span class="prompt">$</span> fe release</pre>
         </div>
       </div>
@@ -179,7 +180,7 @@
           <article class="card"><div class="icon">▦</div><h3>Asset utilities</h3><p>Pack sprite sheets and transcode media through installed tools with repeatable CLI commands.</p></article>
           <article class="card"><div class="icon">⚒</div><h3>Build orchestration</h3><p>Describe build targets in project config and run the commands for the platforms you choose.</p></article>
           <article class="card"><div class="icon">◉</div><h3>Development helpers</h3><p>Watch supported project files and run the appropriate development steps as you iterate.</p></article>
-          <article class="card"><div class="icon">⇧</div><h3>Release automation</h3><p>Connect builds and packaging to distribution workflows, including itch.io publishing.</p></article>
+          <article class="card"><div class="icon">⇧</div><h3>Release automation</h3><p>Preview a release with <code>fe release --dry-run</code>, publish to itch.io, and generate an artifact manifest with SHA-256 checksums.</p></article>
         </div>
       </div>
     </section>
@@ -228,13 +229,16 @@
           <article class="command" data-search="template list update"><code>fe template list</code><p>List available remote templates.</p></article>
           <article class="command" data-search="template update refresh cache"><code>fe template update &lt;template-id&gt;</code><p>Refresh a named template in the local cache.</p></article>
           <article class="command" data-search="build compile target platform"><code>fe build</code><p>Run the configured build targets from <code>.fe.yaml</code>; use <code>--platform</code> to select one target.</p></article>
-          <article class="command" data-search="watch filesystem development"><code>fe watch</code><p>Watch supported project files and run configured development actions.</p></article>
+          <article class="command" data-search="watch filesystem development ignore directory debounce"><code>fe watch --ignore-dir &lt;name&gt;</code><p>Watch supported project files and exclude additional directory names from the watcher.</p></article>
+          <article class="command" data-search="godot engine export extension preset output"><code>fe export --list-presets</code><p>List Godot export presets and expected output paths without exporting.</p></article>
           <article class="command" data-search="godot engine export extension"><code>fe godot</code><p>Godot engine discovery, diagnostics, export, and native extension helpers.</p></article>
           <article class="command" data-search="o3de project engine register"><code>fe o3de</code><p>O3DE project and engine registration and management helpers.</p></article>
           <article class="command" data-search="pack spritesheet sprites"><code>fe pack</code><p>Pack source sprites into one or more configured sprite sheets.</p></article>
           <article class="command" data-search="transcode audio video ffmpeg"><code>fe transcode</code><p>Transcode media with the configured codec and output settings.</p></article>
-          <article class="command" data-search="release itch io publish upload butler"><code>fe release</code><p>Run the release workflow configured for your project.</p></article>
-          <article class="command" data-search="doctor diagnostics check"><code>fe doctor</code><p>Run environment checks where supported by the relevant tool integration.</p></article>
+          <article class="command" data-search="release itch io publish upload butler dry run preview"><code>fe release --dry-run</code><p>Preview configured build, export, packing, and publishing steps without running them.</p></article>
+          <article class="command" data-search="release itch io publish upload butler"><code>fe release</code><p>Run the release workflow configured for your project; packing errors stop publication.</p></article>
+          <article class="command" data-search="manifest artifacts checksum sha256 version commit"><code>fe manifest</code><p>Write a JSON inventory of artifacts with platform, size, SHA-256, version, and commit metadata.</p></article>
+          <article class="command" data-search="doctor diagnostics check config godot"><code>fe doctor</code><p>Check build target configuration and, for Godot projects, executable and export-preset prerequisites.</p></article>
           <article class="command" data-search="help usage commands"><code>fe --help</code><p>Show the commands and flags available in your installed Fe version.</p></article>
         </div>
         <p class="muted" id="no-results" hidden style="margin-top:16px">No matching commands. Try another search.</p>

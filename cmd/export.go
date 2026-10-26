@@ -3,6 +3,8 @@ package cmd
 import (
 	"os"
 	"os/exec"
+	"fmt"
+	"path/filepath"
 
 	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/godot"
@@ -26,6 +28,22 @@ Use --preset to export one named preset.`,
 			return err
 		}
 		preset, _ := cmd.Flags().GetString("preset")
+		listPresets, _ := cmd.Flags().GetBool("list-presets")
+		if listPresets {
+			presets, err := godot.ReadPresets(filepath.Join(projectDir, "export_presets.cfg"))
+			if err != nil {
+				return err
+			}
+			fmt.Printf("%-28s %-20s %s\n", "PRESET", "PLATFORM", "OUTPUT")
+			for _, p := range presets {
+				output, mapErr := godot.ExpectedOutputPath(projectDir, cfg.Godot.OutputDir, p)
+				if mapErr != nil {
+					output = p.ExportPath + " (unsupported platform)"
+				}
+				fmt.Printf("%-28s %-20s %s\n", p.Name, p.Platform, output)
+			}
+			return nil
+		}
 		return godot.Export(projectDir, cfg.Godot.Executable, cfg.Godot.OutputDir, preset, exec.Command)
 	},
 }
@@ -33,5 +51,6 @@ Use --preset to export one named preset.`,
 func init() {
 	rootCmd.AddCommand(exportCmd)
 	exportCmd.Flags().String("preset", "", "export only this exact Godot preset name")
+	exportCmd.Flags().Bool("list-presets", false, "list configured presets and expected output paths without exporting")
 }
 
