@@ -106,6 +106,12 @@ CI example:
 		fmt.Println()
 		ui.Step(3, 3, "Push to itch.io")
 		if !skipBmp {
+			if errs := cfg.Validate("bmp"); len(errs) > 0 {
+				for _, e := range errs {
+					ui.Fail("%s", e)
+				}
+				return fmt.Errorf("cannot push — fix config errors above")
+			}
 			commit := os.Getenv("GITHUB_SHA")
 			if commit == "" {
 				if result, err := exec.Command("git", "rev-parse", "HEAD").Output(); err == nil {
@@ -115,12 +121,6 @@ CI example:
 			manifestPath := filepath.Join(cfg.Butler.Directory, "artifact-manifest.json")
 			if err := writeArtifactManifest(cfg.Butler.Directory, manifestPath, cfg.Butler.Userversion, commit); err != nil {
 				return fmt.Errorf("create artifact manifest: %w", err)
-			}
-			if errs := cfg.Validate("bmp"); len(errs) > 0 {
-				for _, e := range errs {
-					ui.Fail("%s", e)
-				}
-				return fmt.Errorf("cannot push — fix config errors above")
 			}
 			logger := log.New(os.Stdout, "", 0)
 			err := ui.RunSpinner(
