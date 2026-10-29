@@ -59,7 +59,7 @@ func TestCompactTUIKeepsMenuWithinSmallTerminal(t *testing.T) {
 		t.Fatal("compact view should show the selected item and its description")
 	}
 	if !strings.Contains(view, "items 2–4 of 4") {
-		t.Fatalf("compact view should indicate the visible menu range; got:\\n%s", view)
+		t.Fatalf("compact view should indicate the visible menu range; got:\n%s", view)
 	}
 	if strings.Contains(view, "First action") {
 		t.Fatal("compact view should not render descriptions for unselected items")
@@ -71,7 +71,7 @@ func TestCompactTUITruncatesResultToAvailableHeight(t *testing.T) {
 	m.width = 60
 	m.height = 10
 	m.state = stateResult
-	m.lastOutput = "line 1\\nline 2\\nline 3\\nline 4\\nline 5\\nline 6"
+	m.lastOutput = "line 1\nline 2\nline 3\nline 4\nline 5\nline 6"
 
 	view := m.View()
 	if !strings.Contains(view, "line 6") {
