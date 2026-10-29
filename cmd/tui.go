@@ -531,17 +531,33 @@ func (m tuiModel) viewCompact() string {
 			b.WriteString(styleSelected.Render("Run doctor") + "\n")
 			b.WriteString(styleDim.Render("Press Enter to check tools and editor configs."))
 		} else {
-			for i, item := range m.items {
+			visible := m.height - 9
+			if visible < 1 {
+				visible = 1
+			}
+			start := 0
+			if len(m.items) > visible && m.cursor >= visible {
+				start = m.cursor - visible + 1
+			}
+			end := start + visible
+			if end > len(m.items) {
+				end = len(m.items)
+			}
+			for i := start; i < end; i++ {
+				item := m.items[i]
 				marker := "  "
 				label := item.label
 				if i == m.cursor {
 					marker = styleKey.Render("› ")
 					label = styleSelected.Render(label)
-				}
-				b.WriteString(marker + label + "\n")
-				if i == m.cursor {
+					b.WriteString(marker + label + "\n")
 					b.WriteString(styleDim.Render("  "+item.desc) + "\n")
+				} else {
+					b.WriteString(marker + label + "\n")
 				}
+			}
+			if start > 0 || end < len(m.items) {
+				b.WriteString(styleDim.Render(fmt.Sprintf("  items %d–%d of %d", start+1, end, len(m.items))))
 			}
 		}
 	}
