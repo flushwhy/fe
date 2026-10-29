@@ -88,14 +88,21 @@ func ResolveTemplate(id string, refresh bool) (string, error) {
 		return "", err
 	}
 	dest := filepath.Join(cacheRoot, id)
-	if !refresh {
-		if info, err := os.Stat(filepath.Join(cacheRoot, id+".ready")); err == nil && !info.IsDir() {
-			if dirInfo, dirErr := os.Stat(dest); dirErr == nil && dirInfo.IsDir() {
-				return dest, nil
-			}
-		}
+	if !refresh && cachedTemplateIsSafe(cacheRoot, id) {
+		return dest, nil
 	}
 	return downloadTemplate(id, cacheRoot, dest)
+}
+
+// cachedTemplateIsSafe rejects symlinks so a poisoned cache entry cannot redirect
+// template reads outside the cache directory.
+func cachedTemplateIsSafe(cacheRoot, id string) bool {
+	marker, err := os.Lstat(filepath.Join(cacheRoot, id+".ready"))
+	if err != nil || !marker.Mode().IsRegular() {
+		return false
+	}
+	dir, err := os.Lstat(filepath.Join(cacheRoot, id))
+	return err == nil && dir.IsDir() && dir.Mode()&os.ModeSymlink == 0
 }
 
 func downloadTemplate(id, cacheRoot, dest string) (string, error) {
