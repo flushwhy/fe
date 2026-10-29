@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const maxTemplateArchiveBytes = 50 << 20
+
 // memFile implements fs.File for in-memory content.
 type memFile struct {
 	name    string
