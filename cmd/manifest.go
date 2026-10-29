@@ -75,6 +75,10 @@ func writeArtifactManifest(root, output, version, commit string) error {
 	if err != nil {
 		return fmt.Errorf("resolve artifact directory: %w", err)
 	}
+	root, err = filepath.EvalSymlinks(root)
+	if err != nil {
+		return fmt.Errorf("resolve artifact directory symlinks: %w", err)
+	}
 	output, err = filepath.Abs(output)
 	if err != nil {
 		return fmt.Errorf("resolve manifest path: %w", err)
