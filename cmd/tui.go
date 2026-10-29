@@ -492,7 +492,7 @@ func (m tuiModel) viewCompact() string {
 	var b strings.Builder
 	b.WriteString(styleBanner.Width(width).Render("fe — dev middleware"))
 	b.WriteString("\n")
-	b.WriteString(m.renderTabs())
+	b.WriteString(m.renderCompactTabs())
 	b.WriteString("\n\n")
 
 	switch m.state {
@@ -563,6 +563,25 @@ func (m tuiModel) viewCompact() string {
 	}
 	b.WriteString("\n\n" + styleDim.Render("↑↓ navigate · Enter select · Tab switch · q quit"))
 	return lipgloss.NewStyle().Width(width).Render(b.String())
+}
+
+func (m tuiModel) renderCompactTabs() string {
+	labels := map[tabID]string{
+		tabProject: "Project",
+		tabShip:    "Ship",
+		tabDoctor:  "Doctor",
+		tabConfig:  "Config",
+	}
+	parts := make([]string, 0, len(tabs))
+	for _, t := range tabs {
+		label := labels[t.id]
+		if t.id == m.activeTab {
+			parts = append(parts, lipgloss.NewStyle().Padding(0, 1).Foreground(purple).Bold(true).Render(label))
+		} else {
+			parts = append(parts, lipgloss.NewStyle().Padding(0, 1).Foreground(gray).Render(label))
+		}
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
 }
 
 func (m tuiModel) renderTabs() string {
