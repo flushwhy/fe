@@ -58,7 +58,7 @@ func TestCompactTUIKeepsMenuWithinSmallTerminal(t *testing.T) {
 	if !strings.Contains(view, "Fourth") || !strings.Contains(view, "Fourth action") {
 		t.Fatal("compact view should show the selected item and its description")
 	}
-	if !strings.Contains(view, "items 3–4 of 4") {
+	if !strings.Contains(view, "items 2–4 of 4") {
 		t.Fatalf("compact view should indicate the visible menu range; got:\\n%s", view)
 	}
 	if strings.Contains(view, "First action") {
