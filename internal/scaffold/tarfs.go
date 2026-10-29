@@ -12,6 +12,8 @@ import (
 	"time"
 )
 
+const maxTemplateArchiveBytes = 50 << 20
+
 // memFile implements fs.File for in-memory content.
 type memFile struct {
 	name    string
@@ -95,6 +97,8 @@ func extractTarGz(data []byte) (fs.FS, error) {
 
 	tr := tar.NewReader(gz)
 	mem := make(memFS)
+	var total int64
+	count := 0
 
 	for {
 		hdr, err := tr.Next()
@@ -104,21 +108,42 @@ func extractTarGz(data []byte) (fs.FS, error) {
 		if err != nil {
 			return nil, fmt.Errorf("reading tar: %w", err)
 		}
+		name := strings.ReplaceAll(hdr.Name, "\\", "/")
+		if strings.HasPrefix(name, "/") || filepath.IsAbs(name) || filepath.Clean(name) != filepath.FromSlash(name) || name == ".." || strings.HasPrefix(name, "../") {
+			return nil, fmt.Errorf("unsafe path in template archive: %q", hdr.Name)
+		}
 		if hdr.Typeflag == tar.TypeDir {
 			continue
 		}
+		if hdr.Typeflag != tar.TypeReg && hdr.Typeflag != tar.TypeRegA {
+			continue
+		}
+		count++
+		if count > 500 {
+			return nil, fmt.Errorf("template archive contains too many files")
+		}
 
-		content, err := io.ReadAll(tr)
+		content, err := io.ReadAll(io.LimitReader(tr, maxTemplateArchiveBytes-total+1))
 		if err != nil {
 			return nil, fmt.Errorf("reading tar entry %s: %w", hdr.Name, err)
 		}
 
-		// Strip any leading directory component (e.g. "odin/main.odin" → "main.odin").
-		name := hdr.Name
+		total += int64(len(content))
+		if total > maxTemplateArchiveBytes {
+			return nil, fmt.Errorf("template archive exceeds %d MiB limit", maxTemplateArchiveBytes>>20)
+		}
+		// Strip the repository archive root directory (e.g. "odin/main.odin").
 		if idx := strings.Index(name, "/"); idx >= 0 {
 			name = name[idx+1:]
+		} else {
+			continue
 		}
-
+		if name == "" || name == "." || name == ".." || strings.HasPrefix(name, "../") || strings.Contains(name, "\\") {
+			return nil, fmt.Errorf("unsafe path in template archive: %q", hdr.Name)
+		}
+		if _, exists := mem[name]; exists {
+			return nil, fmt.Errorf("duplicate path in template archive: %q", name)
+		}
 		mem[name] = content
 	}
 
