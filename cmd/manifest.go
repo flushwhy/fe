@@ -104,44 +104,7 @@ func writeArtifactManifest(root, output, version, commit string) error {
 		if entry.IsDir() {
 			return nil
 		}
-		if path == output || entry.Type()&os.ModeSymlink != 0 {
-			return nil
-		}
-		info, err := entry.Info()
-		if err != nil {
-			return fmt.Errorf("inspect artifact %q: %w", path, err)
-		}
-		if !info.Mode().IsRegular() {
-			return nil
-		}
-		file, err := os.Open(path)
-		if err != nil {
-			return fmt.Errorf("open artifact %q: %w", path, err)
-		}
-		hash := sha256.New()
-		size, copyErr := io.Copy(hash, file)
-		closeErr := file.Close()
-		if copyErr != nil {
-			return fmt.Errorf("hash artifact %q: %w", path, copyErr)
-		}
-		if closeErr != nil {
-			return closeErr
-		}
-		rel, err := filepath.Rel(root, path)
-		if err != nil {
-			return err
-		}
-		platform := "root"
-		if parts := strings.Split(filepath.ToSlash(rel), "/"); len(parts) > 1 {
-			platform = parts[0]
-		}
-		manifest.Artifacts = append(manifest.Artifacts, artifactRecord{
-			Platform: platform,
-			Path: filepath.ToSlash(rel),
-			Size: size,
-			SHA256: hex.EncodeToString(hash.Sum(nil)),
-		})
-		return nil
+		return addArtifact(root, output, path, entry, &manifest)
 	})
 	if err != nil {
 		return fmt.Errorf("scan artifacts: %w", err)
@@ -164,6 +127,51 @@ func writeArtifactManifest(root, output, version, commit string) error {
 		return fmt.Errorf("write manifest %q: %w", output, err)
 	}
 	fmt.Printf("Wrote %d artifact(s) to %s\n", len(manifest.Artifacts), output)
+	return nil
+}
+
+
+func addArtifact(root, output, path string, entry os.DirEntry, manifest *artifactManifest) error {
+	if path == output || entry.Type()&os.ModeSymlink != 0 {
+		return nil
+	}
+	info, err := entry.Info()
+	if err != nil {
+		return fmt.Errorf("inspect artifact %q: %w", path, err)
+	}
+	if !info.Mode().IsRegular() {
+		return nil
+	}
+
+	file, err := os.Open(path)
+	if err != nil {
+		return fmt.Errorf("open artifact %q: %w", path, err)
+	}
+	hash := sha256.New()
+	size, copyErr := io.Copy(hash, file)
+	closeErr := file.Close()
+	if copyErr != nil {
+		return fmt.Errorf("hash artifact %q: %w", path, copyErr)
+	}
+	if closeErr != nil {
+		return closeErr
+	}
+
+	rel, err := filepath.Rel(root, path)
+	if err != nil {
+		return err
+	}
+	relativePath := filepath.ToSlash(rel)
+	platform := "root"
+	if parts := strings.Split(relativePath, "/"); len(parts) > 1 {
+		platform = parts[0]
+	}
+	manifest.Artifacts = append(manifest.Artifacts, artifactRecord{
+		Platform: platform,
+		Path:     relativePath,
+		Size:     size,
+		SHA256:   hex.EncodeToString(hash.Sum(nil)),
+	})
 	return nil
 }
 
