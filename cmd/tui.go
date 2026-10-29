@@ -131,7 +131,10 @@ var shipItems = []menuItem{
 	{"pack", "Pack sprites into spritesheet", "pack", nil},
 	{"transcode", "Convert audio/video via ffmpeg", "transcode", nil},
 	{"bmp", "Push builds to itch.io", "bmp", nil},
+	{"release preview", "Preview the release plan without building or publishing", "release", []string{"--dry-run"}},
 	{"release", "Full pipeline: build → pack → push", "release", nil},
+	{"manifest", "Inventory build artifacts and write SHA-256 checksums", "manifest", nil},
+	{"check", "Detect languages and run available static analyzers", "check", nil},
 	{"validate", "Pre-flight config and path check", "validate", nil},
 }
 
@@ -498,7 +501,7 @@ func (m tuiModel) viewCompact() string {
 		b.WriteString(styleDim.Render("Ctrl+C cancels the command."))
 	case stateInput:
 		b.WriteString(styleSelected.Render(m.inputLabel) + "\n")
-		b.WriteString(styleInput.Width(width - 2).Render(m.input.View()) + "\n")
+		b.WriteString(styleInput.Width(width).Render(m.input.View()) + "\n")
 		b.WriteString(styleDim.Render("Enter confirms · Esc cancels"))
 	case stateResult:
 		if m.lastErr != nil {
