@@ -11,6 +11,8 @@ import (
 
 type Runner func(command string) error
 
+// DefaultRunner splits configured commands into argv and never invokes a shell.
+// Shell operators, expansions, and redirections are intentionally not interpreted.
 var DefaultRunner Runner = func(command string) error {
 	parts := strings.Fields(command)
 	if len(parts) == 0 {
