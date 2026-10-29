@@ -79,6 +79,11 @@ func writeArtifactManifest(root, output, version, commit string) error {
 	if err != nil {
 		return fmt.Errorf("resolve manifest path: %w", err)
 	}
+	if outputInfo, statErr := os.Lstat(output); statErr == nil && outputInfo.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("manifest output %q must not be a symlink", output)
+	} else if statErr != nil && !os.IsNotExist(statErr) {
+		return fmt.Errorf("inspect manifest output %q: %w", output, statErr)
+	}
 	info, err := os.Stat(root)
 	if err != nil {
 		return fmt.Errorf("inspect artifact directory %q: %w", root, err)
@@ -96,6 +101,13 @@ func writeArtifactManifest(root, output, version, commit string) error {
 			return nil
 		}
 		if path == output || entry.Type()&os.ModeSymlink != 0 {
+			return nil
+		}
+		info, err := entry.Info()
+		if err != nil {
+			return fmt.Errorf("inspect artifact %q: %w", path, err)
+		}
+		if !info.Mode().IsRegular() {
 			return nil
 		}
 		file, err := os.Open(path)
@@ -144,9 +156,39 @@ func writeArtifactManifest(root, output, version, commit string) error {
 		return err
 	}
 	data = append(data, '\n')
-	if err := os.WriteFile(output, data, 0o644); err != nil {
+	if err := writeManifestAtomically(output, data); err != nil {
 		return fmt.Errorf("write manifest %q: %w", output, err)
 	}
 	fmt.Printf("Wrote %d artifact(s) to %s\n", len(manifest.Artifacts), output)
 	return nil
 }
+
+ // writeManifestAtomically avoids truncating an existing file before the complete
+ // manifest is ready. Rename replaces the destination entry rather than following
+ // a symlink that appears after the initial validation.
+ func writeManifestAtomically(output string, data []byte) error {
+ 	dir := filepath.Dir(output)
+ 	tmp, err := os.CreateTemp(dir, ".artifact-manifest-*")
+ 	if err != nil {
+ 		return err
+ 	}
+ 	tmpName := tmp.Name()
+ 	defer os.Remove(tmpName)
+
+ 	if err := tmp.Chmod(0o644); err != nil {
+ 		_ = tmp.Close()
+ 		return err
+ 	}
+ 	if _, err := tmp.Write(data); err != nil {
+ 		_ = tmp.Close()
+ 		return err
+ 	}
+ 	if err := tmp.Sync(); err != nil {
+ 		_ = tmp.Close()
+ 		return err
+ 	}
+ 	if err := tmp.Close(); err != nil {
+ 		return err
+ 	}
+ 	return os.Rename(tmpName, output)
+ }
