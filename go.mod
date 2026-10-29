@@ -1,6 +1,6 @@
 module github.com/flushwhy/fe
 
-go 1.25
+go 1.25.13
 
 require (
 	github.com/charmbracelet/bubbles v0.18.0
