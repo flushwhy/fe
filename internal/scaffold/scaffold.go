@@ -49,6 +49,9 @@ type TemplateData struct {
 
 // projectRoot returns the absolute path where the project will be created.
 func (o Options) projectRoot() (string, error) {
+	if o.Name == "" || o.Name == "." || o.Name == ".." || filepath.IsAbs(o.Name) || filepath.Base(filepath.Clean(o.Name)) != o.Name || strings.ContainsAny(o.Name, `/\\`) {
+		return "", fmt.Errorf("project name must be a single directory name, not a path: %q", o.Name)
+	}
 	base := o.Dir
 	if base == "" {
 		var err error
@@ -158,7 +161,15 @@ func writeTemplate(src fs.FS, destRoot string, data TemplateData) error {
 		if err != nil {
 			return err
 		}
-		dest := filepath.Join(destRoot, path)
+		if !fs.ValidPath(path) || path == "." {
+			if path == "." && d.IsDir() { return os.MkdirAll(destRoot, 0750) }
+			return fmt.Errorf("unsafe template path %q", path)
+		}
+		dest := filepath.Join(destRoot, filepath.FromSlash(path))
+		rel, err := filepath.Rel(destRoot, dest)
+		if err != nil || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) {
+			return fmt.Errorf("template path escapes project directory: %q", path)
+		}
 		if d.IsDir() {
 			return os.MkdirAll(dest, 0750)
 		}
