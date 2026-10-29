@@ -248,10 +248,10 @@ Godot 3 GDNative uses a different API and is not compatible with this scaffold.
 		}
 		for name, data := range files {
 			path := filepath.Join(dir, filepath.FromSlash(name))
-			if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+			if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 				return err
 			}
-			if err := os.WriteFile(path, []byte(data), 0o644); err != nil {
+			if err := os.WriteFile(path, []byte(data), 0o640); err != nil {
 				return fmt.Errorf("write %s: %w", path, err)
 			}
 		}
