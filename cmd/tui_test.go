@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/flushwhy/fe/internal/config"
+	"github.com/charmbracelet/lipgloss"
 
 	tea "github.com/charmbracelet/bubbletea"
 )
@@ -79,5 +80,17 @@ func TestCompactTUITruncatesResultToAvailableHeight(t *testing.T) {
 	}
 	if strings.Contains(view, "line 1") {
 		t.Fatal("compact result should drop older output when it exceeds the available height")
+	}
+}
+
+func TestCompactTUITabsFitNarrowTerminal(t *testing.T) {
+	m := newTuiModel(&config.Config{}, nil)
+	m.width = 36
+	m.height = 12
+
+	got := lipgloss.Width(m.renderCompactTabs())
+	want := m.width - 4
+	if got > want {
+		t.Fatalf("compact tabs width = %d, want at most %d", got, want)
 	}
 }
