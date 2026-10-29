@@ -261,9 +261,12 @@ func fetchRemote(baseURL, lang string) (fs.FS, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("remote returned %d for %s", resp.StatusCode, url)
 	}
-	data, err := io.ReadAll(resp.Body)
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxTemplateArchiveBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("reading response: %w", err)
+	}
+	if len(data) > maxTemplateArchiveBytes {
+		return nil, fmt.Errorf("remote template archive exceeds %d MiB limit", maxTemplateArchiveBytes>>20)
 	}
 	return extractTarGz(data)
 }
