@@ -99,3 +99,33 @@ func TestWriteManifestAtomicallyReplacesFile(t *testing.T) {
 		t.Fatalf("got %q, want new content", got)
 	}
 }
+
+func TestWriteArtifactManifestAcceptsSymlinkedRoot(t *testing.T) {
+	parent := t.TempDir()
+	root := filepath.Join(parent, "artifacts")
+	if err := os.Mkdir(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "game.bin"), []byte("game"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(parent, "artifact-link")
+	if err := os.Symlink(root, link); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	output := filepath.Join(parent, "manifest.json")
+	if err := writeArtifactManifest(link, output, "", ""); err != nil {
+		t.Fatalf("manifest from symlinked root: %v", err)
+	}
+	data, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got artifactManifest
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Artifacts) != 1 || got.Artifacts[0].Path != "game.bin" {
+		t.Fatalf("unexpected artifacts: %#v", got.Artifacts)
+	}
+}
