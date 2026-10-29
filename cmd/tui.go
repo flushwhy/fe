@@ -384,45 +384,25 @@ func (m tuiModel) activateItem() (tuiModel, tea.Cmd) {
 }
 
 func (m tuiModel) runItem(item menuItem, extraArg string) (tuiModel, tea.Cmd) {
-	m.state = stateRunning
-	m.lastOutput = ""
-	m.lastErr = nil
-
 	feArgs := append([]string{item.command}, item.args...)
 	if extraArg != "" {
 		feArgs = append(feArgs, "--name", extraArg)
 	}
-
-	start := time.Now()
-		ctx, cancel := context.WithCancel(context.Background())
-		m.runCancel = cancel
-
-	return m, tea.Batch(
-		m.spinner.Tick,
-		func() tea.Msg {
-			// Re-run fe itself as a subprocess so the full command logic runs.
-			self, err := os.Executable()
-			if err != nil {
-				return cmdDoneMsg{err: fmt.Errorf("locating fe executable: %w", err), dur: time.Since(start)}
-			}
-			// feArgs is assembled from the fixed TUI menu plus the project name
-			// entered by the user; exec.Command passes each argument without a shell.
-			cmd := exec.CommandContext(ctx, self, feArgs...)
-			out, err := cmd.CombinedOutput()
-			return cmdDoneMsg{
-				output: string(out),
-				err:    err,
-				dur:    time.Since(start),
-			}
-		},
-	)
+	return m.runCommand(feArgs)
 }
 
 func (m tuiModel) runDoctor() (tuiModel, tea.Cmd) {
+	return m.runCommand([]string{"doctor"})
+}
+
+func (m tuiModel) runCommand(args []string) (tuiModel, tea.Cmd) {
 	m.state = stateRunning
-	start := time.Now()
+	m.lastOutput = ""
+	m.lastErr = nil
+
 	ctx, cancel := context.WithCancel(context.Background())
 	m.runCancel = cancel
+	start := time.Now()
 
 	return m, tea.Batch(
 		m.spinner.Tick,
@@ -431,7 +411,9 @@ func (m tuiModel) runDoctor() (tuiModel, tea.Cmd) {
 			if err != nil {
 				return cmdDoneMsg{err: fmt.Errorf("locating fe executable: %w", err), dur: time.Since(start)}
 			}
-			cmd := exec.CommandContext(ctx, self, "doctor")
+
+			// Run fe itself so the full command logic executes without a shell.
+			cmd := exec.CommandContext(ctx, self, args...)
 			out, err := cmd.CombinedOutput()
 			return cmdDoneMsg{output: string(out), err: err, dur: time.Since(start)}
 		},
