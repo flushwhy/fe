@@ -13,7 +13,7 @@ fe release        build → pack → push in one shot
 fe release --dry-run  preview the release plan without side effects
 fe export --list-presets  inspect Godot export presets and output paths
 fe manifest       write artifact inventory and SHA-256 checksums
-fe validate       pre-flight config & path check
+fe validate       pre-flight config & path check\nfe check [path]   run available static analyzers
 fe doctor         diagnose local toolchain and config issues
 fe tui            interactive terminal UI (local only)
 ```
