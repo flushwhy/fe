@@ -131,7 +131,10 @@ var shipItems = []menuItem{
 	{"pack", "Pack sprites into spritesheet", "pack", nil},
 	{"transcode", "Convert audio/video via ffmpeg", "transcode", nil},
 	{"bmp", "Push builds to itch.io", "bmp", nil},
+	{"release preview", "Preview the release plan without building or publishing", "release", []string{"--dry-run"}},
 	{"release", "Full pipeline: build → pack → push", "release", nil},
+	{"manifest", "Inventory build artifacts and write SHA-256 checksums", "manifest", nil},
+	{"check", "Detect languages and run available static analyzers", "check", nil},
 	{"validate", "Pre-flight config and path check", "validate", nil},
 }
 
@@ -441,6 +444,10 @@ func (m tuiModel) View() string {
 	if m.width == 0 {
 		return ""
 	}
+	// Keep the UI usable in split panes and small terminal windows.
+	if m.width < 84 || m.height < 22 {
+		return m.viewCompact()
+	}
 
 	var b strings.Builder
 
@@ -475,6 +482,106 @@ func (m tuiModel) View() string {
 	b.WriteString(m.renderFooter())
 
 	return b.String()
+}
+
+func (m tuiModel) viewCompact() string {
+	width := m.width - 4
+	if width < 1 {
+		width = 1
+	}
+	var b strings.Builder
+	b.WriteString(styleBanner.Width(width).Render("fe — dev middleware"))
+	b.WriteString("\n")
+	b.WriteString(m.renderCompactTabs())
+	b.WriteString("\n\n")
+
+	switch m.state {
+	case stateRunning:
+		b.WriteString(m.spinner.View() + " Running…\n")
+		b.WriteString(styleDim.Render("Ctrl+C cancels the command."))
+	case stateInput:
+		b.WriteString(styleSelected.Render(m.inputLabel) + "\n")
+		b.WriteString(styleInput.Width(width).Render(m.input.View()) + "\n")
+		b.WriteString(styleDim.Render("Enter confirms · Esc cancels"))
+	case stateResult:
+		if m.lastErr != nil {
+			b.WriteString(styleError.Render("✗ Command failed"))
+		} else {
+			b.WriteString(styleSuccess.Render("✓ Done"))
+		}
+		b.WriteString(styleDim.Render("  " + m.lastDur.Round(time.Millisecond).String()) + "\n\n")
+		output := strings.TrimSpace(m.lastOutput)
+		if output == "" {
+			output = "(no output)"
+		}
+		lines := strings.Split(output, "\n")
+		limit := m.height - 8
+		if limit < 1 {
+			limit = 1
+		}
+		if len(lines) > limit {
+			lines = lines[len(lines)-limit:]
+		}
+		b.WriteString(lipgloss.NewStyle().Width(width).Render(strings.Join(lines, "\n")))
+		b.WriteString("\n\n" + styleDim.Render("Enter/Esc back"))
+	default:
+		if m.activeTab == tabConfig {
+			b.WriteString(m.renderConfigPane())
+		} else if m.activeTab == tabDoctor {
+			b.WriteString(styleSelected.Render("Run doctor") + "\n")
+			b.WriteString(styleDim.Render("Press Enter to check tools and editor configs."))
+		} else {
+			visible := m.height - 9
+			if visible < 1 {
+				visible = 1
+			}
+			start := 0
+			if len(m.items) > visible && m.cursor >= visible {
+				start = m.cursor - visible + 1
+			}
+			end := start + visible
+			if end > len(m.items) {
+				end = len(m.items)
+			}
+			for i := start; i < end; i++ {
+				item := m.items[i]
+				marker := "  "
+				label := item.label
+				if i == m.cursor {
+					marker = styleKey.Render("› ")
+					label = styleSelected.Render(label)
+					b.WriteString(marker + label + "\n")
+					b.WriteString(styleDim.Render("  "+item.desc) + "\n")
+				} else {
+					b.WriteString(marker + label + "\n")
+				}
+			}
+			if start > 0 || end < len(m.items) {
+				b.WriteString(styleDim.Render(fmt.Sprintf("  items %d–%d of %d", start+1, end, len(m.items))))
+			}
+		}
+	}
+	b.WriteString("\n\n" + styleDim.Render("↑↓ navigate · Enter select · Tab switch · q quit"))
+	return lipgloss.NewStyle().Width(width).Render(b.String())
+}
+
+func (m tuiModel) renderCompactTabs() string {
+	labels := map[tabID]string{
+		tabProject: "Project",
+		tabShip:    "Ship",
+		tabDoctor:  "Doctor",
+		tabConfig:  "Config",
+	}
+	parts := make([]string, 0, len(tabs))
+	for _, t := range tabs {
+		label := labels[t.id]
+		if t.id == m.activeTab {
+			parts = append(parts, lipgloss.NewStyle().Padding(0, 1).Foreground(purple).Bold(true).Render(label))
+		} else {
+			parts = append(parts, lipgloss.NewStyle().Padding(0, 1).Foreground(gray).Render(label))
+		}
+	}
+	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
 }
 
 func (m tuiModel) renderTabs() string {

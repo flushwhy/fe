@@ -21,7 +21,8 @@ var rootCmd = &cobra.Command{
     fe template list                 list available remote templates
     fe template update <id>          refresh a cached template
     fe add <tool>                     wire up LSP/editor tooling (clangd, ols, zls, gopls)
-    fe doctor                         check tools are installed and configs are correct\n    fe check [path]                   run available language-aware static analyzers
+    fe doctor                         check tools are installed and configs are correct
+    fe check [path]                   run available language-aware static analyzers
 
   Development loop:
     fe watch                          detect a workspace, watch files, and rebuild C++ changes

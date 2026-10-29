@@ -29,6 +29,19 @@ fe o3de find templates
 fe o3de build --build-dir <configured-build-directory>
 ```
 
+## Smart static checker
+
+`fe check` detects supported source languages and runs their local static analyzers when available. Missing tools are reported with setup instructions; Fe does not install them automatically.
+
+| Language | Checker | Enable it |
+|---|---|---|
+| Go | `go vet ./...` | Install Go from [go.dev/dl](https://go.dev/dl/) |
+| C/C++ | `clang-tidy` | Install clang-tidy and configure CMake with `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` |
+| Python | Ruff | `python -m pip install ruff` |
+| JavaScript/TypeScript | ESLint | `npm install --save-dev eslint` |
+
+Example: `fe check .`. Generated folders such as `node_modules`, `build`, and `dist` are excluded.
+
 ## Install
 
 On Debian or Ubuntu, download the matching `.deb` package from the [latest release](https://github.com/flushwhy/fe/releases/latest) and install it with apt. Packages are published for 64-bit x86 and ARM systems:
@@ -231,6 +244,10 @@ builds/
 Supported platforms: `windows`, `linux`, `macos`
 
 Supported arches: `x64`, `x32`, `arm64`, `arm32`
+
+## Release checklist
+
+Before publishing a stable version, use the [release checklist](docs/releasing.md) to verify CI, release assets, installation smoke tests, and the deployed documentation site.
 
 ## TUI
 

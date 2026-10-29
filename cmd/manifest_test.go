@@ -53,3 +53,79 @@ func TestWriteArtifactManifestRejectsEmptyDirectory(t *testing.T) {
 		t.Fatal("expected empty artifact directory to fail")
 	}
 }
+
+func TestWriteArtifactManifestRejectsSymlinkOutput(t *testing.T) {
+	root := t.TempDir()
+	artifact := filepath.Join(root, "game.bin")
+	if err := os.WriteFile(artifact, []byte("game"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	target := filepath.Join(t.TempDir(), "keep.txt")
+	const sentinel = "do not overwrite"
+	if err := os.WriteFile(target, []byte(sentinel), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	output := filepath.Join(root, "manifest.json")
+	if err := os.Symlink(target, output); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	if err := writeArtifactManifest(root, output, "", ""); err == nil {
+		t.Fatal("expected symlink output to be rejected")
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != sentinel {
+		t.Fatalf("symlink target was modified: got %q", got)
+	}
+}
+
+func TestWriteManifestAtomicallyReplacesFile(t *testing.T) {
+	dir := t.TempDir()
+	output := filepath.Join(dir, "manifest.json")
+	if err := os.WriteFile(output, []byte("old"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeManifestAtomically(output, []byte("new")); err != nil {
+		t.Fatal(err)
+	}
+	got, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "new" {
+		t.Fatalf("got %q, want new content", got)
+	}
+}
+
+func TestWriteArtifactManifestAcceptsSymlinkedRoot(t *testing.T) {
+	parent := t.TempDir()
+	root := filepath.Join(parent, "artifacts")
+	if err := os.Mkdir(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "game.bin"), []byte("game"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(parent, "artifact-link")
+	if err := os.Symlink(root, link); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	output := filepath.Join(parent, "manifest.json")
+	if err := writeArtifactManifest(link, output, "", ""); err != nil {
+		t.Fatalf("manifest from symlinked root: %v", err)
+	}
+	data, err := os.ReadFile(output)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var got artifactManifest
+	if err := json.Unmarshal(data, &got); err != nil {
+		t.Fatal(err)
+	}
+	if len(got.Artifacts) != 1 || got.Artifacts[0].Path != "game.bin" {
+		t.Fatalf("unexpected artifacts: %#v", got.Artifacts)
+	}
+}
