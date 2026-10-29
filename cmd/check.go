@@ -21,7 +21,8 @@ var checkCmd = &cobra.Command{
   Python:     ruff check .
   JavaScript: eslint .
 
-Missing optional analyzers are reported. The command fails if an analyzer finds
+If a supported language is found but its analyzer is missing, the command prints
+what to install to enable that check. The command fails if an analyzer finds
 problems or no applicable analyzer can run.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: runCheck,
@@ -115,14 +116,14 @@ func discoverCheckTasks(root string) ([]checkTask, []string, error) {
 		if bin, err := exec.LookPath("go"); err == nil {
 			tasks = append(tasks, checkTask{name: "go vet ./...", bin: bin, args: []string{"vet", "./..."}, dir: root})
 		} else {
-			skipped = append(skipped, "Go project found but 'go' is not in PATH")
+			skipped = append(skipped, "Go files found, but Go is not installed; install Go from https://go.dev/dl/ to enable 'go vet ./...'")
 		}
 	}
 	if hasCPP {
 		if bin, err := exec.LookPath("clang-tidy"); err != nil {
-			skipped = append(skipped, "C/C++ files found but clang-tidy is not installed")
+			skipped = append(skipped, "C/C++ files found, but clang-tidy is not installed; install clang-tidy to enable C/C++ checks")
 		} else if buildDir := findCompileCommands(root); buildDir == "" {
-			skipped = append(skipped, "C/C++ files found but compile_commands.json is missing; configure CMake with CMAKE_EXPORT_COMPILE_COMMANDS=ON")
+			skipped = append(skipped, "C/C++ files found, but compile_commands.json is missing; configure CMake with -DCMAKE_EXPORT_COMPILE_COMMANDS=ON to enable clang-tidy")
 		} else {
 			args := []string{"-p", buildDir}
 			args = append(args, cppFiles...)
@@ -133,14 +134,14 @@ func discoverCheckTasks(root string) ([]checkTask, []string, error) {
 		if bin, err := exec.LookPath("ruff"); err == nil {
 			tasks = append(tasks, checkTask{name: "ruff check .", bin: bin, args: []string{"check", "."}, dir: root})
 		} else {
-			skipped = append(skipped, "Python files found but ruff is not installed")
+			skipped = append(skipped, "Python files found, but Ruff is not installed; run 'python -m pip install ruff' to enable 'ruff check .'")
 		}
 	}
 	if hasJS {
 		if bin, err := exec.LookPath("eslint"); err == nil {
 			tasks = append(tasks, checkTask{name: "eslint .", bin: bin, args: []string{"."}, dir: root})
 		} else {
-			skipped = append(skipped, "JavaScript/TypeScript files found but eslint is not installed")
+			skipped = append(skipped, "JavaScript/TypeScript files found, but ESLint is not installed; run 'npm install --save-dev eslint' in the project to enable ESLint checks")
 		}
 	}
 	return tasks, skipped, nil
