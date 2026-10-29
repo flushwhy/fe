@@ -29,6 +29,7 @@
     body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.7 "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
     a { color: var(--green); text-decoration: none; }
     a:hover { text-decoration: underline; }
+    a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
     button, input { font: inherit; }
     .wrap { width: min(var(--max), calc(100% - 40px)); margin-inline: auto; }
     .topbar { position: sticky; top: 0; z-index: 10; background: rgba(246,243,236,.94); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
@@ -48,7 +49,7 @@
     .lead { color: #59665d; max-width: 690px; font-size: clamp(1.08rem, 2vw, 1.28rem); }
     .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
     .btn { display: inline-flex; justify-content: center; align-items: center; gap: 9px; padding: 12px 17px; border-radius: 10px; border: 1px solid var(--line); font-weight: 750; color: var(--text); }
-    .btn.primary { background: var(--green); color: #17210f; border-color: var(--green); }
+    .btn.primary { background: var(--green); color: #fffdf8; border-color: var(--green); }
     .btn:hover { transform: translateY(-1px); text-decoration: none; }
     .terminal { max-width: 730px; margin-top: 44px; border: 1px solid #3a4635; border-radius: 14px; overflow: hidden; background: var(--code); box-shadow: 0 22px 70px rgba(0,0,0,.22); }
     .term-head { display: flex; align-items: center; gap: 7px; padding: 13px 16px; border-bottom: 1px solid #283025; color: #8f9a87; font-size: .8rem; }
@@ -229,7 +230,7 @@
           <article class="command" data-search="template list update"><code>fe template list</code><p>List available remote templates.</p></article>
           <article class="command" data-search="template update refresh cache"><code>fe template update &lt;template-id&gt;</code><p>Refresh a named template in the local cache.</p></article>
           <article class="command" data-search="build compile target platform"><code>fe build</code><p>Run the configured build targets from <code>.fe.yaml</code>; use <code>--platform</code> to select one target.</p></article>
-          <article class="command" data-search="watch filesystem development ignore directory debounce"><code>fe watch --ignore-dir generated cache</code><p>Watch supported project files and exclude multiple additional directory names in one flag; subsequent options can still follow. The names are matched case-insensitively and apply to nested directories, including newly created ones. Watch supported project files and exclude additional directory names from the watcher.</p></article>
+          <article class="command" data-search="watch filesystem development ignore directory debounce"><code>fe watch --ignore-dir generated cache</code><p>Watch supported project files and exclude multiple additional directory names in one flag; subsequent options can still follow. The names are matched case-insensitively and apply to nested directories, including newly created ones. </p></article>
           <article class="command" data-search="godot engine export extension preset output"><code>fe export --list-presets</code><p>List Godot export presets and expected output paths without exporting.</p></article>
           <article class="command" data-search="godot engine export extension"><code>fe godot</code><p>Godot engine discovery, diagnostics, export, and native extension helpers.</p></article>
           <article class="command" data-search="o3de project engine register"><code>fe o3de</code><p>O3DE project and engine registration and management helpers.</p></article>
@@ -238,6 +239,7 @@
           <article class="command" data-search="release itch io publish upload butler dry run preview"><code>fe release --dry-run</code><p>Preview configured build, export, packing, and publishing steps without running them.</p></article>
           <article class="command" data-search="release itch io publish upload butler"><code>fe release</code><p>Run the release workflow configured for your project; packing errors stop publication.</p></article>
           <article class="command" data-search="manifest artifacts checksum sha256 version commit"><code>fe manifest</code><p>Write a JSON inventory of artifacts with platform, size, SHA-256, version, and commit metadata.</p></article>
+          <article class="command" data-search="check static analyzer go vet clang tidy python ruff eslint javascript typescript code quality"><code>fe check [path]</code><p>Detect Go, C/C++, Python, and JavaScript/TypeScript files; run available static analyzers and explain how to install missing tools.</p></article>
           <article class="command" data-search="doctor diagnostics check config godot"><code>fe doctor</code><p>Check build target configuration and, for Godot projects, executable and export-preset prerequisites.</p></article>
           <article class="command" data-search="help usage commands"><code>fe --help</code><p>Show the commands and flags available in your installed Fe version.</p></article>
         </div>
