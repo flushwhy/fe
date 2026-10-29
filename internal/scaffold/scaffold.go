@@ -132,6 +132,9 @@ func Init(opts Options) error {
 		return err
 	}
 
+	if err := os.MkdirAll(filepath.Dir(root), 0750); err != nil {
+		return fmt.Errorf("creating project parent directory: %w", err)
+	}
 	if err := os.Mkdir(root, 0750); err != nil {
 		if os.IsExist(err) {
 			return fmt.Errorf("directory %q already exists", opts.Name)
