@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -55,8 +56,8 @@ func ListRemoteTemplates() ([]string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("listing templates: GitHub returned %s", resp.Status)
 	}
-	var tree repoTree
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 5<<20)).Decode(&tree); err != nil {
+	tree, err := decodeRepoTree(resp.Body)
+	if err != nil {
 		return nil, fmt.Errorf("decoding template list: %w", err)
 	}
 	if tree.Trunc {
@@ -113,8 +114,8 @@ func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("fetching template catalog: GitHub returned %s", resp.Status)
 	}
-	var tree repoTree
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 5<<20)).Decode(&tree); err != nil {
+	tree, err := decodeRepoTree(resp.Body)
+	if err != nil {
 		return "", fmt.Errorf("decoding template catalog: %w", err)
 	}
 	if tree.Trunc {
@@ -196,3 +197,22 @@ func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 }
 
 func sortStrings(values []string) { sort.Strings(values) }
+
+
+// decodeRepoTree accepts exactly one complete JSON document and enforces the
+// response limit, including trailing data.
+func decodeRepoTree(body io.Reader) (repoTree, error) {
+	var tree repoTree
+	decoder := json.NewDecoder(io.LimitReader(body, (5<<20)+1))
+	if err := decoder.Decode(&tree); err != nil {
+		return repoTree{}, err
+	}
+	var extra json.RawMessage
+	if err := decoder.Decode(&extra); !errors.Is(err, io.EOF) {
+		if err == nil {
+			return repoTree{}, fmt.Errorf("unexpected trailing JSON value")
+		}
+		return repoTree{}, fmt.Errorf("invalid trailing response data: %w", err)
+	}
+	return tree, nil
+}
