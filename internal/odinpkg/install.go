@@ -155,7 +155,7 @@ func parseGitHubURL(raw string) (owner, repo string, err error) {
 	if err != nil || u.Scheme != "https" || !strings.EqualFold(u.Hostname(), "github.com") {
 		return "", "", fmt.Errorf("unsupported repository URL %q; use https://github.com/owner/repo", raw)
 	}
-	if u.User != nil || u.Port() != "" {
+	if u.User != nil || u.Port() != "" || u.RawQuery != "" || u.Fragment != "" {
 		return "", "", fmt.Errorf("invalid GitHub repository URL %q", raw)
 	}
 	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
