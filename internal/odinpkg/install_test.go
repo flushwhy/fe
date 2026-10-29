@@ -37,3 +37,31 @@ func TestAlias(t *testing.T) {
 		t.Fatalf("unexpected ltdk alias: %q, %v", got, ok)
 	}
 }
+
+
+func TestCleanArchivePath(t *testing.T) {
+	tests := []struct {
+		name string
+		want string
+		ok   bool
+	}{
+		{"repo/main.odin", "repo/main.odin", true},
+		{"repo/assets/", "repo/assets", true},
+		{"../outside.odin", "", false},
+		{"repo/../../outside.odin", "", false},
+		{"/absolute.odin", "", false},
+		{"repo\\\\outside.odin", "", false},
+		{"repo//main.odin", "", false},
+		{"repo/./main.odin", "", false},
+	}
+	for _, tt := range tests {
+		got, err := cleanArchivePath(tt.name)
+		if (err == nil) != tt.ok {
+			t.Errorf("cleanArchivePath(%q) error = %v; want success %v", tt.name, err, tt.ok)
+			continue
+		}
+		if err == nil && got != tt.want {
+			t.Errorf("cleanArchivePath(%q) = %q; want %q", tt.name, got, tt.want)
+		}
+	}
+}
