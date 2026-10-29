@@ -208,3 +208,16 @@ func TestInitConfiguredRemoteTemplateFailure(t *testing.T) {
 		t.Fatalf("project directory should not be created after template resolution fails; stat error = %v", statErr)
 	}
 }
+
+
+func TestFetchRemoteRejectsOversizedArchive(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		_, _ = w.Write([]byte(strings.Repeat("x", maxTemplateArchiveBytes+1)))
+	}))
+	defer server.Close()
+
+	_, err := fetchRemote(server.URL, "go")
+	if err == nil || !strings.Contains(err.Error(), "exceeds 50 MiB limit") {
+		t.Fatalf("expected archive size limit error, got %v", err)
+	}
+}
