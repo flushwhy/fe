@@ -89,7 +89,7 @@ var godotExportCmd = &cobra.Command{
 		if !filepath.IsAbs(output) {
 			output = filepath.Join(project, output)
 		}
-		if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(output), 0o750); err != nil {
 			return fmt.Errorf("create export output directory: %w", err)
 		}
 		mode := "--export-release"
