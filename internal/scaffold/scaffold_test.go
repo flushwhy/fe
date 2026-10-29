@@ -211,8 +211,12 @@ func TestInitConfiguredRemoteTemplateFailure(t *testing.T) {
 
 
 func TestFetchRemoteRejectsOversizedArchive(t *testing.T) {
+	archivePath := filepath.Join(t.TempDir(), "oversized.tar.gz")
+	if err := os.WriteFile(archivePath, []byte(strings.Repeat("x", maxTemplateArchiveBytes+1)), 0o600); err != nil {
+		t.Fatal(err)
+	}
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, _ = w.Write([]byte(strings.Repeat("x", maxTemplateArchiveBytes+1)))
+		http.ServeFile(w, r, archivePath)
 	}))
 	defer server.Close()
 
