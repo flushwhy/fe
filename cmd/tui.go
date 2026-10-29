@@ -441,6 +441,10 @@ func (m tuiModel) View() string {
 	if m.width == 0 {
 		return ""
 	}
+	// Keep the UI usable in split panes and small terminal windows.
+	if m.width < 84 || m.height < 22 {
+		return m.viewCompact()
+	}
 
 	var b strings.Builder
 
@@ -475,6 +479,71 @@ func (m tuiModel) View() string {
 	b.WriteString(m.renderFooter())
 
 	return b.String()
+}
+
+func (m tuiModel) viewCompact() string {
+	width := m.width - 4
+	if width < 1 {
+		width = 1
+	}
+	var b strings.Builder
+	b.WriteString(styleBanner.Width(width).Render("fe — dev middleware"))
+	b.WriteString("\n")
+	b.WriteString(m.renderTabs())
+	b.WriteString("\n\n")
+
+	switch m.state {
+	case stateRunning:
+		b.WriteString(m.spinner.View() + " Running…\n")
+		b.WriteString(styleDim.Render("Ctrl+C cancels the command."))
+	case stateInput:
+		b.WriteString(styleSelected.Render(m.inputLabel) + "\n")
+		b.WriteString(styleInput.Width(width - 2).Render(m.input.View()) + "\n")
+		b.WriteString(styleDim.Render("Enter confirms · Esc cancels"))
+	case stateResult:
+		if m.lastErr != nil {
+			b.WriteString(styleError.Render("✗ Command failed"))
+		} else {
+			b.WriteString(styleSuccess.Render("✓ Done"))
+		}
+		b.WriteString(styleDim.Render("  " + m.lastDur.Round(time.Millisecond).String()) + "\n\n")
+		output := strings.TrimSpace(m.lastOutput)
+		if output == "" {
+			output = "(no output)"
+		}
+		lines := strings.Split(output, "\n")
+		limit := m.height - 8
+		if limit < 1 {
+			limit = 1
+		}
+		if len(lines) > limit {
+			lines = lines[len(lines)-limit:]
+		}
+		b.WriteString(lipgloss.NewStyle().Width(width).Render(strings.Join(lines, "\n")))
+		b.WriteString("\n\n" + styleDim.Render("Enter/Esc back"))
+	default:
+		if m.activeTab == tabConfig {
+			b.WriteString(m.renderConfigPane())
+		} else if m.activeTab == tabDoctor {
+			b.WriteString(styleSelected.Render("Run doctor") + "\n")
+			b.WriteString(styleDim.Render("Press Enter to check tools and editor configs."))
+		} else {
+			for i, item := range m.items {
+				marker := "  "
+				label := item.label
+				if i == m.cursor {
+					marker = styleKey.Render("› ")
+					label = styleSelected.Render(label)
+				}
+				b.WriteString(marker + label + "\n")
+				if i == m.cursor {
+					b.WriteString(styleDim.Render("  "+item.desc) + "\n")
+				}
+			}
+		}
+	}
+	b.WriteString("\n\n" + styleDim.Render("↑↓ navigate · Enter select · Tab switch · q quit"))
+	return lipgloss.NewStyle().Width(width).Render(b.String())
 }
 
 func (m tuiModel) renderTabs() string {
