@@ -15,6 +15,8 @@ func TestParseGitHubURL(t *testing.T) {
 		{"https://example.com/owner/repo", "", "", false},
 		{"https://github.com/owner/repo/tree/main", "", "", false},
 		{"https://github.com/owner", "", "", false},
+		{"https://github.com/owner/repo?archive=1", "", "", false},
+		{"https://github.com/owner/repo#main", "", "", false},
 		{"", "", "", false},
 	}
 	for _, tt := range tests {
