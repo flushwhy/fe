@@ -245,6 +245,10 @@ Supported platforms: `windows`, `linux`, `macos`
 
 Supported arches: `x64`, `x32`, `arm64`, `arm32`
 
+## Release checklist
+
+Before publishing a stable version, use the [release checklist](docs/releasing.md) to verify CI, release assets, installation smoke tests, and the deployed documentation site.
+
 ## TUI
 
 Run `fe tui` from an interactive terminal to open the Bubble Tea menu for common project, shipping, doctor, and configuration workflows. The TUI requires both keyboard input and terminal output, so it does not start in a non-interactive CI environment.
