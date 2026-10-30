@@ -216,16 +216,11 @@ build:
   # container:
   #   image: flushy/odin:nightly
   #   command: "odin build . -out:builds/game"
-  targets:
-    - platform: linux-x64
-      cmd: gcc
-      args: [-o, builds/linux-x64/game, src/main.c]
-    - platform: windows-x64
-      cmd: x86_64-w64-mingw32-gcc
-      args: [-o, builds/windows-x64/game.exe, src/main.c]
-    - platform: macos-arm64
-      cmd: gcc
-      args: [-o, builds/macos-arm64/game, src/main.c]
+  # Add explicit targets to override automatic project build suggestions.
+  # targets:
+  #   - platform: linux-x64
+  #     cmd: go
+  #     args: [build, ./...]
 `
 
 // SummaryLines returns a human-readable summary of active config values,
