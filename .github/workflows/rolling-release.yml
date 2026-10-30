@@ -25,24 +25,20 @@ jobs:
           ref: master
           fetch-depth: 0
 
-      - name: Compare with the previous rolling release
+      - name: Compare tool source with the previous rolling release
         id: check
         run: |
           if ! git rev-parse --verify refs/tags/rolling >/dev/null 2>&1; then
             echo "No previous rolling tag; publish the initial rolling release."
             echo "changed=true" >> "$GITHUB_OUTPUT"
-          elif git diff --quiet refs/tags/rolling HEAD -- . \
-            ':(exclude)docs/**' \
-            ':(exclude)**/*.md' \
-            ':(exclude)readme.md' \
-            ':(exclude)CHANGELOG.md' \
-            ':(exclude)LICENSE' \
-            ':(exclude).release-please-manifest.json'; then
-            echo "No release-relevant changes since the last rolling release."
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "Release-relevant changes found."
+          elif git diff --name-only refs/tags/rolling HEAD \
+            | grep -E '(^|/)[^/]+\.go$|^go\.(mod|sum)$' \
+            | grep -Ev '(^|/)[^/]+_test\.go$'; then
+            echo "Fe source or Go dependencies changed since the last rolling release."
             echo "changed=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "No Fe source or Go dependency changes since the last rolling release; skipping publish."
+            echo "changed=false" >> "$GITHUB_OUTPUT"
           fi
 
   arm64-packages:
@@ -224,3 +220,8 @@ jobs:
           ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
           ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
+
+      - name: Mark this commit as the last successful rolling release
+        run: |
+          set -euo pipefail
+          git push --force origin HEAD:refs/tags/rolling
