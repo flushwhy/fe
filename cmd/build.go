@@ -20,9 +20,11 @@ Example .fe.yaml:
   build:
     targets:
       - platform: linux-x64
-        cmd: "gcc -o builds/linux-x64/game src/main.c"
+        cmd: gcc
+        args: [-o, builds/linux-x64/game, src/main.c]
       - platform: windows-x64
-        cmd: "x86_64-w64-mingw32-gcc -o builds/windows-x64/game.exe src/main.c"`,
+        cmd: x86_64-w64-mingw32-gcc
+        args: [-o, builds/windows-x64/game.exe, src/main.c]`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
 		if err != nil {
