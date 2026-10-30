@@ -1,9 +1,8 @@
 name: build-fe
 
+# Kept available for manual recovery; stable tag releases are handled by release.yml.
 on:
-  push:
-    tags:
-      - "v*"
+  workflow_dispatch:
 
 jobs:
   build:
