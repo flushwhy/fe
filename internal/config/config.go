@@ -17,6 +17,7 @@ type Config struct {
 	Transcode TranscodeConfig `mapstructure:"transcode"`
 	Build     BuildConfig     `mapstructure:"build"`
 	Godot     GodotConfig     `mapstructure:"godot"`
+	Preflight PreflightConfig `mapstructure:"preflight"`
 }
 
 type ItchioConfig struct {
@@ -57,6 +58,20 @@ type TranscodeConfig struct {
 type GodotConfig struct {
 	Executable string `mapstructure:"executable"`
 	OutputDir  string `mapstructure:"output_dir"`
+}
+
+type PreflightConfig struct {
+	Enabled bool `mapstructure:"enabled"`
+	Detect  bool `mapstructure:"detect"`
+	Checks  []PreflightCheck `mapstructure:"checks"`
+}
+
+type PreflightCheck struct {
+	Name    string   `mapstructure:"name"`
+	Command string   `mapstructure:"command"`
+	Args    []string `mapstructure:"args"`
+	Stage   string   `mapstructure:"stage"`
+	Fix     string   `mapstructure:"fix"`
 }
 
 type BuildConfig struct {
