@@ -23,20 +23,15 @@ type Options struct {
 	Platform string
 }
 
+// Run plans every selected target before executing the first one.
 func Run(cfg config.BuildConfig, opts Options, runner Runner) error {
-	if len(cfg.Targets) == 0 {
-		return fmt.Errorf("no build targets defined in .fe.yaml")
+	plan, err := Plan(cfg, opts)
+	if err != nil {
+		return err
 	}
-	targets := cfg.Targets
-	if opts.Platform != "" {
-		targets = FilterByPlatform(cfg.Targets, opts.Platform)
-		if len(targets) == 0 {
-			return fmt.Errorf("no target found for platform %q", opts.Platform)
-		}
-	}
-	fmt.Printf("Building %d target(s)...\n", len(targets))
-	for _, t := range targets {
-		if err := RunTarget(t, runner); err != nil {
+	fmt.Printf("Building %d target(s)...\n", len(plan))
+	for _, target := range plan {
+		if err := RunPlannedTarget(target, runner); err != nil {
 			return err
 		}
 	}
@@ -44,26 +39,21 @@ func Run(cfg config.BuildConfig, opts Options, runner Runner) error {
 	return nil
 }
 
-// RunTarget supports legacy command strings while preserving arguments exactly
-// when they are supplied separately in .fe.yaml.
-func RunTarget(t config.BuildTarget, runner Runner) error {
-	parts := strings.Fields(t.Cmd)
-	if len(parts) == 0 {
-		return fmt.Errorf("build target %q has no command", t.Platform)
+// RunTarget is retained for callers that execute a single configured target.
+func RunTarget(target config.BuildTarget, runner Runner) error {
+	plan, err := Plan(config.BuildConfig{Targets: []config.BuildTarget{target}}, Options{})
+	if err != nil {
+		return err
 	}
-	args := append(parts[1:], t.Args...)
-	if err := runner(parts[0], args...); err != nil {
-		return fmt.Errorf("build failed for %s: %w", t.Platform, err)
-	}
-	return nil
+	return RunPlannedTarget(plan[0], runner)
 }
 
 // FilterByPlatform returns only targets matching the given platform name.
 func FilterByPlatform(targets []config.BuildTarget, platform string) []config.BuildTarget {
 	var out []config.BuildTarget
-	for _, t := range targets {
-		if strings.EqualFold(t.Platform, platform) {
-			out = append(out, t)
+	for _, target := range targets {
+		if strings.EqualFold(target.Platform, platform) {
+			out = append(out, target)
 		}
 	}
 	return out
