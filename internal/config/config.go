@@ -87,8 +87,9 @@ type ContainerBuild struct {
 // BuildTarget represents a single platform build.
 type BuildTarget struct {
 	Platform string `mapstructure:"platform"`
-	Cmd      string `mapstructure:"cmd"`
-	Output   string `mapstructure:"output"`
+	Cmd      string   `mapstructure:"cmd"`
+	Args     []string `mapstructure:"args"`
+	Output   string   `mapstructure:"output"`
 }
 
 // Load reads viper state into a typed Config, then overlays env vars.
@@ -221,11 +222,14 @@ build:
   #   command: "odin build . -out:builds/game"
   targets:
     - platform: linux-x64
-      cmd: "gcc -o builds/linux-x64/game src/main.c"
+      cmd: gcc
+      args: [-o, builds/linux-x64/game, src/main.c]
     - platform: windows-x64
-      cmd: "x86_64-w64-mingw32-gcc -o builds/windows-x64/game.exe src/main.c"
+      cmd: x86_64-w64-mingw32-gcc
+      args: [-o, builds/windows-x64/game.exe, src/main.c]
     - platform: macos-arm64
-      cmd: "gcc -o builds/macos-arm64/game src/main.c"
+      cmd: gcc
+      args: [-o, builds/macos-arm64/game, src/main.c]
 `
 
 // SummaryLines returns a human-readable summary of active config values,
