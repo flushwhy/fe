@@ -54,7 +54,6 @@ Version: $version
 Release: $rpm_release
 Summary: Local middleware CLI for game and software development
 License: MIT
-BuildArch: $rpm_arch
 
 %description
 Glue between your engine/compiler and shipping workflows.
@@ -66,8 +65,8 @@ install -m 0755 %{_sourcedir}/fe %{buildroot}/usr/bin/fe
 %files
 /usr/bin/fe
 EOF
-  # The binary is already cross-compiled; tell RPM which package architecture to emit.
-  rpmbuild --target "$rpm_arch-linux" -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
+  # BuildArch in the spec overrides cross-target selection; select it only via --target.
+  rpmbuild --target "$rpm_arch" -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
   rpm_file="$(find "$top/RPMS" -type f -name '*.rpm' -print -quit)"
   test -n "$rpm_file"
   test "$(rpm -qp --qf '%{ARCH}' "$rpm_file")" = "$rpm_arch"
