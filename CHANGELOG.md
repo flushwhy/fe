@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.7.1](https://github.com/flushwhy/fe/compare/v0.7.0...v0.7.1) (2026-10-30)
+
+
+### Bug Fixes
+
+* remove RPM spec arch override for cross packaging ([0777591](https://github.com/flushwhy/fe/commit/0777591febf84eedd706d9058ffabb71dfcba71f))
+* skip host stripping for ARM64 RPMs ([99e665f](https://github.com/flushwhy/fe/commit/99e665f843b2c0a6718953fbaa8c5b0029a306f0))
+* target RPM package architecture explicitly ([abbd9a7](https://github.com/flushwhy/fe/commit/abbd9a71d80c013b025f7f2b67d9a3a4a4bd2190))
+
 ## [0.7.0](https://github.com/flushwhy/fe/compare/v0.6.0...v0.7.0) (2026-10-30)
 
 
