@@ -3,6 +3,7 @@ package inspect
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"io/fs"
 	"os"
 	"path/filepath"
@@ -131,7 +132,7 @@ func hasBlenderMetadata(path string) (bool, error) {
 	}
 	defer file.Close()
 
-	reader := bufio.NewReader(ioLimitReader{r: file, remaining: maxPythonMetadataBytes})
+	reader := bufio.NewReader(io.LimitReader(file, maxPythonMetadataBytes))
 	for {
 		line, err := reader.ReadString('\n')
 		if strings.Contains(line, "bl_info") {
@@ -143,19 +144,3 @@ func hasBlenderMetadata(path string) (bool, error) {
 	}
 }
 
-type ioLimitReader struct {
-	r         *os.File
-	remaining int
-}
-
-func (r ioLimitReader) Read(p []byte) (int, error) {
-	if r.remaining <= 0 {
-		return 0, os.ErrClosed
-	}
-	if len(p) > r.remaining {
-		p = p[:r.remaining]
-	}
-	n, err := r.r.Read(p)
-	r.remaining -= n
-	return n, err
-}
