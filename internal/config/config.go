@@ -101,6 +101,9 @@ func Load() (*Config, error) {
 
 	applyEnvOverrides(&cfg)
 	applyConventions(&cfg)
+	if !viper.IsSet("preflight.detect") {
+		cfg.Preflight.Detect = true
+	}
 
 	return &cfg, nil
 }
