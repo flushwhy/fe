@@ -44,6 +44,7 @@ var rootCmd = &cobra.Command{
     fe o3de build --build-dir build   build an existing CMake build directory
 
   Shipping pipeline:
+    fe preflight                      inspect toolchains and run configured checks
     fe build                          compile for all configured platforms
     fe pack                           pack sprites into a spritesheet
     fe transcode                      convert audio/video via ffmpeg
