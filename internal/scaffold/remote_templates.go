@@ -55,8 +55,8 @@ func ListRemoteTemplates() ([]string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("listing templates: GitHub returned %s", resp.Status)
 	}
-	var tree repoTree
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 5<<20)).Decode(&tree); err != nil {
+	tree, err := decodeRepoTree(resp.Body)
+	if err != nil {
 		return nil, fmt.Errorf("decoding template list: %w", err)
 	}
 	if tree.Trunc {
@@ -88,14 +88,21 @@ func ResolveTemplate(id string, refresh bool) (string, error) {
 		return "", err
 	}
 	dest := filepath.Join(cacheRoot, id)
-	if !refresh {
-		if info, err := os.Stat(filepath.Join(cacheRoot, id+".ready")); err == nil && !info.IsDir() {
-			if dirInfo, dirErr := os.Stat(dest); dirErr == nil && dirInfo.IsDir() {
-				return dest, nil
-			}
-		}
+	if !refresh && cachedTemplateIsSafe(cacheRoot, id) {
+		return dest, nil
 	}
 	return downloadTemplate(id, cacheRoot, dest)
+}
+
+// cachedTemplateIsSafe rejects symlinks so a poisoned cache entry cannot redirect
+// template reads outside the cache directory.
+func cachedTemplateIsSafe(cacheRoot, id string) bool {
+	marker, err := os.Lstat(filepath.Join(cacheRoot, id+".ready"))
+	if err != nil || !marker.Mode().IsRegular() {
+		return false
+	}
+	dir, err := os.Lstat(filepath.Join(cacheRoot, id))
+	return err == nil && dir.IsDir() && dir.Mode()&os.ModeSymlink == 0
 }
 
 func downloadTemplate(id, cacheRoot, dest string) (string, error) {
@@ -113,8 +120,8 @@ func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 	if resp.StatusCode != http.StatusOK {
 		return "", fmt.Errorf("fetching template catalog: GitHub returned %s", resp.Status)
 	}
-	var tree repoTree
-	if err := json.NewDecoder(io.LimitReader(resp.Body, 5<<20)).Decode(&tree); err != nil {
+	tree, err := decodeRepoTree(resp.Body)
+	if err != nil {
 		return "", fmt.Errorf("decoding template catalog: %w", err)
 	}
 	if tree.Trunc {
@@ -196,3 +203,21 @@ func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 }
 
 func sortStrings(values []string) { sort.Strings(values) }
+
+
+// decodeRepoTree accepts exactly one complete JSON document and enforces the
+// response limit, including trailing data.
+func decodeRepoTree(body io.Reader) (repoTree, error) {
+	var tree repoTree
+	data, err := io.ReadAll(io.LimitReader(body, (5<<20)+1))
+	if err != nil {
+		return tree, err
+	}
+	if len(data) > 5<<20 {
+		return tree, fmt.Errorf("template repository catalog exceeds 5 MiB limit")
+	}
+	if err := json.Unmarshal(data, &tree); err != nil {
+		return tree, err
+	}
+	return tree, nil
+}

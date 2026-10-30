@@ -87,10 +87,16 @@ func Install(spec, destDir string) (string, error) {
 	defer os.RemoveAll(stage)
 	odinFound := false
 	var totalExtracted int64
+	if len(zr.File) > 5000 {
+		return "", fmt.Errorf("repository archive contains too many entries")
+	}
 	for _, f := range zr.File {
-		clean := path.Clean(f.Name)
+		clean, err := cleanArchivePath(f.Name)
+		if err != nil {
+			return "", fmt.Errorf("unsafe path in repository archive: %w", err)
+		}
 		parts := strings.Split(clean, "/")
-		if len(parts) < 2 || clean == "." || strings.HasPrefix(clean, "../") || path.IsAbs(clean) {
+		if len(parts) < 2 || clean == "." {
 			continue
 		}
 		rel := filepath.FromSlash(strings.Join(parts[1:], "/"))
@@ -155,7 +161,7 @@ func parseGitHubURL(raw string) (owner, repo string, err error) {
 	if err != nil || u.Scheme != "https" || !strings.EqualFold(u.Hostname(), "github.com") {
 		return "", "", fmt.Errorf("unsupported repository URL %q; use https://github.com/owner/repo", raw)
 	}
-	if u.User != nil || u.Port() != "" {
+	if u.User != nil || u.Port() != "" || u.RawQuery != "" || u.Fragment != "" {
 		return "", "", fmt.Errorf("invalid GitHub repository URL %q", raw)
 	}
 	parts := strings.Split(strings.Trim(u.Path, "/"), "/")
@@ -187,4 +193,18 @@ func safeArchiveTarget(stage, rel string) (string, error) {
 		return "", fmt.Errorf("path %q escapes staging directory", rel)
 	}
 	return target, nil
+}
+
+
+// cleanArchivePath rejects ambiguous and traversal paths instead of silently
+// normalizing untrusted ZIP entry names.
+func cleanArchivePath(name string) (string, error) {
+	if name == "" || strings.Contains(name, "\\") || path.IsAbs(name) {
+		return "", fmt.Errorf("invalid archive path %q", name)
+	}
+	clean := path.Clean(strings.TrimSuffix(name, "/"))
+	if clean == "." || clean == ".." || strings.HasPrefix(clean, "../") || clean != strings.TrimSuffix(name, "/") {
+		return "", fmt.Errorf("archive path escapes or is not canonical: %q", name)
+	}
+	return clean, nil
 }

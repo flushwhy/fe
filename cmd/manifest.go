@@ -115,7 +115,7 @@ func writeArtifactManifest(root, output, version, commit string) error {
 	if len(manifest.Artifacts) == 0 {
 		return fmt.Errorf("no artifact files found in %q", root)
 	}
-	if err := os.MkdirAll(filepath.Dir(output), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(output), 0o750); err != nil {
 		return fmt.Errorf("create manifest directory: %w", err)
 	}
 	data, err := json.MarshalIndent(manifest, "", "  ")
@@ -187,7 +187,7 @@ func addArtifact(root, output, path string, entry os.DirEntry, manifest *artifac
  	tmpName := tmp.Name()
  	defer os.Remove(tmpName)
 
- 	if err := tmp.Chmod(0o644); err != nil {
+ 	if err := tmp.Chmod(0o640); err != nil {
  		_ = tmp.Close()
  		return err
  	}

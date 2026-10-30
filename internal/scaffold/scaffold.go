@@ -132,6 +132,16 @@ func Init(opts Options) error {
 		return err
 	}
 
+	if err := os.MkdirAll(filepath.Dir(root), 0750); err != nil {
+		return fmt.Errorf("creating project parent directory: %w", err)
+	}
+	if err := os.Mkdir(root, 0750); err != nil {
+		if os.IsExist(err) {
+			return fmt.Errorf("directory %q already exists", opts.Name)
+		}
+		return fmt.Errorf("creating project directory %q: %w", opts.Name, err)
+	}
+
 	err = ui.RunSpinner("Writing project files", func() error {
 		return writeTemplate(src, root, data)
 	})
@@ -162,7 +172,16 @@ func writeTemplate(src fs.FS, destRoot string, data TemplateData) error {
 			return err
 		}
 		if !fs.ValidPath(path) || path == "." {
-			if path == "." && d.IsDir() { return os.MkdirAll(destRoot, 0750) }
+			if path == "." && d.IsDir() {
+				info, err := os.Lstat(destRoot)
+				if err != nil {
+					return err
+				}
+				if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+					return fmt.Errorf("project destination is not a real directory")
+				}
+				return nil
+			}
 			return fmt.Errorf("unsafe template path %q", path)
 		}
 		dest := filepath.Join(destRoot, filepath.FromSlash(path))
@@ -188,7 +207,20 @@ func writeTemplate(src fs.FS, destRoot string, data TemplateData) error {
 		if err := os.MkdirAll(filepath.Dir(destPath), 0750); err != nil {
 			return err
 		}
-		return os.WriteFile(destPath, []byte(rendered), 0640)
+		file, err := os.OpenFile(destPath, os.O_WRONLY|os.O_CREATE|os.O_EXCL, 0640)
+		if err != nil {
+			return fmt.Errorf("creating template file %s: %w", path, err)
+		}
+		if _, err := io.WriteString(file, rendered); err != nil {
+			_ = file.Close()
+			_ = os.Remove(destPath)
+			return fmt.Errorf("writing template file %s: %w", path, err)
+		}
+		if err := file.Close(); err != nil {
+			_ = os.Remove(destPath)
+			return fmt.Errorf("closing template file %s: %w", path, err)
+		}
+		return nil
 	})
 }
 
@@ -261,9 +293,12 @@ func fetchRemote(baseURL, lang string) (fs.FS, error) {
 	if resp.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("remote returned %d for %s", resp.StatusCode, url)
 	}
-	data, err := io.ReadAll(resp.Body)
+	data, err := io.ReadAll(io.LimitReader(resp.Body, maxTemplateArchiveBytes+1))
 	if err != nil {
 		return nil, fmt.Errorf("reading response: %w", err)
+	}
+	if len(data) > maxTemplateArchiveBytes {
+		return nil, fmt.Errorf("remote template archive exceeds %d MiB limit", maxTemplateArchiveBytes>>20)
 	}
 	return extractTarGz(data)
 }

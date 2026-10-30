@@ -208,3 +208,60 @@ func TestInitConfiguredRemoteTemplateFailure(t *testing.T) {
 		t.Fatalf("project directory should not be created after template resolution fails; stat error = %v", statErr)
 	}
 }
+
+
+func TestFetchRemoteRejectsOversizedArchive(t *testing.T) {
+	archivePath := filepath.Join(t.TempDir(), "oversized.tar.gz")
+	if err := os.WriteFile(archivePath, []byte(strings.Repeat("x", maxTemplateArchiveBytes+1)), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, archivePath)
+	}))
+	defer server.Close()
+
+	_, err := fetchRemote(server.URL, "go")
+	if err == nil || !strings.Contains(err.Error(), "exceeds 50 MiB limit") {
+		t.Fatalf("expected archive size limit error, got %v", err)
+	}
+}
+
+func TestWriteTemplateDoesNotOverwriteExistingFile(t *testing.T) {
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "main.go"), []byte("keep me"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	err := writeTemplate(testTemplateFS(LangGo), root, TemplateData{Name: "new"})
+	if err == nil {
+		t.Fatal("writeTemplate overwrote an existing file")
+	}
+	got, err := os.ReadFile(filepath.Join(root, "main.go"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "keep me" {
+		t.Fatalf("existing file changed to %q", got)
+	}
+}
+
+func TestWriteTemplateRejectsSymlinkDestinationFile(t *testing.T) {
+	root := t.TempDir()
+	outside := filepath.Join(t.TempDir(), "outside")
+	if err := os.WriteFile(outside, []byte("keep me"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(root, "main.go")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	err := writeTemplate(testTemplateFS(LangGo), root, TemplateData{Name: "new"})
+	if err == nil {
+		t.Fatal("writeTemplate followed a symlink destination")
+	}
+	got, err := os.ReadFile(outside)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "keep me" {
+		t.Fatalf("symlink target changed to %q", got)
+	}
+}
