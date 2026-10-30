@@ -22,6 +22,7 @@ var rootCmd = &cobra.Command{
     fe template update <id>          refresh a cached template
     fe add <tool>                     wire up LSP/editor tooling (clangd, ols, zls, gopls)
     fe inspect [path]                detect project types and ecosystem markers
+    fe setup [path]                  check project tool requirements
     fe doctor                         check tools are installed and configs are correct
     fe check [path]                   run available language-aware static analyzers
 
