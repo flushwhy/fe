@@ -31,11 +31,18 @@ func Run(cfg config.PreflightConfig, stage, root string) ([]Result, error) {
 		results = append(results, detectLua(root)...)
 	}
 	for _, check := range cfg.Checks {
-		if check.Stage != "" && check.Stage != stage && stage != "all" {
+		if check.Stage != "" && check.Stage != stage && stage != "all" && stage != "release" {
 			continue
 		}
+		name := check.Name
+		if name == "" {
+			name = check.Command
+		}
+		if name == "" {
+			name = "unnamed check"
+		}
 		if check.Command == "" {
-			results = append(results, Result{Name: check.Name, OK: false, Message: "no command configured", Fix: check.Fix})
+			results = append(results, Result{Name: name, OK: false, Message: "no command configured", Fix: check.Fix})
 			continue
 		}
 		bin, err := exec.LookPath(check.Command)
@@ -56,10 +63,6 @@ func Run(cfg config.PreflightConfig, stage, root string) ([]Result, error) {
 		}
 		if message == "" {
 			message = "command succeeded"
-		}
-		name := check.Name
-		if name == "" {
-			name = check.Command
 		}
 		results = append(results, Result{Name: name, OK: true, Message: message})
 	}
