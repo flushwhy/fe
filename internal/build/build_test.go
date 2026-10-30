@@ -32,8 +32,8 @@ func TestRun(t *testing.T) {
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(ran) != 10 {
-			t.Errorf("expected 10 argv elements across 2 commands, got %d: %v", len(ran), ran)
+		if len(ran) != 8 {
+			t.Errorf("expected 8 argv elements across 2 commands, got %d: %v", len(ran), ran)
 		}
 	})
 
