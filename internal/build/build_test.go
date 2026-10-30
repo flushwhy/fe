@@ -2,6 +2,7 @@ package build
 
 import (
 	"errors"
+	"reflect"
 	"strings"
 	"testing"
 
@@ -23,33 +24,31 @@ func TestRun(t *testing.T) {
 
 	t.Run("builds all targets", func(t *testing.T) {
 		var ran []string
-		runner := func(cmd string) error {
-			ran = append(ran, cmd)
+		runner := func(cmd string, args ...string) error {
+			ran = append(ran, append([]string{cmd}, args...)...)
 			return nil
 		}
-
 		err := Run(config.BuildConfig{Targets: targets}, Options{}, runner)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(ran) != 2 {
-			t.Errorf("expected 2 commands run, got %d", len(ran))
+		if len(ran) != 10 {
+			t.Errorf("expected 10 argv elements across 2 commands, got %d: %v", len(ran), ran)
 		}
 	})
 
 	t.Run("filters by platform", func(t *testing.T) {
 		var ran []string
-		runner := func(cmd string) error {
+		runner := func(cmd string, args ...string) error {
 			ran = append(ran, cmd)
 			return nil
 		}
-
 		err := Run(config.BuildConfig{Targets: targets}, Options{Platform: "linux-x64"}, runner)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
-		if len(ran) != 1 || !strings.Contains(ran[0], "gcc") {
-			t.Errorf("expected 1 linux command, got %v", ran)
+		if len(ran) != 1 || ran[0] != "gcc" {
+			t.Errorf("expected one linux command, got %v", ran)
 		}
 	})
 
@@ -61,13 +60,45 @@ func TestRun(t *testing.T) {
 	})
 
 	t.Run("propagates runner error", func(t *testing.T) {
-		runner := func(cmd string) error {
+		runner := func(cmd string, args ...string) error {
 			return errors.New("compiler not found")
 		}
-
 		err := Run(config.BuildConfig{Targets: targets[:1]}, Options{}, runner)
 		if err == nil || !strings.Contains(err.Error(), "compiler not found") {
 			t.Errorf("expected runner error to propagate, got: %v", err)
 		}
 	})
+}
+
+func TestRunTargetExplicitArgs(t *testing.T) {
+	target := config.BuildTarget{
+		Platform: "linux-x64",
+		Cmd:      "go",
+		Args:     []string{"build", "-ldflags=-X main.version=1.2.0", "./..."},
+	}
+	var gotCommand string
+	var gotArgs []string
+	runner := func(command string, args ...string) error {
+		gotCommand = command
+		gotArgs = args
+		return nil
+	}
+
+	if err := RunTarget(target, runner); err != nil {
+		t.Fatal(err)
+	}
+	if gotCommand != "go" {
+		t.Fatalf("command = %q, want go", gotCommand)
+	}
+	want := []string{"build", "-ldflags=-X main.version=1.2.0", "./..."}
+	if !reflect.DeepEqual(gotArgs, want) {
+		t.Fatalf("args = %#v, want %#v", gotArgs, want)
+	}
+}
+
+func TestRunTargetRejectsEmptyCommand(t *testing.T) {
+	err := RunTarget(config.BuildTarget{Platform: "linux-x64"}, nil)
+	if err == nil || !strings.Contains(err.Error(), "has no command") {
+		t.Fatalf("expected empty command error, got %v", err)
+	}
 }
