@@ -89,8 +89,8 @@ project:
 build:
   auto_detect: true
   targets:
-    - name: linux-x64
-      command: go
+    - platform: linux-x64
+      cmd: go
       args: [build, ./...]
 
 changelog:
