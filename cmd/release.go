@@ -47,6 +47,9 @@ CI example:
 		if dryRun {
 			return printReleasePlan(cfg, skipBuild, skipPack, skipBmp, channelSuffix)
 		}
+		if err := runConfiguredPreflight(cfg, "release"); err != nil {
+			return err
+		}
 
 		ui.Title("Release Pipeline")
 		start := time.Now()
