@@ -3,6 +3,7 @@ package inspect
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -42,6 +43,54 @@ func TestInspectDetectsProjectTypesAndSkipsGeneratedDirectories(t *testing.T) {
 	}
 	if _, ok := got["Python"]; ok {
 		t.Fatal("detected Python marker inside dist")
+	}
+	if len(report.Suggestions) != 1 || report.Suggestions[0].Command != "go" {
+		t.Fatalf("unexpected build suggestions: %#v", report.Suggestions)
+	}
+}
+
+func TestInspectSuggestsRootGoAndRustBuilds(t *testing.T) {
+	root := t.TempDir()
+	for name, content := range map[string]string{
+		"go.mod":    "module example.com/demo\n",
+		"Cargo.toml": "[package]\nname = \"demo\"\nversion = \"0.1.0\"\n",
+	} {
+		if err := os.WriteFile(filepath.Join(root, name), []byte(content), 0644); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	report, err := Inspect(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Suggestions) != 2 {
+		t.Fatalf("got %#v, want Go and Rust suggestions", report.Suggestions)
+	}
+	if !reflect.DeepEqual(report.Suggestions[0].Args, []string{"build", "./..."}) {
+		t.Fatalf("unexpected Go suggestion: %#v", report.Suggestions[0])
+	}
+	if !reflect.DeepEqual(report.Suggestions[1].Args, []string{"build", "--release"}) {
+		t.Fatalf("unexpected Rust suggestion: %#v", report.Suggestions[1])
+	}
+}
+
+func TestInspectDoesNotSuggestBuildForNestedManifest(t *testing.T) {
+	root := t.TempDir()
+	nested := filepath.Join(root, "service")
+	if err := os.MkdirAll(nested, 0755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(nested, "go.mod"), []byte("module example.com/service\n"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	report, err := Inspect(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(report.Suggestions) != 0 {
+		t.Fatalf("nested project should not receive root build suggestion: %#v", report.Suggestions)
 	}
 }
 
