@@ -63,3 +63,39 @@ func TestPlanRejectsMissingTargetsAndUnknownPlatform(t *testing.T) {
 		t.Fatal("expected unknown platform error")
 	}
 }
+
+func TestPlanWithSuggestionsUsesDetectedTargetsOnlyWhenUnconfigured(t *testing.T) {
+	suggestions := []config.BuildTarget{{Cmd: "go", Args: []string{"build", "./..."}}}
+	plan, err := PlanWithSuggestions(config.BuildConfig{}, Options{}, suggestions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan) != 1 || plan[0].Platform != "host" || plan[0].Command != "go" {
+		t.Fatalf("unexpected detected plan: %#v", plan)
+	}
+
+	explicit := config.BuildConfig{Targets: []config.BuildTarget{{Platform: "linux-x64", Cmd: "gcc"}}}
+	plan, err = PlanWithSuggestions(explicit, Options{}, suggestions)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan) != 1 || plan[0].Command != "gcc" || plan[0].Platform != "linux-x64" {
+		t.Fatalf("explicit config was not authoritative: %#v", plan)
+	}
+}
+
+func TestPlanWithSuggestionsRejectsCrossPlatformSelection(t *testing.T) {
+	suggestions := []config.BuildTarget{{Cmd: "go", Args: []string{"build", "./..."}}}
+	_, err := PlanWithSuggestions(config.BuildConfig{}, Options{Platform: "windows-x64"}, suggestions)
+	if err == nil || !strings.Contains(err.Error(), "current host only") {
+		t.Fatalf("expected host-only suggestion error, got %v", err)
+	}
+}
+
+func TestCheckToolsReportsMissingExecutable(t *testing.T) {
+	t.Setenv("PATH", t.TempDir())
+	err := CheckTools([]PlannedTarget{{Platform: "host", Command: "fe-tool-that-does-not-exist"}})
+	if err == nil || !strings.Contains(err.Error(), "was not found in PATH") {
+		t.Fatalf("expected missing tool error, got %v", err)
+	}
+}
