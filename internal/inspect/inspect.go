@@ -23,7 +23,6 @@ type Project struct {
 type Report struct {
 	Root     string
 	Projects []Project
-	Files    int
 }
 
 // Inspect detects common project types without executing project code.
@@ -92,7 +91,7 @@ func Inspect(root string) (*Report, error) {
 		if reported {
 			return nil
 		}
-		if strings.EqualFold(filepath.Ext(entry.Name()), ".rockspec") {
+		if strings.EqualFold(filepath.Ext(entry.Name()), ".rockspec") || strings.EqualFold(filepath.Ext(entry.Name()), ".lua") {
 			add("Lua", rel)
 			return nil
 		}
