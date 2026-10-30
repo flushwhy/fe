@@ -5,6 +5,40 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.7.0](https://github.com/flushwhy/fe/compare/v0.6.0...v0.7.0) (2026-10-30)
+
+
+### Features
+
+* accept multiple watch ignore dirs in one flag ([#65](https://github.com/flushwhy/fe/issues/65)) ([4a5bddb](https://github.com/flushwhy/fe/commit/4a5bddb1e0bf0afd81e60539a56aca8edf7d77bc))
+* add configurable build preflight checks ([#75](https://github.com/flushwhy/fe/issues/75)) ([87db860](https://github.com/flushwhy/fe/commit/87db860ec0f6d40b9357d0d9a09b6d8e4f196ace))
+* add disposable Docker and Podman builds ([#50](https://github.com/flushwhy/fe/issues/50)) ([b71be0a](https://github.com/flushwhy/fe/commit/b71be0ac5fd506ddb36e7029b8cdcc36cea5ecab))
+* add existing funding links to site support section ([#62](https://github.com/flushwhy/fe/issues/62)) ([bcc8b4f](https://github.com/flushwhy/fe/commit/bcc8b4fba754e7273632fbdf384f2ceec7f1b3eb))
+* add language-aware static checker ([#67](https://github.com/flushwhy/fe/issues/67)) ([3cbf9a1](https://github.com/flushwhy/fe/commit/3cbf9a10248e2c9f4e390dfbd33bebfdb0a6c182))
+* add project setup guidance ([#79](https://github.com/flushwhy/fe/issues/79)) ([9f15757](https://github.com/flushwhy/fe/commit/9f1575757aa0e2f0a5eb3c1c5851f98cedd05fb7))
+* add read-only project inspection ([#78](https://github.com/flushwhy/fe/issues/78)) ([6235351](https://github.com/flushwhy/fe/commit/62353512f908526c38aec72eabec13ba87c24174))
+* **godot:** add headless project export command ([#47](https://github.com/flushwhy/fe/issues/47)) ([1983754](https://github.com/flushwhy/fe/commit/19837540b299140394c052873c788fec142131d3))
+* improve release previews, diagnostics, and dev workflows ([#64](https://github.com/flushwhy/fe/issues/64)) ([d7f32e5](https://github.com/flushwhy/fe/commit/d7f32e510d2655655cb4ce3b1965a2cae81b094c))
+* publish Linux RISC-V binaries in releases ([#66](https://github.com/flushwhy/fe/issues/66)) ([47b5907](https://github.com/flushwhy/fe/commit/47b59071e5eec76a48cb7e3f19bb2d2bd373a0e4))
+* refresh site with docs-first design and support section ([#61](https://github.com/flushwhy/fe/issues/61)) ([cc67186](https://github.com/flushwhy/fe/commit/cc671860c79ab54a980e60e140e1535b83e05fc1))
+
+
+### Bug Fixes
+
+* build ARM64 RPMs on a native runner ([#56](https://github.com/flushwhy/fe/issues/56)) ([f8ddabb](https://github.com/flushwhy/fe/commit/f8ddabb0acad66bd8d19c7409181c46f252ca0c6))
+* harden paths and command execution ([#73](https://github.com/flushwhy/fe/issues/73)) ([64603ee](https://github.com/flushwhy/fe/commit/64603ee8ef6ab3bdf2092dbaf8b2a6a9a7ec6c62))
+* make generated Godot extensions loadable ([#45](https://github.com/flushwhy/fe/issues/45)) ([8a73b4c](https://github.com/flushwhy/fe/commit/8a73b4c62d5e9c5390d1b196d21b4d46e8a5b3a4))
+* remove duplicated rolling workflow jobs ([#58](https://github.com/flushwhy/fe/issues/58)) ([1aea03d](https://github.com/flushwhy/fe/commit/1aea03d6e1944a7856fdfe197030e05af6cfc5bf))
+* remove stale Chocolatey packages from rolling release ([#49](https://github.com/flushwhy/fe/issues/49)) ([2fc4971](https://github.com/flushwhy/fe/commit/2fc49713a0d0b181589e349d7888fe97be2b85aa))
+* remove stale rolling release assets ([#63](https://github.com/flushwhy/fe/issues/63)) ([f0a5e19](https://github.com/flushwhy/fe/commit/f0a5e1924b995d359ebcbb1b621ffce318af3156))
+* remove stray duplicate workflow lines ([#57](https://github.com/flushwhy/fe/issues/57)) ([c193ba3](https://github.com/flushwhy/fe/commit/c193ba3f6aa9655c165ed3c5f27dfc052bcb1c71))
+* remove unused context import from check command ([#69](https://github.com/flushwhy/fe/issues/69)) ([d4379a2](https://github.com/flushwhy/fe/commit/d4379a292bdb92169d01bda2fa1ef04c9dd17b77))
+* repair rolling Chocolatey release workflow ([#52](https://github.com/flushwhy/fe/issues/52)) ([63dfd5c](https://github.com/flushwhy/fe/commit/63dfd5c218f76f3f449f02a73cabe2fe38033f93))
+* restore rolling releases with Linux packages ([#54](https://github.com/flushwhy/fe/issues/54)) ([afd35af](https://github.com/flushwhy/fe/commit/afd35afcd3d827ad8faca109d08bbadfc2302899))
+* retry transient Chocolatey rolling push failures ([#48](https://github.com/flushwhy/fe/issues/48)) ([c07c205](https://github.com/flushwhy/fe/commit/c07c20501179309e2400046e34f7694c92f3e03a))
+* tighten remote downloads and file permissions ([#74](https://github.com/flushwhy/fe/issues/74)) ([3e935f8](https://github.com/flushwhy/fe/commit/3e935f81c9b0c5dc0ffdea7e1d7da7f5a965d3a6))
+* use standard RPM target triplets ([#55](https://github.com/flushwhy/fe/issues/55)) ([4c4704b](https://github.com/flushwhy/fe/commit/4c4704b8bc2ccee25fc88b7ecb695870890b4154))
+
 ## [0.6.0](https://github.com/flushwhy/fe/compare/v0.5.0...v0.6.0) (2026-10-19)
 
 
