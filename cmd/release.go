@@ -68,6 +68,9 @@ CI example:
 				if err != nil {
 					return fmt.Errorf("build step failed: %w", err)
 				}
+				if err := build.CheckTools(plan); err != nil {
+					return fmt.Errorf("build step failed: %w", err)
+				}
 				steps := make([]ui.StepTask, len(plan))
 				for i, target := range plan {
 					target := target
