@@ -66,7 +66,10 @@ install -m 0755 %{_sourcedir}/fe %{buildroot}/usr/bin/fe
 /usr/bin/fe
 EOF
   # BuildArch in the spec overrides cross-target selection; select it only via --target.
-  rpmbuild --target "$rpm_arch" -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
+  # The host strip tool cannot process a foreign-architecture Go binary.
+  rpm_strip="/usr/bin/strip"
+  if [[ "$rpm_arch" == "aarch64" ]]; then rpm_strip="/bin/true"; fi
+  rpmbuild --target "$rpm_arch" -bb --define "_topdir $top" --define "__strip $rpm_strip" "$top/SPECS/fe.spec" >/dev/null
   rpm_file="$(find "$top/RPMS" -type f -name '*.rpm' -print -quit)"
   test -n "$rpm_file"
   test "$(rpm -qp --qf '%{ARCH}' "$rpm_file")" = "$rpm_arch"
