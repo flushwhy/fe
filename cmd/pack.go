@@ -36,6 +36,9 @@ Example:
 		if err != nil {
 			return err
 		}
+		if err := runConfiguredPreflight(cfg, "package"); err != nil {
+			return err
+		}
 		if errs := cfg.Validate("pack"); len(errs) > 0 {
 			for _, e := range errs {
 				ui.Fail("config: %s", e)
