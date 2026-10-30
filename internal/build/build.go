@@ -9,16 +9,11 @@ import (
 	"github.com/flushwhy/fe/internal/config"
 )
 
-type Runner func(command string) error
+// Runner executes a program with its arguments without invoking a shell.
+type Runner func(command string, args ...string) error
 
-// DefaultRunner splits configured commands into argv and never invokes a shell.
-// Shell operators, expansions, and redirections are intentionally not interpreted.
-var DefaultRunner Runner = func(command string) error {
-	parts := strings.Fields(command)
-	if len(parts) == 0 {
-		return fmt.Errorf("empty command")
-	}
-	cmd := exec.Command(parts[0], parts[1:]...)
+var DefaultRunner Runner = func(command string, args ...string) error {
+	cmd := exec.Command(command, args...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
 	return cmd.Run()
@@ -49,9 +44,15 @@ func Run(cfg config.BuildConfig, opts Options, runner Runner) error {
 	return nil
 }
 
-// RunTarget builds a single target. Exported so cmd/build.go can call it per-spinner.
+// RunTarget supports legacy command strings while preserving arguments exactly
+// when they are supplied separately in .fe.yaml.
 func RunTarget(t config.BuildTarget, runner Runner) error {
-	if err := runner(t.Cmd); err != nil {
+	parts := strings.Fields(t.Cmd)
+	if len(parts) == 0 {
+		return fmt.Errorf("build target %q has no command", t.Platform)
+	}
+	args := append(parts[1:], t.Args...)
+	if err := runner(parts[0], args...); err != nil {
 		return fmt.Errorf("build failed for %s: %w", t.Platform, err)
 	}
 	return nil
