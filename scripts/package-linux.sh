@@ -66,10 +66,11 @@ install -m 0755 %{_sourcedir}/fe %{buildroot}/usr/bin/fe
 %files
 /usr/bin/fe
 EOF
-  # rpmbuild uses the runner's native architecture.
-  rpmbuild -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
+  # The binary is already cross-compiled; tell RPM which package architecture to emit.
+  rpmbuild --target "$rpm_arch-linux" -bb --define "_topdir $top" "$top/SPECS/fe.spec" >/dev/null
   rpm_file="$(find "$top/RPMS" -type f -name '*.rpm' -print -quit)"
   test -n "$rpm_file"
+  test "$(rpm -qp --qf '%{ARCH}' "$rpm_file")" = "$rpm_arch"
   cp "$rpm_file" "dist/packages/fe-${archive_suffix}-$rpm_arch.rpm"
   rm -rf "$top"
 
