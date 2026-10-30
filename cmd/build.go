@@ -28,6 +28,9 @@ Example .fe.yaml:
 		if err != nil {
 			return err
 		}
+		if err := runConfiguredPreflight(cfg, "build"); err != nil {
+			return err
+		}
 		containerBuild, _ := cmd.Flags().GetBool("container")
 		if containerBuild {
 			runtimeName, _ := cmd.Flags().GetString("runtime")
