@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
 
 	projectinspect "github.com/flushwhy/fe/internal/inspect"
 	"github.com/spf13/cobra"
@@ -49,7 +48,6 @@ Examples:
 		fmt.Fprintln(cmd.OutOrStdout())
 		fmt.Fprintln(cmd.OutOrStdout(), "Inspection is read-only. Detection identifies project conventions; it does not guarantee that every target can be built on this machine.")
 		fmt.Fprintf(cmd.OutOrStdout(), "\nNext steps:\n  fe doctor       Check project and tool prerequisites\n  fe build        Run configured build targets\n  fe release      Run the configured release workflow\n")
-		_ = strings.Builder{} // keep command output independent of terminal styling
 		return nil
 	},
 }
