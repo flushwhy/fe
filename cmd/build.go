@@ -49,24 +49,20 @@ Example .fe.yaml:
 		}
 
 		platform, _ := cmd.Flags().GetString("platform")
+		plan, err := build.Plan(cfg.Build, build.Options{Platform: platform})
+		if err != nil {
+			return err
+		}
 		ui.Title("Building targets")
 		start := time.Now()
 
-		targets := cfg.Build.Targets
-		if platform != "" {
-			targets = build.FilterByPlatform(cfg.Build.Targets, platform)
-			if len(targets) == 0 {
-				return fmt.Errorf("no target found for platform %q", platform)
-			}
-		}
-
-		steps := make([]ui.StepTask, len(targets))
-		for i, t := range targets {
-			t := t // capture
+		steps := make([]ui.StepTask, len(plan))
+		for i, target := range plan {
+			target := target
 			steps[i] = ui.StepTask{
-				Label: fmt.Sprintf("Building %s", t.Platform),
+				Label: fmt.Sprintf("Building %s", target.Platform),
 				Run: func() error {
-					return build.RunTarget(t, build.DefaultRunner)
+					return build.RunPlannedTarget(target, build.DefaultRunner)
 				},
 			}
 		}
