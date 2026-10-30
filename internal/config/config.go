@@ -169,10 +169,6 @@ func (c *Config) Validate(command string) []string {
 		if len(c.Pack.Sheets) == 0 && c.Pack.Input == "" {
 			errs = append(errs, "pack.input is required when pack.sheets is not configured (set --input or pack.input in .fe.yaml)")
 		}
-	case "build":
-		if len(c.Build.Targets) == 0 {
-			errs = append(errs, "build.targets is empty — add at least one target in .fe.yaml")
-		}
 	}
 
 	return errs
