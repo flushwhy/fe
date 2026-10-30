@@ -222,8 +222,6 @@ jobs:
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
 
       - name: Mark this commit as the last successful rolling release
-        env:
-          GH_TOKEN: \${{ github.token }}
         run: |
           set -euo pipefail
           git push --force origin HEAD:refs/tags/rolling
