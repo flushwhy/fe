@@ -144,11 +144,7 @@ jobs:
         run: |
           set -euo pipefail
           mkdir -p dist
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o dist/fe-linux-amd64 .
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o dist/fe-linux-arm64 .
-          CGO_ENABLED=0 GOOS=windows GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o dist/fe-windows-amd64.exe .
-          CGO_ENABLED=0 GOOS=darwin GOARCH=amd64 go build -trimpath -ldflags="-s -w" -o dist/fe-macos-amd64 .
-          CGO_ENABLED=0 GOOS=darwin GOARCH=arm64 go build -trimpath -ldflags="-s -w" -o dist/fe-macos-arm64 .
+          bash scripts/build-binaries.sh
 
           sudo apt-get update
           sudo apt-get install -y rpm

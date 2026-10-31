@@ -27,16 +27,13 @@ jobs:
       - name: Run tests
         run: go test ./...
 
-      - name: Build
-        run: go build ./...
+      - name: Build portable release targets
+        run: bash scripts/build-binaries.sh
 
       - name: Test Linux package architectures
         run: |
           sudo apt-get update
           sudo apt-get install -y rpm
-          mkdir -p dist
-          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/fe-linux-amd64 .
-          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o dist/fe-linux-arm64 .
           bash scripts/package-linux.sh 0.0.0
           test "$(rpm -qp --qf '%{ARCH}' dist/packages/fe-0.0.0-x86_64.rpm)" = x86_64
           test "$(rpm -qp --qf '%{ARCH}' dist/packages/fe-0.0.0-aarch64.rpm)" = aarch64
