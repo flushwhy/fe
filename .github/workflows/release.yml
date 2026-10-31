@@ -104,7 +104,7 @@ jobs:
           sudo apt-get install -y rpm
           version="${RELEASE_TAG#fe-v}"
           version="${version#v}"
-          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\.[0-9]+\.[0-9]+([.+~:-][0-9A-Za-z.+~:-]*)?$'; then
+          if ! printf '%s' "$version" | grep -Eq '^[0-9]+\\.[0-9]+\\.[0-9]+([.+~:-][0-9A-Za-z.+~:-]*)?$'; then
             echo "Tag must contain a package-compatible version (for example v1.2.3); got $RELEASE_TAG" >&2
             exit 1
           fi
@@ -116,9 +116,9 @@ jobs:
         run: |
           version="${RELEASE_TAG#fe-v}"
           version="${version#v}"
-          sudo apt-get install -y "./dist/fe_${version}_amd64.deb"
+          sudo apt install -y "./dist/fe_${version}_amd64.deb"
           test "$(command -v fe)" = "/usr/bin/fe"
-          dpkg-query -W -f='${Status} ${Version} ${Architecture}\n' fe | grep -Fx "install ok installed ${version} amd64"
+          dpkg-query -W -f='${Status} ${Version} ${Architecture}\\n' fe | grep -Fx "install ok installed ${version} amd64"
           fe --help >/dev/null
           fe o3de --help >/dev/null
 
@@ -176,7 +176,7 @@ jobs:
         run: |
           $tag = "$env:RELEASE_TAG"
           $version = $tag -replace '^(fe-)?v', ''
-          if ($version -notmatch '^\d+\.\d+\.\d+([.-][0-9A-Za-z.-]+)?$') {
+          if ($version -notmatch '^\\d+\\.\\d+\\.\\d+([.-][0-9A-Za-z.-]+)?$') {
             throw "Tag must be a Chocolatey-compatible version like v1.2.3; got $tag"
           }
           $binary = Resolve-Path "dist/fe-windows-amd64.exe"
