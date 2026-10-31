@@ -20,28 +20,8 @@ env:
 
 jobs:
   binaries:
-    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
+    name: Build portable release binaries
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            asset: fe-linux-amd64
-          - goos: linux
-            goarch: arm64
-            asset: fe-linux-arm64
-          - goos: windows
-            goarch: amd64
-            asset: fe-windows-amd64.exe
-          - goos: darwin
-            goarch: amd64
-            asset: fe-macos-amd64
-          - goos: darwin
-            goarch: arm64
-            asset: fe-macos-arm64
-
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,19 +35,13 @@ jobs:
       - name: Test
         run: go test ./...
 
-      - name: Build binary
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: "0"
-        run: |
-          mkdir -p dist
-          go build -trimpath -ldflags="-s -w" -o "dist/${{ matrix.asset }}" .
+      - name: Build binaries
+        run: bash scripts/build-binaries.sh
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset }}
-          path: dist/${{ matrix.asset }}
+          name: binaries
+          path: dist/*
           if-no-files-found: error
           retention-days: 1
 
@@ -109,8 +83,8 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
+          name: binaries
           path: dist
-          merge-multiple: true
 
       - name: Build Linux packages
         run: |
@@ -182,7 +156,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: fe-windows-amd64.exe
+          name: binaries
           path: dist
 
       - name: Build Chocolatey package
@@ -232,8 +206,8 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
+          name: binaries
           path: dist
-          merge-multiple: true
 
       - name: Stage binaries in Fe's expected platform layout
         run: |
