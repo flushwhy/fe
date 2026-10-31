@@ -59,6 +59,21 @@ func TestRun(t *testing.T) {
 		}
 	})
 
+	t.Run("does not start any target when planning fails", func(t *testing.T) {
+		started := false
+		broken := append(append([]config.BuildTarget(nil), targets...), config.BuildTarget{Platform: "invalid"})
+		err := Run(config.BuildConfig{Targets: broken}, Options{}, func(string, ...string) error {
+			started = true
+			return nil
+		})
+		if err == nil || !strings.Contains(err.Error(), "invalid") {
+			t.Fatalf("expected planning error for invalid target, got %v", err)
+		}
+		if started {
+			t.Fatal("a build started before all targets were validated")
+		}
+	})
+
 	t.Run("propagates runner error", func(t *testing.T) {
 		runner := func(cmd string, args ...string) error {
 			return errors.New("compiler not found")
