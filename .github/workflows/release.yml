@@ -116,7 +116,10 @@ jobs:
         run: |
           version="${RELEASE_TAG#fe-v}"
           version="${version#v}"
-          sudo apt install -y "./dist/fe_${version}_amd64.deb"
+          package="./dist/packages/fe_${version}_amd64.deb"
+          test -f "$package"
+          dpkg-deb --info "$package" >/dev/null
+          sudo apt-get install -y "$package"
           test "$(command -v fe)" = "/usr/bin/fe"
           dpkg-query -W -f='${Status} ${Version} ${Architecture}\n' fe | grep -Fx "install ok installed ${version} amd64"
           fe --help >/dev/null
