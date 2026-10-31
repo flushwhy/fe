@@ -24,6 +24,7 @@ var rootCmd = &cobra.Command{
     fe inspect [path]                detect project types and ecosystem markers
     fe setup [path]                  check project tool requirements
     fe doctor                         check tools are installed and configs are correct
+    fe update [check]                 check for and install Fe updates using the detected package manager
     fe check [path]                   run available language-aware static analyzers
 
   Development loop:
