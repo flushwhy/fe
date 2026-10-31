@@ -41,7 +41,7 @@ jobs:
           test -f "$package"
           dpkg-deb --info "$package" >/dev/null
           sudo apt-get install -y "$package"
-          dpkg-query -W -f='${Status} ${Version} ${Architecture}\\n' fe | grep -Fx "install ok installed 0.0.0 amd64"
+          dpkg-query -W -f='${Status} ${Version} ${Architecture}\n' fe | grep -Fx "install ok installed 0.0.0 amd64"
           test "$(command -v fe)" = "/usr/bin/fe"
           fe --help >/dev/null
           fe o3de --help >/dev/null
