@@ -39,6 +39,48 @@ func TestPlanResolvesCommandsAndFiltersPlatform(t *testing.T) {
 	}
 }
 
+func TestPlanPreservesStructuredCommandAndArguments(t *testing.T) {
+	cfg := config.BuildConfig{Targets: []config.BuildTarget{{
+		Platform: "host",
+		Cmd:      "/opt/Build Tools/compiler",
+		Args:     []string{"-o", "build output/game", "source files/main.c", "--define=NAME=value with spaces"},
+	}}}
+
+	plan, err := Plan(cfg, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan) != 1 {
+		t.Fatalf("got %d targets, want 1", len(plan))
+	}
+	if plan[0].Command != "/opt/Build Tools/compiler" {
+		t.Fatalf("command = %q", plan[0].Command)
+	}
+	wantArgs := []string{"-o", "build output/game", "source files/main.c", "--define=NAME=value with spaces"}
+	if !reflect.DeepEqual(plan[0].Args, wantArgs) {
+		t.Fatalf("args = %#v, want %#v", plan[0].Args, wantArgs)
+	}
+}
+
+func TestPlanRetainsLegacyCommandParsing(t *testing.T) {
+	cfg := config.BuildConfig{Targets: []config.BuildTarget{{
+		Platform: "linux-x64",
+		Cmd:      "gcc -o game main.c",
+	}}}
+
+	plan, err := Plan(cfg, Options{})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(plan) != 1 || plan[0].Command != "gcc" {
+		t.Fatalf("unexpected plan: %#v", plan)
+	}
+	wantArgs := []string{"-o", "game", "main.c"}
+	if !reflect.DeepEqual(plan[0].Args, wantArgs) {
+		t.Fatalf("args = %#v, want %#v", plan[0].Args, wantArgs)
+	}
+}
+
 func TestPlanValidatesAllTargetsBeforeExecution(t *testing.T) {
 	cfg := config.BuildConfig{Targets: []config.BuildTarget{
 		{Platform: "linux-x64", Cmd: "go build ./..."},
