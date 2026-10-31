@@ -1,6 +1,7 @@
 package build
 
 import (
+	"errors"
 	"fmt"
 	"os/exec"
 	"strings"
@@ -19,7 +20,7 @@ type PlannedTarget struct {
 // Plan selects configured targets and resolves their commands without executing anything.
 func Plan(cfg config.BuildConfig, opts Options) ([]PlannedTarget, error) {
 	if len(cfg.Targets) == 0 {
-		return nil, fmt.Errorf("no build targets defined in .fe.yaml and no automatic build suggestion is available")
+		return nil, errors.New("no build targets defined in .fe.yaml and no automatic build suggestion is available")
 	}
 
 	targets := cfg.Targets
@@ -42,7 +43,7 @@ func PlanWithSuggestions(cfg config.BuildConfig, opts Options, suggestions []con
 		return Plan(cfg, opts)
 	}
 	if opts.Platform != "" {
-		return nil, fmt.Errorf("automatic build suggestions target the current host only; remove --platform or configure explicit build.targets in .fe.yaml")
+		return nil, errors.New("automatic build suggestions target the current host only; remove --platform or configure explicit build.targets in .fe.yaml")
 	}
 
 	targets := append([]config.BuildTarget(nil), suggestions...)
@@ -55,16 +56,24 @@ func PlanWithSuggestions(cfg config.BuildConfig, opts Options, suggestions []con
 func resolveTargets(targets []config.BuildTarget) ([]PlannedTarget, error) {
 	plan := make([]PlannedTarget, 0, len(targets))
 	for _, target := range targets {
-		parts := strings.Fields(target.Cmd)
-		if len(parts) == 0 {
+		command := strings.TrimSpace(target.Cmd)
+		args := append([]string(nil), target.Args...)
+
+		// A nil Args slice identifies legacy configs where Cmd contains argv.
+		// Structured configs keep Cmd intact, including executable paths with spaces.
+		if target.Args == nil {
+			parts := strings.Fields(command)
+			if len(parts) == 0 {
+				return nil, fmt.Errorf("build target %q has no command", target.Platform)
+			}
+			command, args = parts[0], parts[1:]
+		} else if command == "" {
 			return nil, fmt.Errorf("build target %q has no command", target.Platform)
 		}
 
-		args := append([]string{}, parts[1:]...)
-		args = append(args, target.Args...)
 		plan = append(plan, PlannedTarget{
 			Platform: target.Platform,
-			Command:  parts[0],
+			Command:  command,
 			Args:     args,
 			Output:   target.Output,
 		})
@@ -74,12 +83,12 @@ func resolveTargets(targets []config.BuildTarget) ([]PlannedTarget, error) {
 
 // CheckTools checks every executable before any target is started.
 func CheckTools(plan []PlannedTarget) error {
-	checked := make(map[string]bool)
+	checked := make(map[string]struct{}, len(plan))
 	for _, target := range plan {
-		if checked[target.Command] {
+		if _, ok := checked[target.Command]; ok {
 			continue
 		}
-		checked[target.Command] = true
+		checked[target.Command] = struct{}{}
 		if _, err := exec.LookPath(target.Command); err != nil {
 			return fmt.Errorf("build tool %q required for %s was not found in PATH; install it or configure an available command in .fe.yaml", target.Command, target.Platform)
 		}
