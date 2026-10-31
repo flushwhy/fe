@@ -112,7 +112,7 @@ publish:
     enabled: false
 ```
 
-Configuration should remain approachable. Users should only need to specify values that differ from useful defaults. Credentials must come from environment variables or secure credential storage, never committed YAML.
+Build target `cmd` is the executable when `args` is present; each `args` entry is passed as one argument, so paths and values containing spaces stay intact. Existing `cmd`-only targets remain supported with the legacy whitespace split. Configuration should remain approachable. Users should only need to specify values that differ from useful defaults. Credentials must come from environment variables or secure credential storage, never committed YAML.
 
 ## Incremental delivery plan
 
