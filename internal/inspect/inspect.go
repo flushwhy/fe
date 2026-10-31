@@ -19,10 +19,20 @@ type Project struct {
 	Markers []string
 }
 
+// BuildSuggestion is a conventional local build command. Suggestions are
+// informational and are never executed by inspection.
+type BuildSuggestion struct {
+	ProjectType string
+	Command     string
+	Args        []string
+	Reason      string
+}
+
 // Report is the result of inspecting a project directory.
 type Report struct {
-	Root     string
-	Projects []Project
+	Root        string
+	Projects    []Project
+	Suggestions []BuildSuggestion
 }
 
 // Inspect detects common project types without executing project code.
@@ -119,9 +129,45 @@ func Inspect(root string) (*Report, error) {
 	report := &Report{Root: abs}
 	for _, kind := range types {
 		sort.Strings(markers[kind])
-		report.Projects = append(report.Projects, Project{Type: kind, Markers: markers[kind]})
+		project := Project{Type: kind, Markers: markers[kind]}
+		report.Projects = append(report.Projects, project)
+		report.Suggestions = append(report.Suggestions, suggestBuild(project)...)
 	}
 	return report, nil
+}
+
+// suggestBuild only suggests commands when a recognized manifest is at the
+// inspected root and the ecosystem has a stable, low-assumption build command.
+func suggestBuild(project Project) []BuildSuggestion {
+	rootManifest := false
+	for _, marker := range project.Markers {
+		if filepath.Dir(filepath.FromSlash(marker)) == "." {
+			rootManifest = true
+			break
+		}
+	}
+	if !rootManifest {
+		return nil
+	}
+
+	switch project.Type {
+	case "Go":
+		return []BuildSuggestion{{
+			ProjectType: "Go",
+			Command:     "go",
+			Args:        []string{"build", "./..."},
+			Reason:      "compiles all Go packages in the module; it does not guarantee a distributable executable",
+		}}
+	case "Rust":
+		return []BuildSuggestion{{
+			ProjectType: "Rust",
+			Command:     "cargo",
+			Args:        []string{"build", "--release"},
+			Reason:      "builds the release profile; binary output depends on the crate type",
+		}}
+	default:
+		return nil
+	}
 }
 
 func hasBlenderMetadata(path string) (bool, error) {
@@ -142,4 +188,3 @@ func hasBlenderMetadata(path string) (bool, error) {
 		}
 	}
 }
-

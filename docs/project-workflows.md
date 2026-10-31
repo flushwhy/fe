@@ -50,13 +50,15 @@ Publishing destinations and external services are separate from project workflow
 
 The commands should form a discoverable progression:
 
-- `fe inspect`: explain what Fe recognizes about the current project.
+- `fe inspect`: explain what Fe recognizes about the current project and show safe build suggestions where conventions are reliable.
 - `fe setup`: show required tools and offer safe, explicit installation/configuration actions.
 - `fe doctor`: diagnose project and environment problems with actionable fixes.
-- `fe build`: build configured or detected targets.
+- `fe build`: build configured targets; inspection suggestions remain informational in this stage.
 - `fe changelog`: generate release notes from Git history and tags.
 - `fe package`: create configured distribution artifacts.
 - `fe release`: coordinate checks, build, metadata, packaging, and publishing.
+
+Inspection is read-only. A detected marker is evidence about a project, not permission to execute its build scripts. Suggestions should only be offered when the command is conventional and its assumptions can be explained. In the first increment, that means root-level Go and Rust manifests; other detected ecosystems are reported without guessing a build command. Explicit `.fe.yaml` targets remain authoritative and are never silently replaced by detection.
 
 The exact command surface can evolve; the shared behavior and clear explanations matter more than preserving these names.
 
@@ -89,9 +91,8 @@ project:
 build:
   auto_detect: true
   targets:
-    - name: linux-x64
-      command: go
-      args: [build, ./...]
+    - platform: linux-x64
+      cmd: "go build ./..."
 
 changelog:
   source: git
@@ -114,13 +115,14 @@ Configuration should remain approachable. Users should only need to specify valu
 
 ## Incremental delivery plan
 
-1. Project inspection and explicit project identity/type metadata.
-2. Unified build target model and capability-aware preflight.
-3. Git-based changelog generation.
-4. Native archive packaging, followed by DEB/RPM support.
-5. Metadata synchronization with preview/dry-run safeguards.
-6. A generalized release orchestrator that composes the above capabilities.
-7. Publishing adapters, starting with the existing itch.io/Butler integration and GitHub Releases.
-8. Ecosystem workflows, starting with Blender add-ons and expanding based on real use cases.
+1. Make project inspection explain detected types and offer conservative, read-only build suggestions.
+2. Connect those suggestions to the shared build planner, while keeping explicit `.fe.yaml` targets authoritative.
+3. Add tool detection and capability-aware preflight so Fe can explain what is needed on the current host or elsewhere.
+4. Generate changelogs from Git history and tags.
+5. Add native archive packaging, followed by DEB/RPM support.
+6. Add metadata synchronization with preview/dry-run safeguards.
+7. Build a release orchestrator that composes inspection, setup, build, changelog, and packaging.
+8. Extend publishing, starting with the existing itch.io/Butler integration and GitHub Releases.
+9. Expand ecosystem workflows based on real use cases, not a speculative plugin framework.
 
-Each phase should ship independently and preserve existing commands. Avoid a speculative plugin framework until multiple real workflows demonstrate the need for one.
+Each phase should ship independently and preserve existing commands. Keep the core small: add a shared abstraction only when multiple real workflows need it.
