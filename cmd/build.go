@@ -6,7 +6,6 @@ import (
 
 	"github.com/flushwhy/fe/internal/build"
 	"github.com/flushwhy/fe/internal/config"
-	projectinspect "github.com/flushwhy/fe/internal/inspect"
 	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -14,19 +13,16 @@ import (
 
 var buildCmd = &cobra.Command{
 	Use:   "build",
-	Short: "Build configured targets or a safe detected host target.",
-	Long: `Builds targets from .fe.yaml. If no targets are configured, Fe can
-suggest a conventional host build for supported project types.
+	Short: "Compile for all configured platforms.",
+	Long: `Runs the build commands defined in .fe.yaml build.targets.
 
 Example .fe.yaml:
   build:
     targets:
       - platform: linux-x64
-        cmd: gcc
-        args: [-o, builds/linux-x64/game, src/main.c]
+        cmd: "gcc -o builds/linux-x64/game src/main.c"
       - platform: windows-x64
-        cmd: x86_64-w64-mingw32-gcc
-        args: [-o, builds/windows-x64/game.exe, src/main.c]`,
+        cmd: "x86_64-w64-mingw32-gcc -o builds/windows-x64/game.exe src/main.c"`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
 		if err != nil {
@@ -38,49 +34,45 @@ Example .fe.yaml:
 		containerBuild, _ := cmd.Flags().GetBool("container")
 		if containerBuild {
 			runtimeName, _ := cmd.Flags().GetString("runtime")
-			return build.RunContainer(cfg.Build.Container, runtimeName)
+			if err := build.RunContainer(cfg.Build.Container, runtimeName); err != nil {
+				return err
+			}
+			return nil
+		}
+		if errs := cfg.Validate("build"); len(errs) > 0 {
+			for _, e := range errs {
+				ui.Fail("config: %s", e)
+			}
+			return fmt.Errorf("fix config errors above and try again")
 		}
 
 		platform, _ := cmd.Flags().GetString("platform")
-		var suggestions []config.BuildTarget
-		if len(cfg.Build.Targets) == 0 {
-			report, err := projectinspect.Inspect(".")
-			if err != nil {
-				return err
-			}
-			for _, suggestion := range report.Suggestions {
-				suggestions = append(suggestions, config.BuildTarget{
-					Cmd:  suggestion.Command,
-					Args: suggestion.Args,
-				})
-				fmt.Fprintf(cmd.OutOrStdout(), "Detected %s project; suggesting %s %v\n",
-					suggestion.ProjectType, suggestion.Command, suggestion.Args)
-			}
-		}
-
-		plan, err := build.PlanWithSuggestions(cfg.Build, build.Options{Platform: platform}, suggestions)
-		if err != nil {
-			return err
-		}
-		if err := build.CheckTools(plan); err != nil {
-			return err
-		}
-
 		ui.Title("Building targets")
 		start := time.Now()
-		steps := make([]ui.StepTask, len(plan))
-		for i, target := range plan {
-			target := target
+
+		targets := cfg.Build.Targets
+		if platform != "" {
+			targets = build.FilterByPlatform(cfg.Build.Targets, platform)
+			if len(targets) == 0 {
+				return fmt.Errorf("no target found for platform %q", platform)
+			}
+		}
+
+		steps := make([]ui.StepTask, len(targets))
+		for i, t := range targets {
+			t := t // capture
 			steps[i] = ui.StepTask{
-				Label: fmt.Sprintf("Building %s", target.Platform),
+				Label: fmt.Sprintf("Building %s", t.Platform),
 				Run: func() error {
-					return build.RunPlannedTarget(target, build.DefaultRunner)
+					return build.RunTarget(t, build.DefaultRunner)
 				},
 			}
 		}
+
 		if err := ui.RunSteps(steps); err != nil {
 			return err
 		}
+
 		ui.Elapsed(start)
 		return nil
 	},
