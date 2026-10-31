@@ -27,6 +27,13 @@ jobs:
         with:
           ref: ${{ env.RELEASE_TAG }}
 
+      # Manual rebuilds of older tags may predate the shared build script.
+      - uses: actions/checkout@v4
+        if: ${{ inputs.tag_name != '' }}
+        with:
+          ref: master
+          path: .build-tools
+
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26.10"
@@ -36,7 +43,12 @@ jobs:
         run: go test ./...
 
       - name: Build binaries
-        run: bash scripts/build-binaries.sh
+        run: |
+          if [ -f scripts/build-binaries.sh ]; then
+            bash scripts/build-binaries.sh
+          else
+            bash .build-tools/scripts/build-binaries.sh
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
