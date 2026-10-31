@@ -53,7 +53,7 @@ The commands should form a discoverable progression:
 - `fe inspect`: explain what Fe recognizes about the current project and show safe build suggestions where conventions are reliable.
 - `fe setup`: show required tools and offer safe, explicit installation/configuration actions.
 - `fe doctor`: diagnose project and environment problems with actionable fixes.
-- `fe build`: build configured or explicitly selected detected targets.
+- `fe build`: build configured targets; inspection suggestions remain informational in this stage.
 - `fe changelog`: generate release notes from Git history and tags.
 - `fe package`: create configured distribution artifacts.
 - `fe release`: coordinate checks, build, metadata, packaging, and publishing.
