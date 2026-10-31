@@ -87,9 +87,8 @@ type ContainerBuild struct {
 // BuildTarget represents a single platform build.
 type BuildTarget struct {
 	Platform string `mapstructure:"platform"`
-	Cmd      string   `mapstructure:"cmd"`
-	Args     []string `mapstructure:"args"`
-	Output   string   `mapstructure:"output"`
+	Cmd      string `mapstructure:"cmd"`
+	Output   string `mapstructure:"output"`
 }
 
 // Load reads viper state into a typed Config, then overlays env vars.
@@ -169,6 +168,10 @@ func (c *Config) Validate(command string) []string {
 		if len(c.Pack.Sheets) == 0 && c.Pack.Input == "" {
 			errs = append(errs, "pack.input is required when pack.sheets is not configured (set --input or pack.input in .fe.yaml)")
 		}
+	case "build":
+		if len(c.Build.Targets) == 0 {
+			errs = append(errs, "build.targets is empty — add at least one target in .fe.yaml")
+		}
 	}
 
 	return errs
@@ -216,11 +219,13 @@ build:
   # container:
   #   image: flushy/odin:nightly
   #   command: "odin build . -out:builds/game"
-  # Add explicit targets to override automatic project build suggestions.
-  # targets:
-  #   - platform: linux-x64
-  #     cmd: go
-  #     args: [build, ./...]
+  targets:
+    - platform: linux-x64
+      cmd: "gcc -o builds/linux-x64/game src/main.c"
+    - platform: windows-x64
+      cmd: "x86_64-w64-mingw32-gcc -o builds/windows-x64/game.exe src/main.c"
+    - platform: macos-arm64
+      cmd: "gcc -o builds/macos-arm64/game src/main.c"
 `
 
 // SummaryLines returns a human-readable summary of active config values,
