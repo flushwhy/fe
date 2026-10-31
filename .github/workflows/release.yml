@@ -20,32 +20,19 @@ env:
 
 jobs:
   binaries:
-    name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
+    name: Build portable release binaries
     runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - goos: linux
-            goarch: amd64
-            asset: fe-linux-amd64
-          - goos: linux
-            goarch: arm64
-            asset: fe-linux-arm64
-          - goos: windows
-            goarch: amd64
-            asset: fe-windows-amd64.exe
-          - goos: darwin
-            goarch: amd64
-            asset: fe-macos-amd64
-          - goos: darwin
-            goarch: arm64
-            asset: fe-macos-arm64
-
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ env.RELEASE_TAG }}
+
+      # Manual rebuilds of older tags may predate the shared build script.
+      - uses: actions/checkout@v4
+        if: ${{ inputs.tag_name != '' }}
+        with:
+          ref: master
+          path: .build-tools
 
       - uses: actions/setup-go@v5
         with:
@@ -55,19 +42,18 @@ jobs:
       - name: Test
         run: go test ./...
 
-      - name: Build binary
-        env:
-          GOOS: ${{ matrix.goos }}
-          GOARCH: ${{ matrix.goarch }}
-          CGO_ENABLED: "0"
+      - name: Build binaries
         run: |
-          mkdir -p dist
-          go build -trimpath -ldflags="-s -w" -o "dist/${{ matrix.asset }}" .
+          if [ -f scripts/build-binaries.sh ]; then
+            bash scripts/build-binaries.sh
+          else
+            bash .build-tools/scripts/build-binaries.sh
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset }}
-          path: dist/${{ matrix.asset }}
+          name: binaries
+          path: dist/*
           if-no-files-found: error
           retention-days: 1
 
@@ -109,8 +95,8 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
+          name: binaries
           path: dist
-          merge-multiple: true
 
       - name: Build Linux packages
         run: |
@@ -130,7 +116,7 @@ jobs:
         run: |
           version="${RELEASE_TAG#fe-v}"
           version="${version#v}"
-          sudo apt-get install -y "./dist/fe_${version}_amd64.deb"
+          sudo apt install -y "./dist/fe_${version}_amd64.deb"
           test "$(command -v fe)" = "/usr/bin/fe"
           dpkg-query -W -f='${Status} ${Version} ${Architecture}\n' fe | grep -Fx "install ok installed ${version} amd64"
           fe --help >/dev/null
@@ -182,7 +168,7 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
-          name: fe-windows-amd64.exe
+          name: binaries
           path: dist
 
       - name: Build Chocolatey package
@@ -232,8 +218,8 @@ jobs:
 
       - uses: actions/download-artifact@v4
         with:
+          name: binaries
           path: dist
-          merge-multiple: true
 
       - name: Stage binaries in Fe's expected platform layout
         run: |
