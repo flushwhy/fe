@@ -64,19 +64,12 @@ CI example:
 			} else if len(cfg.Build.Targets) == 0 {
 				ui.Warn("No build targets defined — skipping build step")
 			} else {
-				plan, err := build.Plan(cfg.Build, build.Options{})
-				if err != nil {
-					return fmt.Errorf("build step failed: %w", err)
-				}
-				if err := build.CheckTools(plan); err != nil {
-					return fmt.Errorf("build step failed: %w", err)
-				}
-				steps := make([]ui.StepTask, len(plan))
-				for i, target := range plan {
-					target := target
+				steps := make([]ui.StepTask, len(cfg.Build.Targets))
+				for i, t := range cfg.Build.Targets {
+					t := t
 					steps[i] = ui.StepTask{
-						Label: fmt.Sprintf("Building %s", target.Platform),
-						Run:   func() error { return build.RunPlannedTarget(target, build.DefaultRunner) },
+						Label: fmt.Sprintf("Building %s", t.Platform),
+						Run:   func() error { return build.RunTarget(t, build.DefaultRunner) },
 					}
 				}
 				if err := ui.RunSteps(steps); err != nil {
@@ -232,14 +225,13 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, cha
 	} else if len(cfg.Build.Targets) == 0 {
 		fmt.Println("1. Build: no targets configured (will be skipped)")
 	} else {
-		plan, err := build.Plan(cfg.Build, build.Options{})
-		if err != nil {
-			fmt.Printf("1. Build: %v\n", err)
-			problems++
-		} else {
-			fmt.Printf("1. Build: %d configured target(s)\n", len(plan))
-			for _, target := range plan {
-				fmt.Printf("   - %s: %s %s\n", target.Platform, target.Command, strings.Join(target.Args, " "))
+		fmt.Printf("1. Build: %d configured target(s)\n", len(cfg.Build.Targets))
+		for _, target := range cfg.Build.Targets {
+			if target.Cmd == "" {
+				fmt.Printf("   - %s: missing command\n", target.Platform)
+				problems++
+			} else {
+				fmt.Printf("   - %s: %s\n", target.Platform, target.Cmd)
 			}
 		}
 	}
