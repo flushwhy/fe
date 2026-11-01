@@ -112,11 +112,11 @@ func (d Detector) detectMethod(ctx context.Context, method Method) (Installation
 		if d.GOOS != "darwin" && d.GOOS != "linux" { return Installation{}, errors.New("Homebrew is only supported on macOS and Linux") }
 		brew, err := d.LookPath("brew")
 		if err != nil { return Installation{}, errors.New("brew is not available") }
-		versions, err := d.Run(ctx, brew, "list", "--versions", "fe")
+		versions, err := d.Run(ctx, brew, "list", "--versions", "flushwhy/tap/fe")
 		if err != nil { return Installation{}, errors.New("Homebrew does not report Fe as installed") }
 		fields := strings.Fields(string(versions))
 		if len(fields) < 2 || fields[0] != "fe" { return Installation{}, errors.New("Homebrew Fe installation metadata is invalid") }
-		files, err := d.Run(ctx, brew, "list", "--verbose", "fe")
+		files, err := d.Run(ctx, brew, "list", "--verbose", "flushwhy/tap/fe")
 		if err != nil || !containsPath(string(files), d.Executable, d.GOOS) { return Installation{}, errors.New("running executable is not listed in Homebrew's Fe formula metadata") }
 		return Installation{Method: Homebrew, PackageVersion: fields[1], Executable: d.Executable}, nil
 
@@ -280,6 +280,7 @@ func parseChocolateyCandidate(out []byte) (string, error) {
 func parseHomebrewCandidate(out []byte) (string, error) {
 	var info struct {
 		Formulae []struct {
+			FullName string `json:"full_name"`
 			Versions struct {
 				Stable string `json:"stable"`
 			} `json:"versions"`
@@ -288,8 +289,8 @@ func parseHomebrewCandidate(out []byte) (string, error) {
 	if err := json.Unmarshal(out, &info); err != nil {
 		return "", fmt.Errorf("parse Homebrew formula metadata: %w", err)
 	}
-	if len(info.Formulae) == 0 || info.Formulae[0].Versions.Stable == "" {
-		return "", errors.New("Homebrew formula metadata contains no stable Fe version")
+	if len(info.Formulae) == 0 || info.Formulae[0].FullName != "flushwhy/tap/fe" || info.Formulae[0].Versions.Stable == "" {
+		return "", errors.New("Homebrew metadata does not identify the Fe tap formula")
 	}
 	return info.Formulae[0].Versions.Stable, nil
 }
