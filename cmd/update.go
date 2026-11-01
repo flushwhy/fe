@@ -192,7 +192,7 @@ func runFeUpdate(cmd *cobra.Command, _ []string) error {
 }
 
 func inspectFeUpdate(cmd *cobra.Command) (updateInfo, error) {
-	install, err := update.Detect(update.Method(updateMethod))
+	install, err := update.Detect(cmd.Context(), update.Method(updateMethod))
 	if err != nil {
 		return updateInfo{}, err
 	}
