@@ -43,11 +43,13 @@ jobs:
         run: go test ./...
 
       - name: Build binaries
+        env:
+          MANUAL_TAG: ${{ inputs.tag_name }}
         run: |
-          if [ -f scripts/build-binaries.sh ]; then
-            bash scripts/build-binaries.sh
-          else
+          if [ -n "$MANUAL_TAG" ]; then
             bash .build-tools/scripts/build-binaries.sh
+          else
+            bash scripts/build-binaries.sh
           fi
 
       - uses: actions/upload-artifact@v4
@@ -77,14 +79,16 @@ jobs:
           cache: true
 
       - name: Test and build RISC-V binary
+        env:
+          MANUAL_TAG: ${{ inputs.tag_name }}
         run: |
           set -euo pipefail
           go test ./...
           mkdir -p dist
-          if [ -f scripts/build-binaries.sh ]; then
-            bash scripts/build-binaries.sh linux riscv64 fe-linux-riscv64
-          else
+          if [ -n "$MANUAL_TAG" ]; then
             bash .build-tools/scripts/build-binaries.sh linux riscv64 fe-linux-riscv64
+          else
+            bash scripts/build-binaries.sh linux riscv64 fe-linux-riscv64
           fi
 
       - uses: actions/upload-artifact@v4
