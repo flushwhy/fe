@@ -25,7 +25,7 @@ fe update --channel rolling
 | Method | Ownership check | Update command |
 | --- | --- | --- |
 | Chocolatey | Installed Fe nuspec, payload, and matching Chocolatey shim | `choco upgrade fe -y --no-progress` |
-| Homebrew | Installed formula metadata and running executable listed by the formula | `brew upgrade fe` |
+| Homebrew | Installed `flushwhy/tap/fe` formula metadata and running executable listed by the formula | `brew upgrade flushwhy/tap/fe` |
 | APT | dpkg ownership of the running executable | `sudo apt-get install --only-upgrade fe` |
 
 APT delegation only works when an already-configured APT source offers the current Fe release. Fe publishes standalone Debian packages, not an APT repository. The Homebrew tap and Chocolatey feed must also have a package at least as new as the latest GitHub release; otherwise Fe reports that the source is behind and stops.
