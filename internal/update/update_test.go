@@ -128,7 +128,7 @@ func TestCompareVersions(t *testing.T) {
 func TestUpdateCommand(t *testing.T) {
 	tests := []struct { method Method; name string; args []string }{
 		{Chocolatey, "choco", []string{"upgrade", "fe", "-y", "--no-progress"}},
-		{Homebrew, "brew", []string{"upgrade", "fe"}},
+		{Homebrew, "brew", []string{"upgrade", "flushwhy/tap/fe"}},
 		{APT, "sudo", []string{"apt-get", "install", "--only-upgrade", "fe"}},
 	}
 	for _, test := range tests {
