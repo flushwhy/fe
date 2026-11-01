@@ -44,14 +44,14 @@ type Detector struct {
 	Run Runner
 }
 
-func Detect(requested Method) (Installation, error) {
+func Detect(ctx context.Context, requested Method) (Installation, error) {
 	exe, err := os.Executable()
 	if err != nil { return Installation{}, fmt.Errorf("resolve running executable: %w", err) }
 	d := Detector{GOOS: runtime.GOOS, Executable: exe, Env: os.Getenv, LookPath: exec.LookPath}
 	d.Run = func(ctx context.Context, name string, args ...string) ([]byte, error) {
 		return exec.CommandContext(ctx, name, args...).Output()
 	}
-	return d.Detect(context.Background(), requested)
+	return d.Detect(ctx, requested)
 }
 
 func (d Detector) Detect(ctx context.Context, requested Method) (Installation, error) {
@@ -247,7 +247,7 @@ func Candidate(ctx context.Context, install Installation) (string, error) {
 	var args []string
 	switch install.Method {
 	case Chocolatey: name, args = "choco", []string{"search", "fe", "--exact", "--limit-output", "--no-progress"}
-	case Homebrew: name, args = "brew", []string{"info", "--json=v2", "fe"}
+	case Homebrew: name, args = "brew", []string{"info", "--json=v2", "flushwhy/tap/fe"}
 	case APT: name, args = "apt-cache", []string{"policy", "fe"}
 		default: return "", fmt.Errorf("no package source query for %s", install.Method)
 	}
@@ -348,7 +348,7 @@ func UpdateCommand(method Method, channel string) (Command, error) {
 	if channel != "stable" { return Command{}, fmt.Errorf("%s does not publish Fe's rolling channel", method) }
 	switch method {
 	case Chocolatey: return Command{Name: "choco", Args: []string{"upgrade", "fe", "-y", "--no-progress"}}, nil
-	case Homebrew: return Command{Name: "brew", Args: []string{"upgrade", "fe"}}, nil
+	case Homebrew: return Command{Name: "brew", Args: []string{"upgrade", "flushwhy/tap/fe"}}, nil
 	case APT: return Command{Name: "sudo", Args: []string{"apt-get", "install", "--only-upgrade", "fe"}}, nil
 		default: return Command{}, fmt.Errorf("updates through %s are not supported", method)
 	}
