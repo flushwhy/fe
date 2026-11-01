@@ -13,7 +13,8 @@ fe update --channel rolling
 
 - Installation detection uses package-manager records and verifies that the running executable belongs to the recorded package.
 - Fe does not infer a direct-binary installation from the executable directory.
-- An explicit `--method` still has to pass package-ownership verification; it does not bypass detection.
+- Explicit package-manager `--method` overrides still have to pass package-ownership verification; they do not bypass detection.
+- `--method direct` is a read-only reporting override. It does not verify that the executable is a standalone binary, and it never attempts replacement.
 - Fe checks the package manager's available version against the latest GitHub stable release. If the configured source is stale or has no candidate, Fe refuses to run an update that cannot reach the current release.
 - Fe prints the exact delegated command and asks before running it. `--dry-run` prints the command without running it.
 - Fe never adds or changes package-manager sources.
