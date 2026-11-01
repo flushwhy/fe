@@ -100,8 +100,11 @@ func TestPackageCandidateParsers(t *testing.T) {
 	choco, err := parseChocolateyCandidate([]byte("fe|0.4.0\nfe|0.8.0\nother|9.9.9\n"))
 	if err != nil || choco != "0.8.0" { t.Fatalf("Chocolatey candidate = %q, %v", choco, err) }
 
-	brew, err := parseHomebrewCandidate([]byte(`{"formulae":[{"versions":{"stable":"0.8.0"}}]}`))
+	brew, err := parseHomebrewCandidate([]byte(`{"formulae":[{"full_name":"flushwhy/tap/fe","versions":{"stable":"0.8.0"}}]}`))
 	if err != nil || brew != "0.8.0" { t.Fatalf("Homebrew candidate = %q, %v", brew, err) }
+	if _, err := parseHomebrewCandidate([]byte(`{"formulae":[{"full_name":"homebrew/core/fe","versions":{"stable":"9.9.9"}}]}`)); err == nil {
+		t.Fatal("accepted an unrelated Homebrew formula")
+	}
 
 	apt, err := parseAPTCandidate([]byte("fe:\n  Installed: 0.6.0\n  Candidate: 0.8.0\n"))
 	if err != nil || apt != "0.8.0" { t.Fatalf("APT candidate = %q, %v", apt, err) }
