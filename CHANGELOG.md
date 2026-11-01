@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.9.0](https://github.com/flushwhy/fe/compare/v0.8.0...v0.9.0) (2026-11-01)
+
+
+### Features
+
+* add conservative build suggestions to project inspection ([#83](https://github.com/flushwhy/fe/issues/83)) ([699585f](https://github.com/flushwhy/fe/commit/699585f86191a2f0147178a6ef5813d983e46b7d))
+
+
+### Bug Fixes
+
+* avoid duplicate RPM checksum entries ([#97](https://github.com/flushwhy/fe/issues/97)) ([667b915](https://github.com/flushwhy/fe/commit/667b91508f620183ca45df87b03fa8fffb00fdcc))
+* unblock Debian and stable release publishing ([#93](https://github.com/flushwhy/fe/issues/93)) ([6ed4bb2](https://github.com/flushwhy/fe/commit/6ed4bb2aedfb71ed3d3b8e65dc4d0dcd3be3e499))
+
 ## [0.8.0](https://github.com/flushwhy/fe/compare/v0.7.1...v0.8.0) (2026-10-31)
 
 
