@@ -65,7 +65,7 @@ func runFeUpdateCheck(cmd *cobra.Command, _ []string) error {
 	install := info.install
 	if install.Method == "" || install.Method == update.Direct {
 		if install.Method == update.Direct {
-			fmt.Fprintln(out, "Installation method: direct binary (explicit)")
+			fmt.Fprintln(out, "Installation method: direct binary (explicit override; not verified)")
 		} else {
 			fmt.Fprintln(out, "Installation method: unknown (no package-manager ownership record)")
 		}
