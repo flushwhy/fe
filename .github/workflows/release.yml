@@ -146,7 +146,7 @@ jobs:
         run: |
           ls -lah dist
           test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 12
-          sha256sum dist/fe-* dist/*.deb dist/*.rpm dist/*.tar.gz > dist/SHA256SUMS
+          find dist -maxdepth 1 -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > dist/SHA256SUMS
           test "$(wc -l < dist/SHA256SUMS)" -eq 12
           cat dist/SHA256SUMS
 
