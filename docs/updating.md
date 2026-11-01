@@ -40,4 +40,4 @@ fe update check --method chocolatey
 fe update --method homebrew --dry-run
 ```
 
-An override selects which metadata record to inspect. It does not force an update through an unrelated package manager. Direct binaries are reported as unsupported until the separate verified updater is implemented.
+For package-manager methods, the override selects which installation record to inspect and still requires executable ownership verification. `direct` only displays the embedded build version and commit; it does not establish ownership or enable replacement.
