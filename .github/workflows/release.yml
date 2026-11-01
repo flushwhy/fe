@@ -43,11 +43,13 @@ jobs:
         run: go test ./...
 
       - name: Build binaries
+        env:
+          MANUAL_TAG: ${{ inputs.tag_name }}
         run: |
-          if [ -f scripts/build-binaries.sh ]; then
-            bash scripts/build-binaries.sh
-          else
+          if [ -n "$MANUAL_TAG" ]; then
             bash .build-tools/scripts/build-binaries.sh
+          else
+            bash scripts/build-binaries.sh
           fi
 
       - uses: actions/upload-artifact@v4
@@ -65,17 +67,29 @@ jobs:
         with:
           ref: ${{ env.RELEASE_TAG }}
 
+      - uses: actions/checkout@v4
+        if: ${{ inputs.tag_name != '' }}
+        with:
+          ref: master
+          path: .build-tools
+
       - uses: actions/setup-go@v5
         with:
           go-version: "1.26.10"
           cache: true
 
       - name: Test and build RISC-V binary
+        env:
+          MANUAL_TAG: ${{ inputs.tag_name }}
         run: |
           set -euo pipefail
           go test ./...
           mkdir -p dist
-          CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 go build -trimpath -ldflags="-s -w" -o dist/fe-linux-riscv64 .
+          if [ -n "$MANUAL_TAG" ]; then
+            bash .build-tools/scripts/build-binaries.sh linux riscv64 fe-linux-riscv64
+          else
+            bash scripts/build-binaries.sh linux riscv64 fe-linux-riscv64
+          fi
 
       - uses: actions/upload-artifact@v4
         with:
