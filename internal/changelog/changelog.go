@@ -12,23 +12,25 @@ import (
 var conventional = regexp.MustCompile(`^([a-z]+)(!?)(?:\(([^)]+)\))?:\s*(.+)$`)
 
 type Entry struct {
-	Type    string
-	Subject string
+	Type     string
+	Subject  string
 	Breaking bool
-	Details string
+	Details  string
 }
 
 var headings = map[string]string{
-	"feat": "Features",
-	"fix": "Bug Fixes",
-	"perf": "Performance",
+	"feat":     "Features",
+	"fix":      "Bug Fixes",
+	"perf":     "Performance",
 	"refactor": "Refactoring",
-	"docs": "Documentation",
-	"test": "Tests",
-	"build": "Build",
-	"ci": "CI",
-	"chore": "Maintenance",
+	"docs":     "Documentation",
+	"test":     "Tests",
+	"build":    "Build",
+	"ci":       "CI",
+	"chore":    "Maintenance",
 }
+
+var typeOrder = []string{"feat", "fix", "perf", "refactor", "docs", "test", "build", "ci", "chore", "other"}
 
 func Generate(root, from, to string) (string, error) {
 	if to == "" {
@@ -92,35 +94,47 @@ func Format(entries []Entry, from, to string) string {
 		groups[entry.Type] = append(groups[entry.Type], entry)
 	}
 	sort.SliceStable(types, func(i, j int) bool {
-		order := []string{"feat", "fix", "perf", "refactor", "docs", "test", "build", "ci", "chore", "other"}
 		rank := func(value string) int {
-			for i, item := range order {
-				if item == value { return i }
+			for i, item := range typeOrder {
+				if item == value {
+					return i
+				}
 			}
-			return len(order)
+			return len(typeOrder)
 		}
-		return rank(types[i]) < rank(types[j])
+		left, right := rank(types[i]), rank(types[j])
+		if left == right {
+			return types[i] < types[j]
+		}
+		return left < right
 	})
 
 	var out strings.Builder
 	title := "## Changes"
-	if from != "" || to != "" {
+	if from != "" {
 		title += " (" + from + "..." + to + ")"
+	} else if to != "" {
+		title += " (" + to + ")"
 	}
 	out.WriteString(title + "\n")
 	for _, kind := range types {
 		heading := headings[kind]
-		if heading == "" { heading = "Other Changes" }
+		if heading == "" {
+			heading = "Other Changes"
+		}
 		out.WriteString("\n### " + heading + "\n\n")
 		for _, entry := range groups[kind] {
 			prefix := ""
-			if entry.Breaking { prefix = "**BREAKING:** " }
+			if entry.Breaking {
+				prefix = "**BREAKING:** "
+			}
 			fmt.Fprintf(&out, "- %s%s\n", prefix, entry.Subject)
 			if entry.Breaking && entry.Details != "" {
 				for _, line := range strings.Split(entry.Details, "\n") {
 					line = strings.TrimSpace(line)
 					if strings.HasPrefix(line, "BREAKING CHANGE:") {
-						fmt.Fprintf(&out, "  - %s\n", strings.TrimPrefix(line, "BREAKING CHANGE:"))
+						detail := strings.TrimSpace(strings.TrimPrefix(line, "BREAKING CHANGE:"))
+						fmt.Fprintf(&out, "  - %s\n", detail)
 					}
 				}
 			}
