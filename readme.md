@@ -291,3 +291,26 @@ fe wraps existing tools — you need them installed separately:
 ## License
 
 GPL-3.0
+
+
+## Archive packages
+
+Use `fe package` to create a portable archive from the configured build directory:
+
+```sh
+fe package --format zip
+fe package --dir builds/linux-x64 --format tar.gz --version 1.2.0
+```
+
+The command writes a versioned archive under `dist/` by default. ZIP and gzip-compressed TAR are supported; symlinks and non-regular files are excluded.
+
+## Release orchestration
+
+`fe release --dry-run` inspects the configured build/export targets, sprite packing, and itch.io publishing requirements without running commands or uploading anything. Optional release stages can generate notes and package artifacts:
+
+```sh
+fe release --changelog-output dist/RELEASE-NOTES.md --package-format zip
+fe release --dry-run --changelog-output dist/RELEASE-NOTES.md --package-format tar.gz
+```
+
+Packaging and changelog generation are opt-in; omitting these flags preserves the existing release behavior.

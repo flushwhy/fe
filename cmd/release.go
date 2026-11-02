@@ -9,8 +9,10 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flushwhy/fe/internal/archivepkg"
 	"github.com/flushwhy/fe/internal/build"
 	"github.com/flushwhy/fe/internal/butler"
+	"github.com/flushwhy/fe/internal/changelog"
 	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/godot"
 	"github.com/flushwhy/fe/internal/pack"
@@ -21,18 +23,21 @@ import (
 
 var releaseCmd = &cobra.Command{
 	Use:   "release",
-	Short: "Full release pipeline: build → pack → push to itch.io.",
-	Long: `Runs the complete release pipeline in order:
-  1. fe build   — compile all platform targets
+	Short: "Build, package, and publish a project release.",
+	Long: `Runs the release pipeline in order:
+  1. fe build   — compile all configured platform targets
   2. fe pack    — optionally pack sprites into a spritesheet
-  3. fe bmp     — push builds to itch.io via butler
+  3. changelog  — optionally write Git-based release notes
+  4. package    — optionally archive build artifacts as ZIP or tar.gz
+  5. fe bmp     — push builds to itch.io via butler
 
 Sprite packing is skipped with a warning when the configured sprite input is missing.
-Skip individual steps with --skip-build, --skip-pack, --skip-bmp.
+Use --changelog-output and --package-format to enable the optional stages.
+Skip individual steps with --skip-build, --skip-pack, and --skip-bmp.
 
 CI example:
   export ITCHIO_USERNAME=myuser ITCHIO_GAME=mygame
-  fe release --userversion v1.2.3`,
+  fe release --userversion v1.2.3 --package-format zip`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
 		if err != nil {
@@ -44,8 +49,20 @@ CI example:
 		skipBmp, _ := cmd.Flags().GetBool("skip-bmp")
 		channelSuffix, _ := cmd.Flags().GetString("channel-suffix")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		changelogOutput, _ := cmd.Flags().GetString("changelog-output")
+		packageFormat, _ := cmd.Flags().GetString("package-format")
+		packageOutput, _ := cmd.Flags().GetString("package-output")
+		if packageFormat != "" && packageFormat != "zip" && packageFormat != "tar.gz" {
+			return fmt.Errorf("unsupported package format %q (use zip or tar.gz)", packageFormat)
+		}
+		if packageFormat != "" {
+			packageOutput, err = releasePackagePath(packageOutput, packageFormat, cfg.Butler.Userversion)
+			if err != nil {
+				return err
+			}
+		}
 		if dryRun {
-			return printReleasePlan(cfg, skipBuild, skipPack, skipBmp, channelSuffix)
+			return printReleasePlan(cfg, skipBuild, skipPack, skipBmp, channelSuffix, changelogOutput, packageFormat, packageOutput)
 		}
 		if err := runConfiguredPreflight(cfg, "release"); err != nil {
 			return err
@@ -53,9 +70,14 @@ CI example:
 
 		ui.Title("Release Pipeline")
 		start := time.Now()
+		totalSteps := 3
+		if changelogOutput != "" { totalSteps++ }
+		if packageFormat != "" { totalSteps++ }
+		stepNumber := 1
 
 		// ── Step 1: Build/export ───────────────────────────────────────────
-		ui.Step(1, 3, "Build / export")
+		ui.Step(stepNumber, totalSteps, "Build / export")
+		stepNumber++
 		if !skipBuild {
 			if _, statErr := os.Stat("project.godot"); statErr == nil {
 				if err := godot.Export(".", cfg.Godot.Executable, cfg.Godot.OutputDir, "", exec.Command); err != nil {
@@ -91,7 +113,8 @@ CI example:
 
 		// ── Step 2: Pack ──────────────────────────────────────────────────
 		fmt.Println()
-		ui.Step(2, 3, "Pack sprites")
+		ui.Step(stepNumber, totalSteps, "Pack sprites")
+		stepNumber++
 		if skipPack {
 			ui.Dim("skipped")
 		} else if !releaseSpriteInputsAvailable(cfg.Pack) {
@@ -105,16 +128,7 @@ CI example:
 			}
 		}
 
-		// ── Step 3: Push ──────────────────────────────────────────────────
-		fmt.Println()
-		ui.Step(3, 3, "Push to itch.io")
-		if !skipBmp {
-			if errs := cfg.Validate("bmp"); len(errs) > 0 {
-				for _, e := range errs {
-					ui.Fail("%s", e)
-				}
-				return fmt.Errorf("cannot push — fix config errors above")
-			}
+		if !skipBmp || packageFormat != "" {
 			commit := os.Getenv("GITHUB_SHA")
 			if commit == "" {
 				if result, err := exec.Command("git", "rev-parse", "HEAD").Output(); err == nil {
@@ -124,6 +138,41 @@ CI example:
 			manifestPath := filepath.Join(cfg.Butler.Directory, "artifact-manifest.json")
 			if err := writeArtifactManifest(cfg.Butler.Directory, manifestPath, cfg.Butler.Userversion, commit); err != nil {
 				return fmt.Errorf("create artifact manifest: %w", err)
+			}
+		}
+
+		if changelogOutput != "" {
+			fmt.Println()
+			ui.Step(stepNumber, totalSteps, "Generate changelog")
+			stepNumber++
+			if err := writeReleaseChangelog(changelogOutput); err != nil {
+				return err
+			}
+			ui.OK("Wrote changelog to %s", changelogOutput)
+		}
+
+		if packageFormat != "" {
+			fmt.Println()
+			ui.Step(stepNumber, totalSteps, "Package build artifacts")
+			stepNumber++
+			if err := os.MkdirAll(filepath.Dir(packageOutput), 0755); err != nil {
+				return fmt.Errorf("create package output directory: %w", err)
+			}
+			if err := archivepkg.Create(cfg.Butler.Directory, packageOutput, packageFormat); err != nil {
+				return fmt.Errorf("package build artifacts: %w", err)
+			}
+			ui.OK("Created %s", packageOutput)
+		}
+
+		// ── Final step: Push ──────────────────────────────────────────────
+		fmt.Println()
+		ui.Step(stepNumber, totalSteps, "Push to itch.io")
+		if !skipBmp {
+			if errs := cfg.Validate("bmp"); len(errs) > 0 {
+				for _, e := range errs {
+					ui.Fail("%s", e)
+				}
+				return fmt.Errorf("cannot push — fix config errors above")
 			}
 			logger := log.New(os.Stdout, "", 0)
 			err := ui.RunSpinner(
@@ -152,6 +201,38 @@ CI example:
 		ui.Elapsed(start)
 		return nil
 	},
+}
+
+func releasePackagePath(output, format, version string) (string, error) {
+	if output != "" {
+		return output, nil
+	}
+	if version == "" {
+		version = "dev"
+	}
+	directory, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join("dist", filepath.Base(directory)+"-"+version+archivepkg.FormatExtension(format)), nil
+}
+
+func writeReleaseChangelog(output string) error {
+	from := ""
+	if tag, err := exec.Command("git", "describe", "--tags", "--abbrev=0").Output(); err == nil {
+		from = strings.TrimSpace(string(tag))
+	}
+	content, err := changelog.Generate(".", from, "HEAD")
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(output), 0755); err != nil {
+		return fmt.Errorf("create changelog directory: %w", err)
+	}
+	if err := os.WriteFile(output, []byte(content), 0644); err != nil {
+		return fmt.Errorf("write changelog %q: %w", output, err)
+	}
+	return nil
 }
 
 // validateReleaseBuildDir prevents a release from reaching the itch.io push
@@ -198,8 +279,8 @@ func releaseSpriteInputsAvailable(cfg config.PackConfig) bool {
 	return false
 }
 
-func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, channelSuffix string) error {
-	fmt.Println("Release dry run — no builds, exports, packing, or uploads will be performed.")
+func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, channelSuffix, changelogOutput, packageFormat, packageOutput string) error {
+	fmt.Println("Release dry run — no builds, exports, packing, changelog generation, packaging, or uploads will be performed.")
 	fmt.Println()
 	problems := 0
 	if skipBuild {
@@ -244,11 +325,20 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, cha
 		fmt.Println("2. Sprite packing: skipped (no configured sprite input directory)")
 	}
 
+	if changelogOutput != "" {
+		fmt.Printf("Changelog: %s\n", changelogOutput)
+	}
+	if packageFormat != "" {
+		fmt.Printf("Package: %s -> %s\n", packageFormat, packageOutput)
+	}
+
+	if !skipBmp || packageFormat != "" {
+		fmt.Printf("Artifact manifest: %s\n", filepath.Join(cfg.Butler.Directory, "artifact-manifest.json"))
+	}
 	if skipBmp {
-		fmt.Println("3. itch.io upload: skipped by --skip-bmp")
+		fmt.Println("itch.io upload: skipped by --skip-bmp")
 	} else {
-		fmt.Printf("3. Artifact manifest: %s\n", filepath.Join(cfg.Butler.Directory, "artifact-manifest.json"))
-		fmt.Printf("4. itch.io upload: %s/%s from %s\n", cfg.Itchio.Username, cfg.Itchio.Game, cfg.Butler.Directory)
+		fmt.Printf("itch.io upload: %s/%s from %s\n", cfg.Itchio.Username, cfg.Itchio.Game, cfg.Butler.Directory)
 		if cfg.Itchio.Username == "" {
 			fmt.Println("   - missing ITCHIO_USERNAME / itchio.username")
 			problems++
@@ -281,6 +371,9 @@ func init() {
 	releaseCmd.Flags().Bool("skip-build", false, "skip the build step")
 	releaseCmd.Flags().Bool("skip-pack", false, "skip the sprite pack step")
 	releaseCmd.Flags().Bool("skip-bmp", false, "skip the itch.io push step")
+	releaseCmd.Flags().String("changelog-output", "", "write Git-based release notes to this Markdown file")
+	releaseCmd.Flags().String("package-format", "", "also package build artifacts as zip or tar.gz")
+	releaseCmd.Flags().String("package-output", "", "package output path (defaults to dist/<project>-<version>.<format>)")
 	releaseCmd.Flags().String("userversion", "", "version string for itch.io channel")
 	releaseCmd.Flags().String("channel-suffix", "", "append a suffix to itch.io platform channels (for example rolling)")
 	viper.BindPFlag("butler.userversion", releaseCmd.Flags().Lookup("userversion"))

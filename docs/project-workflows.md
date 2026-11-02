@@ -118,10 +118,10 @@ Configuration should remain approachable. Users should only need to specify valu
 1. Make project inspection explain detected types and offer conservative, read-only build suggestions.
 2. Connect those suggestions to the shared build planner, while keeping explicit `.fe.yaml` targets authoritative.
 3. Add tool detection and capability-aware preflight so Fe can explain what is needed on the current host or elsewhere.
-4. Generate changelogs from Git history and tags.
+4. Generate changelogs from Git history and tags (`fe changelog` supports explicit ranges and Markdown output).
 5. Add native archive packaging, followed by DEB/RPM support.
 6. Add metadata synchronization with preview/dry-run safeguards.
-7. Build a release orchestrator that composes inspection, setup, build, changelog, and packaging.
+7. Extend `fe release` to compose build, sprite packing, optional changelog generation, optional archive packaging, and publishing.
 8. Extend publishing, starting with the existing itch.io/Butler integration and GitHub Releases.
 9. Expand ecosystem workflows based on real use cases, not a speculative plugin framework.
 
