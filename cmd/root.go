@@ -50,6 +50,7 @@ var rootCmd = &cobra.Command{
     fe preflight                      inspect toolchains and run configured checks
     fe build                          compile for all configured platforms
     fe pack                           pack sprites into a spritesheet
+    fe package                        create a ZIP or tar.gz archive from build artifacts
     fe transcode                      convert audio/video via ffmpeg
     fe bmp                            push builds to itch.io via butler
     fe changelog                      generate release notes from Git history and tags
