@@ -52,6 +52,7 @@ var rootCmd = &cobra.Command{
     fe pack                           pack sprites into a spritesheet
     fe transcode                      convert audio/video via ffmpeg
     fe bmp                            push builds to itch.io via butler
+    fe changelog                      generate release notes from Git history and tags
     fe release                        build → pack → push in one shot
     fe validate                       pre-flight config and path check
 
