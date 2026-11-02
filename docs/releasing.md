@@ -29,3 +29,11 @@ The `release/0.7` branch is the maintenance line for 0.7.x.
 - Release Please runs on pushes to `release/0.7` and creates the 0.7.x release PR when eligible fixes are present.
 - After a maintenance release, merge the maintenance branch back into `master` to keep its release tag and commit in the mainline history. Do not sync only the manifest and changelog; that leaves the release tag outside `master`'s ancestry and can make later release notes repeat old changes.
 - Review each generated changelog and verify its compare link starts at the immediately preceding release tag before merging the release PR.
+
+
+## Local release preparation
+
+- Use `fe changelog --from <previous-tag> --to HEAD` to review Git-based notes.
+- Use `fe package --format zip` or `--format tar.gz` to create a portable artifact archive.
+- Preview optional release stages with `fe release --dry-run --changelog-output dist/RELEASE-NOTES.md --package-format zip`.
+- Add `--changelog-output` and `--package-format` to a real release only when those outputs are wanted. Both stages are opt-in; omitting them preserves the existing build/pack/publish behavior.
