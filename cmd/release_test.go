@@ -71,3 +71,27 @@ func TestReleaseSpriteInputsAvailable(t *testing.T) {
 		}
 	})
 }
+
+func TestReleasePackagePathDefaultsToVersionedDistArchive(t *testing.T) {
+	dir := t.TempDir()
+	t.Chdir(dir)
+
+	got, err := releasePackagePath("", "tar.gz", "1.2.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := filepath.Join("dist", filepath.Base(dir)+"-1.2.3.tar.gz")
+	if got != want {
+		t.Fatalf("releasePackagePath() = %q, want %q", got, want)
+	}
+}
+
+func TestReleasePackagePathKeepsExplicitOutput(t *testing.T) {
+	got, err := releasePackagePath("artifacts/custom.zip", "zip", "1.2.3")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got != "artifacts/custom.zip" {
+		t.Fatalf("releasePackagePath() = %q", got)
+	}
+}
