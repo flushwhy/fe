@@ -13,6 +13,9 @@ import (
 )
 
 func Create(root, output, format string) error {
+	if format != "zip" && format != "tar.gz" {
+		return fmt.Errorf("unsupported archive format %q (use zip or tar.gz)", format)
+	}
 	root, err := filepath.Abs(root)
 	if err != nil {
 		return fmt.Errorf("resolve package directory: %w", err)
@@ -67,8 +70,6 @@ func Create(root, output, format string) error {
 			return copyFile(writer, filepath.Join(root, filepath.FromSlash(path)))
 		})
 		return errors.Join(walkErr, writer.Close(), compressed.Close())
-	default:
-		return fmt.Errorf("unsupported archive format %q (use zip or tar.gz)", format)
 	}
 }
 
