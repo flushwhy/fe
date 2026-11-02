@@ -71,6 +71,7 @@ func Create(root, output, format string) error {
 		})
 		return errors.Join(walkErr, writer.Close(), compressed.Close())
 	}
+	return nil
 }
 
 func walkFiles(root, output string, visit func(string, os.FileInfo) error) error {
