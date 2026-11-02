@@ -55,7 +55,7 @@ var rootCmd = &cobra.Command{
     fe bmp                            push builds to itch.io via butler
     fe changelog                      generate release notes from Git history and tags
     fe release                        build, pack, optionally package, and publish
-    fe release                        build → pack → push in one shot
+    fe release                        build, pack, optionally package, and publish
     fe validate                       pre-flight config and path check
 
   Interactive:
