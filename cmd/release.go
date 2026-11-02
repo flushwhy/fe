@@ -280,7 +280,7 @@ func releaseSpriteInputsAvailable(cfg config.PackConfig) bool {
 }
 
 func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, channelSuffix, changelogOutput, packageFormat, packageOutput string) error {
-	fmt.Println("Release dry run — no builds, exports, packing, or uploads will be performed.")
+	fmt.Println("Release dry run — no builds, exports, packing, changelog generation, packaging, or uploads will be performed.")
 	fmt.Println()
 	problems := 0
 	if skipBuild {
@@ -326,17 +326,19 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, cha
 	}
 
 	if changelogOutput != "" {
-		fmt.Printf("Changelog: %s\\n", changelogOutput)
+		fmt.Printf("Changelog: %s\n", changelogOutput)
 	}
 	if packageFormat != "" {
-		fmt.Printf("Package: %s -> %s\\n", packageFormat, packageOutput)
+		fmt.Printf("Package: %s -> %s\n", packageFormat, packageOutput)
 	}
 
+	if !skipBmp || packageFormat != "" {
+		fmt.Printf("Artifact manifest: %s\n", filepath.Join(cfg.Butler.Directory, "artifact-manifest.json"))
+	}
 	if skipBmp {
 		fmt.Println("itch.io upload: skipped by --skip-bmp")
 	} else {
-		fmt.Printf("3. Artifact manifest: %s\n", filepath.Join(cfg.Butler.Directory, "artifact-manifest.json"))
-		fmt.Printf("4. itch.io upload: %s/%s from %s\n", cfg.Itchio.Username, cfg.Itchio.Game, cfg.Butler.Directory)
+		fmt.Printf("itch.io upload: %s/%s from %s\n", cfg.Itchio.Username, cfg.Itchio.Game, cfg.Butler.Directory)
 		if cfg.Itchio.Username == "" {
 			fmt.Println("   - missing ITCHIO_USERNAME / itchio.username")
 			problems++
