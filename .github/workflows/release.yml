@@ -33,6 +33,7 @@ jobs:
         id: validate
         env:
           RELEASE_TAG: ${{ inputs.tag_name || github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           if [[ ! "$RELEASE_TAG" =~ ^(fe-)?v[0-9]+\.[0-9]+\.[0-9]+([.+~:-][0-9A-Za-z.+~:-]*)?$ ]]; then
@@ -40,6 +41,9 @@ jobs:
             exit 1
           fi
           git fetch --force --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            gh release view "$RELEASE_TAG" >/dev/null
+          fi
           commit="$(git rev-parse "$RELEASE_TAG^{commit}")"
           if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" && "$commit" != "$GITHUB_SHA" ]]; then
             echo "The pushed tag does not resolve to the event commit." >&2
