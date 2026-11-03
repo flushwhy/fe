@@ -446,29 +446,24 @@ func findGodotProject(start string) (string, error) {
 	return "", fmt.Errorf("no project.godot found from %q upward", abs)
 }
 
-func projectVersionMatches(project, version string) bool {
+func projectGodotVersion(project string) string {
 	data, err := os.ReadFile(filepath.Join(project, "project.godot"))
 	if err != nil {
-		return false
+		return ""
 	}
-	// Godot project files commonly record config/features = PackedStringArray("4.3", ...).
-	var projectVersion string
+	// Godot 4 stores the major/minor version in config/features, for example
+	// PackedStringArray("4.3", "GL Compatibility").
 	for _, line := range strings.Split(string(data), "\n") {
-		if strings.Contains(line, "config/features") || strings.Contains(line, "config_version") {
-			for _, field := range strings.FieldsFunc(line, func(r rune) bool {
-				return !(r >= '0' && r <= '9' || r == '.')
-			}) {
-				if strings.Contains(field, ".") && field[0] >= '3' && field[0] <= '4' {
-					projectVersion = field
-					break
-				}
+		if !strings.Contains(line, "config/features") {
+			continue
+		}
+		for _, field := range strings.FieldsFunc(line, func(r rune) bool {
+			return !(r >= '0' && r <= '9' || r == '.')
+		}) {
+			if strings.Contains(field, ".") && (strings.HasPrefix(field, "3.") || strings.HasPrefix(field, "4.")) {
+				return field
 			}
 		}
 	}
-	if projectVersion == "" {
-		return false
-	}
-	// Engine --version strings often look like 4.3.stable.official.
-	return strings.HasPrefix(version, projectVersion)
+	return ""
 }
-
