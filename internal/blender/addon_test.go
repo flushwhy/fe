@@ -4,11 +4,10 @@ import (
 	"archive/zip"
 	"os"
 	"path/filepath"
-	"runtime"
 	"reflect"
+	"runtime"
 	"testing"
 )
-
 const validManifest = `schema_version = "1.0.0"
 id = "sample_addon"
 version = "1.2.3"
