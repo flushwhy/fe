@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	blenderaddon "github.com/flushwhy/fe/internal/blender"
@@ -63,9 +62,6 @@ var blenderPackageCmd = &cobra.Command{
 				name = filepath.Base(report.Addon.Root)
 			}
 			output = filepath.Join("dist", name+"-"+report.Addon.Version+".zip")
-		}
-		if err := os.MkdirAll(filepath.Dir(output), 0755); err != nil {
-			return fmt.Errorf("create output directory: %w", err)
 		}
 		if err := blenderaddon.Package(root, output); err != nil {
 			return err
