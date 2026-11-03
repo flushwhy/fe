@@ -174,6 +174,34 @@ func (c *Config) Validate(command string) []string {
 		if len(c.Build.Targets) == 0 {
 			errs = append(errs, "build.targets is empty — add at least one target in .fe.yaml")
 		}
+		errs = append(errs, c.Build.ValidateTargets()...)
+	}
+
+	return errs
+}
+
+// ValidateTargets checks configured build entries without requiring any target
+// names, preserving compatibility with existing platform-only configurations.
+func (c BuildConfig) ValidateTargets() []string {
+	var errs []string
+	names := make(map[string]int)
+
+	for i, target := range c.Targets {
+		label := target.Name
+		if label == "" {
+			label = target.Platform
+		}
+		if strings.TrimSpace(target.Cmd) == "" {
+			errs = append(errs, fmt.Sprintf("build.targets[%d] (%s) has no cmd", i, label))
+		}
+		if name := strings.TrimSpace(target.Name); name != "" {
+			key := strings.ToLower(name)
+			if previous, ok := names[key]; ok {
+				errs = append(errs, fmt.Sprintf("build.targets[%d] name %q duplicates build.targets[%d] (target names are case-insensitive)", i, target.Name, previous))
+			} else {
+				names[key] = i
+			}
+		}
 	}
 
 	return errs
