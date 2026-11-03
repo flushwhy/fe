@@ -75,9 +75,7 @@ func ListRemoteTemplates() ([]TemplateInfo, error) {
 			if readErr == nil && len(data) <= maxCatalogBytes {
 				catalog, parseErr := decodeTemplateCatalog(data)
 				if parseErr == nil {
-					if err := saveTemplateCatalog(cacheRoot, data); err != nil {
-						return catalog.Templates, fmt.Errorf("loaded template catalog but could not cache it: %w", err)
-					}
+					_ = saveTemplateCatalog(cacheRoot, data)
 					return catalog.Templates, nil
 				}
 				requestErr = parseErr
