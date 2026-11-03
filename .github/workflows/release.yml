@@ -134,7 +134,6 @@ jobs:
     env:
       RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Build Debian packages
-    needs: binaries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -212,10 +211,10 @@ jobs:
     needs: [validate-release, binaries, github-release]
     permissions:
       contents: write
+    needs: [validate-release, binaries, github-release]
     env:
       RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Package Fe for Chocolatey
-    needs: [validate-release, binaries, github-release]
     runs-on: windows-latest
     env:
       CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
@@ -268,7 +267,6 @@ jobs:
   itchio:
     needs: [validate-release, binaries]
     name: Release Fe to itch.io using Fe
-    needs: binaries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
