@@ -398,23 +398,35 @@ func detectGodotEngines() []godotEngine {
 }
 
 func selectGodotEngine(project, requested string) (*godotEngine, error) {
-	engines := detectGodotEngines()
-	for i := range engines {
-		if requested != "" && !strings.Contains(engines[i].Version, requested) {
-			continue
-		}
-		if requested == "" && !projectVersionMatches(project, engines[i].Version) {
-			continue
-		}
-		return &engines[i], nil
+	return selectGodotEngineFrom(project, requested, detectGodotEngines())
+}
+
+func selectGodotEngineFrom(project, requested string, engines []godotEngine) (*godotEngine, error) {
+	if len(engines) == 0 {
+		return nil, errors.New("no Godot executable found on PATH; install Godot or add its directory to PATH")
 	}
-	if requested == "" && len(engines) == 1 {
+	if requested != "" {
+		for i := range engines {
+			if strings.HasPrefix(engines[i].Version, requested) {
+				return &engines[i], nil
+			}
+		}
+		return nil, fmt.Errorf("no installed Godot engine matches version %q; run 'fe godot engines'", requested)
+	}
+
+	projectVersion := projectGodotVersion(project)
+	if projectVersion != "" {
+		for i := range engines {
+			if strings.HasPrefix(engines[i].Version, projectVersion) {
+				return &engines[i], nil
+			}
+		}
+		return nil, fmt.Errorf("project requires Godot %s, but no installed engine matches; run 'fe godot engines' or pass --version", projectVersion)
+	}
+	if len(engines) == 1 {
 		return &engines[0], nil
 	}
-	if requested == "" {
-		return nil, fmt.Errorf("could not choose an installed engine matching this project; use --version (for example --version 4.3) or run 'fe godot engines'")
-	}
-	return nil, fmt.Errorf("no installed Godot engine matches version %q; run 'fe godot engines'", requested)
+	return nil, errors.New("could not choose an installed engine; project version could not be detected, so pass --version (for example --version 4.3) or run 'fe godot engines'")
 }
 
 func findGodotProject(start string) (string, error) {
