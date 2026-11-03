@@ -100,12 +100,14 @@ func loadPNGs(dir string) ([]image.Image, error) {
 
 	var images []image.Image
 	var totalPixels int64
+	pngCount := 0
 	for _, entry := range entries {
 		if entry.IsDir() || filepath.Ext(entry.Name()) != ".png" {
 			continue
 		}
-		if len(images) >= maxSheetImages {
-			return nil, fmt.Errorf("sprite sheet contains more than %d images", maxSheetImages)
+		pngCount++
+		if pngCount > maxSheetImages {
+			return nil, fmt.Errorf("sprite sheet contains more than %d PNG files", maxSheetImages)
 		}
 
 		path := filepath.Join(dir, entry.Name())
