@@ -152,11 +152,21 @@ func saveTemplateCatalog(cacheRoot string, data []byte) error {
 	if err := tmp.Close(); err != nil {
 		return err
 	}
+
 	dest := filepath.Join(cacheRoot, "catalog.json")
-	if err := os.Remove(dest); err != nil && !os.IsNotExist(err) {
+	backup := dest + ".old"
+	_ = os.Remove(backup)
+	if _, err := os.Lstat(dest); err == nil {
+		if err := os.Rename(dest, backup); err != nil {
+			return err
+		}
+	}
+	if err := os.Rename(name, dest); err != nil {
+		_ = os.Rename(backup, dest)
 		return err
 	}
-	return os.Rename(name, dest)
+	_ = os.Remove(backup)
+	return nil
 }
 
 // ResolveTemplate returns a cached template, downloading it on first use.
