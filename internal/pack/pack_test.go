@@ -119,3 +119,12 @@ func TestValidateCanvasEnforcesOutputPixelBudget(t *testing.T) {
 		t.Fatal("accepted a canvas exceeding the output-pixel budget")
 	}
 }
+
+
+func TestLoadPNGsRejectsOversizedDimensionsBeforeDecode(t *testing.T) {
+	root := t.TempDir()
+	writeTestPNG(t, filepath.Join(root, "oversized.png"), maxImageDimension+1, 1)
+	if _, err := loadPNGs(root); err == nil {
+		t.Fatal("loadPNGs accepted an image wider than the configured dimension limit")
+	}
+}
