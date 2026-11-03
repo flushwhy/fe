@@ -24,14 +24,17 @@ jobs:
           go-version-file: go.mod
           cache: true
 
+      - name: Preview Go module tidy changes
+        run: |
+          go mod tidy
+          git diff -- go.mod go.sum
+
       - name: Scan dependencies and reachable code
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 -show verbose ./...
 
       - name: Trace legacy AWS SDK dependency
         run: go mod why -m github.com/aws/aws-sdk-go
 
-      - name: Show required module tidy changes
-        run: go mod tidy -diff || true
 
   codeql:
     name: CodeQL analysis
