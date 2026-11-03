@@ -407,7 +407,7 @@ func selectGodotEngineFrom(project, requested string, engines []godotEngine) (*g
 	}
 	if requested != "" {
 		for i := range engines {
-			if strings.HasPrefix(engines[i].Version, requested) {
+			if godotVersionMatches(engines[i].Version, requested) {
 				return &engines[i], nil
 			}
 		}
@@ -417,7 +417,7 @@ func selectGodotEngineFrom(project, requested string, engines []godotEngine) (*g
 	projectVersion := projectGodotVersion(project)
 	if projectVersion != "" {
 		for i := range engines {
-			if strings.HasPrefix(engines[i].Version, projectVersion) {
+			if godotVersionMatches(engines[i].Version, projectVersion) {
 				return &engines[i], nil
 			}
 		}
@@ -466,4 +466,9 @@ func projectGodotVersion(project string) string {
 		}
 	}
 	return ""
+}
+
+func godotVersionMatches(installed, requested string) bool {
+	requested = strings.TrimSpace(requested)
+	return requested != "" && (installed == requested || strings.HasPrefix(installed, requested+"."))
 }
