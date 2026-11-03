@@ -13,19 +13,49 @@ on:
         type: string
 
 permissions:
-  contents: write
-
-env:
-  RELEASE_TAG: ${{ inputs.tag_name || github.ref_name }}
+  contents: read
 
 jobs:
+  validate-release:
+    name: Validate release tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.validate.outputs.tag }}
+      commit: ${{ steps.validate.outputs.commit }}
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+
+      - name: Validate and resolve release tag
+        id: validate
+        env:
+          RELEASE_TAG: ${{ inputs.tag_name || github.ref_name }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^(fe-)?v[0-9]+\.[0-9]+\.[0-9]+([.+~:-][0-9A-Za-z.+~:-]*)?$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          git fetch --force --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          commit="$(git rev-parse "$RELEASE_TAG^{commit}")"
+          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" && "$commit" != "$GITHUB_SHA" ]]; then
+            echo "The pushed tag does not resolve to the event commit." >&2
+            exit 1
+          fi
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
   binaries:
+    needs: validate-release
     name: Build portable release binaries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ needs.validate-release.outputs.commit }}
 
       # Manual rebuilds of older tags may predate the shared build script.
       - uses: actions/checkout@v4
@@ -60,12 +90,13 @@ jobs:
           retention-days: 1
 
   riscv-binary:
+    needs: validate-release
     name: Build Linux RISC-V 64-bit binary on native hardware
     runs-on: ubuntu-24.04-riscv
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ needs.validate-release.outputs.commit }}
 
       - uses: actions/checkout@v4
         if: ${{ inputs.tag_name != '' }}
@@ -99,13 +130,16 @@ jobs:
           retention-days: 1
 
   deb-packages:
+    needs: [validate-release, binaries]
+    env:
+      RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Build Debian packages
     needs: binaries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ needs.validate-release.outputs.commit }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -126,7 +160,7 @@ jobs:
 
       - name: Smoke-test clean amd64 Debian package install
         env:
-          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+          RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
         run: |
           version="${RELEASE_TAG#fe-v}"
           version="${version#v}"
@@ -147,8 +181,10 @@ jobs:
           retention-days: 1
 
   github-release:
+    permissions:
+      contents: write
     name: Publish GitHub Release assets
-    needs: [binaries, riscv-binary, deb-packages]
+    needs: [validate-release, binaries, riscv-binary, deb-packages]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -167,21 +203,26 @@ jobs:
       - name: Create release and upload binaries
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
-          name: Fe ${{ env.RELEASE_TAG }}
+          tag_name: ${{ needs.validate-release.outputs.tag }}
+          name: Fe ${{ needs.validate-release.outputs.tag }}
           generate_release_notes: true
           files: dist/*
 
   chocolatey:
+    needs: [validate-release, binaries, github-release]
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Package Fe for Chocolatey
-    needs: [binaries, github-release]
+    needs: [validate-release, binaries, github-release]
     runs-on: windows-latest
     env:
       CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ needs.validate-release.outputs.commit }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -214,7 +255,7 @@ jobs:
       - name: Attach Chocolatey package to GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ env.RELEASE_TAG }}
+          tag_name: ${{ needs.validate-release.outputs.tag }}
           files: fe.*.nupkg
           fail_on_unmatched_files: true
 
@@ -225,13 +266,14 @@ jobs:
 
   # Dogfood Fe's own release pipeline to publish the Fe CLI binaries.
   itchio:
+    needs: [validate-release, binaries]
     name: Release Fe to itch.io using Fe
     needs: binaries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ needs.validate-release.outputs.commit }}
 
       - uses: actions/download-artifact@v4
         with:
@@ -261,7 +303,7 @@ jobs:
           chmod +x dist/fe-linux-amd64
           ./dist/fe-linux-amd64 release --skip-build --skip-pack --userversion "$RELEASE_TAG"
         env:
-          RELEASE_TAG: ${{ env.RELEASE_TAG }}
+          RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
           ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
           ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
