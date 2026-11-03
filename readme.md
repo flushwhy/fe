@@ -120,7 +120,7 @@ fe export                 # export all configured presets
 fe release
 ```
 
-Project scaffolds are downloaded from the [fe-templates repository](https://github.com/flushwhy/fe-templates) on first use and cached locally. An internet connection to GitHub is required the first time you use a template; cached templates can be reused offline. Browse templates with `fe template list`, or refresh one with `fe template update <template-id>`.
+Project scaffolds are downloaded from the [fe-templates repository](https://github.com/flushwhy/fe-templates) on first use and cached locally. An internet connection to GitHub is required the first time you use a template; cached templates can be reused offline. Browse templates with `fe template list` to see their descriptions and categories; the last successful catalog is available offline. Refresh a cached template with `fe template update <template-id>`.
 
 ## Config — `.fe.yaml`
 
