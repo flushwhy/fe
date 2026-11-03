@@ -25,7 +25,7 @@ jobs:
       tag: ${{ steps.validate.outputs.tag }}
       commit: ${{ steps.validate.outputs.commit }}
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           fetch-depth: 0
 
@@ -57,18 +57,18 @@ jobs:
     name: Build portable release binaries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
       # Manual rebuilds of older tags may predate the shared build script.
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         if: ${{ inputs.tag_name != '' }}
         with:
           ref: master
           path: .build-tools
 
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: "1.26.10"
           cache: true
@@ -86,7 +86,7 @@ jobs:
             bash scripts/build-binaries.sh
           fi
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: binaries
           path: dist/*
@@ -98,17 +98,17 @@ jobs:
     name: Build Linux RISC-V 64-bit binary on native hardware
     runs-on: ubuntu-24.04-riscv
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         if: ${{ inputs.tag_name != '' }}
         with:
           ref: master
           path: .build-tools
 
-      - uses: actions/setup-go@40f1582b2485089dde7abd97c1529aa768e1baff
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: "1.26.10"
           cache: true
@@ -126,7 +126,7 @@ jobs:
             bash scripts/build-binaries.sh linux riscv64 fe-linux-riscv64
           fi
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: fe-linux-riscv64
           path: dist/fe-linux-riscv64
@@ -140,11 +140,11 @@ jobs:
     name: Build Debian packages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
           name: binaries
           path: dist
@@ -176,7 +176,7 @@ jobs:
           fe --help >/dev/null
           fe o3de --help >/dev/null
 
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: deb-packages
           path: dist/packages/*
@@ -190,7 +190,7 @@ jobs:
     needs: [validate-release, binaries, riscv-binary, deb-packages]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
           path: dist
           merge-multiple: true
@@ -221,11 +221,11 @@ jobs:
     name: Package Fe for Chocolatey
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
           name: binaries
           path: dist
@@ -273,11 +273,11 @@ jobs:
     name: Release Fe to itch.io using Fe
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
           name: binaries
           path: dist
