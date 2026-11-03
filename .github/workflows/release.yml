@@ -213,6 +213,7 @@ jobs:
       contents: write
     env:
       RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
+      HAS_CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY != '' }}
     name: Package Fe for Chocolatey
     runs-on: windows-latest
     steps:
@@ -256,7 +257,7 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: Publish to Chocolatey Community Repository
-        if: secrets.CHOCOLATEY_API_KEY != ''
+        if: env.HAS_CHOCOLATEY_API_KEY == 'true'
         shell: pwsh
         env:
           CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
