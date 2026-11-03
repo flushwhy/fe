@@ -60,6 +60,49 @@ func TestRun(t *testing.T) {
 		}
 	})
 
+	t.Run("selects a named target", func(t *testing.T) {
+		named := []config.BuildTarget{
+			{Name: "linux-debug", Platform: "linux-x64", Cmd: "make debug"},
+			{Name: "linux-release", Platform: "linux-x64", Cmd: "make release"},
+		}
+		var ran []string
+		err := Run(config.BuildConfig{Targets: named}, Options{Target: "LINUX-RELEASE"}, func(cmd string) error {
+			ran = append(ran, cmd)
+			return nil
+		})
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+		if len(ran) != 1 || ran[0] != "make release" {
+			t.Fatalf("expected only release target, got %v", ran)
+		}
+	})
+
+	t.Run("fails on unknown target", func(t *testing.T) {
+		err := Run(config.BuildConfig{Targets: targets}, Options{Target: "missing"}, nil)
+		if err == nil || !strings.Contains(err.Error(), "missing") {
+			t.Fatalf("expected missing target error, got %v", err)
+		}
+	})
+
+	t.Run("rejects duplicate target names", func(t *testing.T) {
+		duplicate := []config.BuildTarget{
+			{Name: "release", Platform: "linux-x64", Cmd: "make linux"},
+			{Name: "release", Platform: "windows-x64", Cmd: "make windows"},
+		}
+		err := Run(config.BuildConfig{Targets: duplicate}, Options{Target: "release"}, nil)
+		if err == nil || !strings.Contains(err.Error(), "not unique") {
+			t.Fatalf("expected duplicate target error, got %v", err)
+		}
+	})
+
+	t.Run("rejects target and platform together", func(t *testing.T) {
+		err := Run(config.BuildConfig{Targets: targets}, Options{Target: "release", Platform: "linux-x64"}, nil)
+		if err == nil || !strings.Contains(err.Error(), "either --target or --platform") {
+			t.Fatalf("expected mutually exclusive selector error, got %v", err)
+		}
+	})
+
 	t.Run("propagates runner error", func(t *testing.T) {
 		runner := func(cmd string) error {
 			return errors.New("compiler not found")

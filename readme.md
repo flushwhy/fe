@@ -149,13 +149,29 @@ transcode:
 
 build:
   targets:
-    - platform: linux-x64
+    - name: linux-release
+      platform: linux-x64
       cmd: "gcc -o builds/linux-x64/game src/main.c"
-    - platform: windows-x64
+    - name: windows-release
+      platform: windows-x64
       cmd: "x86_64-w64-mingw32-gcc -o builds/windows-x64/game.exe src/main.c"
-    - platform: macos-arm64
+    - name: macos-release
+      platform: macos-arm64
       cmd: "gcc -o builds/macos-arm64/game src/main.c"
 ```
+
+Select a named build target or every target for one platform:
+
+```sh
+fe build --list-targets
+fe build --target linux-release
+fe build --platform linux-x64
+``
+
+The optional `name` field lets projects define multiple configurations for the
+same platform (for example, debug and release). Existing configurations that
+only specify `platform` and `cmd` remain valid; `--platform` continues to
+select all matching targets.
 
 ### Config priority
 
