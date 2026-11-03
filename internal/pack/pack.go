@@ -2,10 +2,10 @@ package pack
 
 import (
 	"fmt"
-	"io"
 	"image"
 	"image/draw"
 	"image/png"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
@@ -13,7 +13,6 @@ import (
 
 	"github.com/flushwhy/fe/internal/config"
 )
-
 const (
 	maxPNGBytes       = 32 << 20
 	maxSheetPixels    = int64(16 << 20)
