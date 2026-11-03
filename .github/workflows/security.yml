@@ -27,6 +27,9 @@ jobs:
       - name: Scan dependencies and reachable code
         run: go run golang.org/x/vuln/cmd/govulncheck@v1.1.4 -show verbose ./...
 
+      - name: Trace legacy AWS SDK dependency
+        run: go mod why -m github.com/aws/aws-sdk-go
+
   codeql:
     name: CodeQL analysis
     runs-on: ubuntu-latest
