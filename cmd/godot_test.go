@@ -124,3 +124,12 @@ func TestSelectGodotEngineUsesOnlyEngineWhenProjectVersionIsUnknown(t *testing.T
 		t.Fatalf("selected %q, want godot", got.Path)
 	}
 }
+
+func TestGodotVersionMatchesWholeComponent(t *testing.T) {
+	if !godotVersionMatches("4.3.1.stable.official", "4.3") {
+		t.Fatal("4.3 should match 4.3.1")
+	}
+	if godotVersionMatches("4.30.stable.official", "4.3") {
+		t.Fatal("4.3 must not match 4.30")
+	}
+}
