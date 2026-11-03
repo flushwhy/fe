@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flushwhy/fe/internal/archivepath"
 	"github.com/pelletier/go-toml/v2"
 )
 
@@ -281,6 +282,9 @@ func Package(root, output string) error {
 		name := filepath.ToSlash(rel)
 		if addon.Legacy {
 			name = filepath.ToSlash(filepath.Join(filepath.Base(addon.Root), rel))
+		}
+		if err := archivepath.Validate(name); err != nil {
+			return fmt.Errorf("unsafe add-on archive entry %q: %w", name, err)
 		}
 		header, err := zip.FileInfoHeader(info)
 		if err != nil {
