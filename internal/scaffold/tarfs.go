@@ -8,12 +8,11 @@ import (
 	"io"
 	"io/fs"
 	"path/filepath"
-
-	"github.com/flushwhy/fe/internal/archivepath"
 	"strings"
 	"time"
-)
 
+	"github.com/flushwhy/fe/internal/archivepath"
+)
 const maxTemplateArchiveBytes = 50 << 20
 
 // memFile implements fs.File for in-memory content.
