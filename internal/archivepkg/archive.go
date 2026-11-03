@@ -12,6 +12,8 @@ import (
 	"strings"
 
 	"github.com/flushwhy/fe/internal/archivepath"
+
+	"github.com/flushwhy/fe/internal/archivepath"
 )
 
 func Create(root, output, format string) error {
@@ -65,7 +67,7 @@ func Create(root, output, format string) error {
 			if err != nil {
 				return err
 			}
-			header.Name = filepath.ToSlash(path)
+			header.Name = path
 			if err := writer.WriteHeader(header); err != nil {
 				return err
 			}
