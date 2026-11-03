@@ -28,6 +28,8 @@ fe o3de find projects
 fe o3de find gems
 fe o3de find templates
 fe o3de build --build-dir <configured-build-directory>
+# Multi-config generators and selected targets:
+fe o3de build --build-dir build --config Profile --target MyProject
 ```
 
 ## Smart static checker
@@ -245,7 +247,7 @@ fe o3de find engines --registered-only
 fe o3de build --build-dir /path/to/build
 ```
 
-Pass the existing CMake build directory for your O3DE project. fe invokes the build and summarizes common failures; configure the project/build directory with the O3DE workflow first.
+Pass the existing CMake build directory for your O3DE project. Use `--config Debug`, `--config Profile`, or `--config Release` with multi-config generators, and repeat `--target` to build selected targets. Fe invokes CMake and summarizes common failures; configure the project/build directory with the O3DE workflow first.
 
 ## Builds directory convention
 

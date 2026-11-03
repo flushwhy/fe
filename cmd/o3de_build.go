@@ -38,7 +38,14 @@ Example:
 		ui.Dim("CMake build directory: %s", buildDir)
 		var output bytes.Buffer
 		writer := io.MultiWriter(os.Stdout, &output)
-		build := exec.CommandContext(cmd.Context(), "cmake", "--build", buildDir, "--parallel")
+		config, _ := cmd.Flags().GetString("config")
+		targets, _ := cmd.Flags().GetStringArray("target")
+		for _, target := range targets {
+			if strings.TrimSpace(target) == "" {
+				return fmt.Errorf("--target values cannot be empty")
+			}
+		}
+		build := exec.CommandContext(cmd.Context(), "cmake", o3deBuildArgs(buildDir, config, targets)...)
 		build.Stdout = writer
 		build.Stderr = writer
 		if err := build.Run(); err != nil {
@@ -58,4 +65,18 @@ Example:
 func init() {
 	o3deCmd.AddCommand(o3deBuildCmd)
 	o3deBuildCmd.Flags().String("build-dir", "build", "existing CMake build directory")
+	o3deBuildCmd.Flags().String("config", "", "configuration for multi-config generators (for example Debug, Profile, or Release)")
+	o3deBuildCmd.Flags().StringArray("target", nil, "CMake target to build (repeatable)")
+}
+
+func o3deBuildArgs(buildDir, config string, targets []string) []string {
+	args := []string{"--build", buildDir, "--parallel"}
+	if strings.TrimSpace(config) != "" {
+		args = append(args, "--config", config)
+	}
+	if len(targets) > 0 {
+		args = append(args, "--target")
+		args = append(args, targets...)
+	}
+	return args
 }
