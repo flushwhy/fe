@@ -211,13 +211,11 @@ jobs:
     needs: [validate-release, binaries, github-release]
     permissions:
       contents: write
-    needs: [validate-release, binaries, github-release]
     env:
       RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
+      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
     name: Package Fe for Chocolatey
     runs-on: windows-latest
-    env:
-      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
