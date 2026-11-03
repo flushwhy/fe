@@ -149,3 +149,16 @@ func TestLoadPNGsSkipsSymlinks(t *testing.T) {
 		t.Fatalf("loadPNGs loaded %d symlinked images, want 0", len(images))
 	}
 }
+
+
+func TestValidatePNGFileSizeEnforcesAggregateBudget(t *testing.T) {
+	if err := validatePNGFileSize(maxPNGBytes+1, 0); err == nil {
+		t.Fatal("accepted an encoded PNG larger than the per-file limit")
+	}
+	if err := validatePNGFileSize(maxPNGBytes, maxPNGTotalBytes-maxPNGBytes+1); err == nil {
+		t.Fatal("accepted encoded PNG input exceeding the aggregate limit")
+	}
+	if err := validatePNGFileSize(1024, 0); err != nil {
+		t.Fatalf("validatePNGFileSize() rejected a small PNG: %v", err)
+	}
+}
