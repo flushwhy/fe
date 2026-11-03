@@ -1,105 +1,55 @@
 # Blender add-on workflow
 
-Blender add-ons are a useful first example of Fe supporting projects that are not conventional compiled applications. The workflow should turn an add-on directory into a validated, versioned, installable release archive without making its author learn a separate release toolchain.
+Fe can inspect, validate, and package a Blender add-on without importing or executing project code.
 
-This document describes intended behavior. It does not claim that Blender-specific commands are implemented yet.
+## Commands
 
-## Project recognition
+Run from the add-on directory or pass its path:
 
-Fe should recognize both common Blender add-on layouts:
+```sh
+fe blender validate
+fe blender validate ./addons/my-addon
+fe blender package ./addons/my-addon
+fe blender package ./addons/my-addon --output dist/my-addon.zip
+``
 
-- Legacy add-ons that expose Blender add-on metadata in Python source (commonly `bl_info`).
-- Extension packages that include a `blender_manifest.toml` manifest.
+Packaging defaults to `dist/<id>-<version>.zip` for extensions and `dist/<directory>-dev.zip` for legacy add-ons.
 
-Detection should report what was found and avoid guessing when a repository contains multiple unrelated add-ons. Users must be able to select the intended add-on explicitly in `.fe.yaml`.
+## Supported layouts
 
-## Intended configuration
+### Blender extensions
 
-Illustrative configuration; field names are not final:
+An extension must contain `blender_manifest.toml` and `__init__.py` at its root. Fe validates the 1.0.0 manifest schema fields used by add-on extensions:
 
-```yaml
-project:
-  name: my-blender-addon
-  version: "1.2.0"
-  type: blender-addon
+- `schema_version`, `id`, `version`, `name`, `tagline`, `maintainer`, and `type`
+- `blender_version_min`
+- At least one SPDX license identifier
 
-blender:
-  path: addon/
-  compatibility:
-    minimum: "4.2"
-    maximum: "5.0"
-  validate: true
-  package:
-    format: zip
-    output: dist/
+The initial workflow supports `type = "add-on"`. IDs must use lowercase letters, digits, and underscores; versions must use semantic versioning.
 
-changelog:
-  source: git
-  since: last-release
+### Legacy add-ons
 
-publish:
-  github:
-    enabled: true
-```
+A legacy add-on must contain a root `__init__.py` with `bl_info` metadata. Its package ZIP keeps the add-on directory as the top-level folder, which is the layout expected by the legacy add-on installer.
 
-The project version and compatibility range should have one clear source of truth. If Blender metadata also contains a version, synchronization should be explicit and previewable rather than silently rewriting source files.
+## Validation and safety
 
-## Workflow responsibilities
+- Metadata and manifest are read as data; add-on Python is never imported or executed.
+- If Python is available on PATH, Fe parses every Python source file with Python's AST parser to catch syntax errors.
+- If Python is unavailable, metadata validation still succeeds and Fe reports that syntax checking was skipped.
+- A local Blender installation is not required for static validation or packaging.
+- Validation does not install dependencies or rewrite project files.
 
-### Inspect
+## Packaging
 
-- Locate the add-on or extension root.
-- Identify legacy add-on metadata or an extension manifest.
-- Read its declared name, version, and Blender compatibility where available.
-- Explain missing or ambiguous metadata with a suggested fix.
+- Extension files are placed at the ZIP root, including `blender_manifest.toml`.
+- Legacy add-ons retain their top-level package directory.
+- Git metadata, Fe metadata, virtual environments, caches, build output, distribution output, bytecode, and nested ZIP files are excluded.
+- ZIP entries are written in stable path order with a fixed timestamp for reproducible output.
+- Symlinks and non-regular files are excluded.
 
-### Validate
+The ZIP can be installed from disk in Blender for a final in-application test. Fe does not publish to the Blender Extensions Platform.
 
-- Check required metadata and expected package structure.
-- Check Python syntax without importing or executing the add-on.
-- Validate the extension manifest when present.
-- Report compatibility declarations that are missing or malformed.
-- Keep validation read-only.
+## References
 
-### Package
-
-- Build a ZIP with the correct installable directory layout.
-- Exclude Git metadata, caches, local virtual environments, test artifacts, and Fe's own output directory.
-- Include required runtime files and manifest/metadata.
-- List archive contents in dry-run or verbose output so users can verify what will ship.
-
-### Release
-
-- Use the shared Fe release pipeline for checks, changelog generation, artifact naming, and publishing.
-- Allow packaging without publishing.
-- Allow publishing an already-created ZIP without rebuilding.
-- Keep credentials outside `.fe.yaml`.
-
-## User-facing diagnostics
-
-Errors should explain the consequence and the next action. For example:
-
-```text
-Blender add-on validation failed
-
-Problem:
-  No add-on metadata or blender_manifest.toml was found in addon/.
-
-What this means:
-  Fe cannot determine the add-on name or compatibility information.
-
-How to fix:
-  Point blender.path at the add-on root, or add the required Blender metadata.
-```
-
-A missing local Blender installation should not automatically prevent static validation and ZIP packaging. Only checks that genuinely require Blender should be skipped or marked unavailable, with the reason shown.
-
-## Acceptance criteria for an initial implementation
-
-- Detect legacy add-ons and extension packages without executing project Python code.
-- Support an explicit add-on path for monorepos and ambiguous repositories.
-- Validate required metadata and produce actionable errors.
-- Create a deterministic ZIP with a correct installable layout.
-- Exclude common generated and private development files.
-- Add tests for detection, validation, archive contents, and ignored paths.
-- Integrate with the shared release pipeline without making Blender publishing a special case.
+- [Blender extension manifest schema](https://developer.blender.org/docs/features/extensions/schema/1.0.0/)
+- [Blender extension packaging guide](https://docs.blender.org/manual/en/latest/advanced/extensions/getting_started.html)
