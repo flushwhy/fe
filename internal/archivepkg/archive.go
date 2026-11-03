@@ -12,8 +12,6 @@ import (
 	"strings"
 
 	"github.com/flushwhy/fe/internal/archivepath"
-
-	"github.com/flushwhy/fe/internal/archivepath"
 )
 
 func Create(root, output, format string) error {
