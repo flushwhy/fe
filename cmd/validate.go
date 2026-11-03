@@ -56,11 +56,7 @@ Exit code 0 = all good. Non-zero = problems found.`,
 			if cfg.Itchio.Game == "" {
 				problems = append(problems, "itchio.game not set (use .fe.yaml or ITCHIO_GAME)")
 			}
-			for i, t := range cfg.Build.Targets {
-				if t.Cmd == "" {
-					problems = append(problems, fmt.Sprintf("build.targets[%d] (%s) has no cmd", i, t.Platform))
-				}
-			}
+			problems = append(problems, cfg.Build.ValidateTargets()...)
 			return nil
 		})
 		if err != nil {
