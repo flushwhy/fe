@@ -23,7 +23,7 @@ func Validate(name string) error {
 				return fmt.Errorf("archive path component %q is not portable", part)
 			}
 		}
-		base := strings.ToUpper(strings.TrimSuffix(part, path.Ext(part)))
+		base := strings.ToUpper(strings.SplitN(part, ".", 2)[0])
 		switch base {
 		case "CON", "PRN", "AUX", "NUL", "COM1", "COM2", "COM3", "COM4", "COM5", "COM6", "COM7", "COM8", "COM9", "LPT1", "LPT2", "LPT3", "LPT4", "LPT5", "LPT6", "LPT7", "LPT8", "LPT9":
 			return fmt.Errorf("reserved Windows device name %q", part)
