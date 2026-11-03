@@ -213,7 +213,6 @@ jobs:
       contents: write
     env:
       RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
-      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
     name: Package Fe for Chocolatey
     runs-on: windows-latest
     steps:
@@ -257,8 +256,10 @@ jobs:
           fail_on_unmatched_files: true
 
       - name: Publish to Chocolatey Community Repository
-        if: env.CHOCOLATEY_API_KEY != ''
+        if: secrets.CHOCOLATEY_API_KEY != ''
         shell: pwsh
+        env:
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
         run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
 
   # Dogfood Fe's own release pipeline to publish the Fe CLI binaries.
