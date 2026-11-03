@@ -15,8 +15,10 @@ import (
 )
 
 const templateRepoAPI = "https://api.github.com/repos/flushwhy/fe-templates"
+const templateCatalogURL = "https://raw.githubusercontent.com/flushwhy/fe-templates/main/catalog.json"
 const maxTemplateFileBytes = 10 << 20
 const maxTemplateFiles = 500
+const maxCatalogBytes = 1 << 20
 
 var templateIDPattern = regexp.MustCompile(`^[a-z0-9]+(?:-[a-z0-9]+)*$`)
 
@@ -31,6 +33,19 @@ type treeItem struct {
 	Type string `json:"type"`
 }
 
+type TemplateInfo struct {
+	ID          string   `json:"id"`
+	Name        string   `json:"name"`
+	Description string   `json:"description"`
+	Category    string   `json:"category"`
+	Tags        []string `json:"tags"`
+}
+
+type templateCatalog struct {
+	Version   int            `json:"version"`
+	Templates []TemplateInfo `json:"templates"`
+}
+
 func templateCacheRoot() (string, error) {
 	base, err := os.UserCacheDir()
 	if err != nil {
@@ -39,42 +54,109 @@ func templateCacheRoot() (string, error) {
 	return filepath.Join(base, "fe", "templates"), nil
 }
 
-// ListRemoteTemplates returns the root-level template directories in fe-templates.
-func ListRemoteTemplates() ([]string, error) {
-	client := &http.Client{Timeout: 15 * time.Second}
-	req, err := http.NewRequest(http.MethodGet, templateRepoAPI+"/git/trees/main?recursive=1", nil)
+// ListRemoteTemplates returns catalog metadata. The last successful catalog is
+// retained locally so browsing templates also works without a network connection.
+func ListRemoteTemplates() ([]TemplateInfo, error) {
+	cacheRoot, err := templateCacheRoot()
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set("Accept", "application/vnd.github+json")
-	resp, err := client.Do(req)
+	client := &http.Client{Timeout: 15 * time.Second}
+	req, err := http.NewRequest(http.MethodGet, templateCatalogURL, nil)
 	if err != nil {
-		return nil, fmt.Errorf("listing templates: %w", err)
+		return cachedTemplateCatalog(cacheRoot, err)
 	}
-	defer resp.Body.Close()
-	if resp.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("listing templates: GitHub returned %s", resp.Status)
-	}
-	tree, err := decodeRepoTree(resp.Body)
-	if err != nil {
-		return nil, fmt.Errorf("decoding template list: %w", err)
-	}
-	if tree.Trunc {
-		return nil, fmt.Errorf("template repository tree was truncated")
-	}
-	found := map[string]bool{}
-	for _, item := range tree.Tree {
-		parts := strings.Split(item.Path, "/")
-		if len(parts) > 1 && templateIDPattern.MatchString(parts[0]) {
-			found[parts[0]] = true
+	req.Header.Set("Accept", "application/json")
+	resp, requestErr := client.Do(req)
+	if requestErr == nil {
+		defer resp.Body.Close()
+		if resp.StatusCode == http.StatusOK {
+			data, readErr := io.ReadAll(io.LimitReader(resp.Body, maxCatalogBytes+1))
+			if readErr == nil && len(data) <= maxCatalogBytes {
+				catalog, parseErr := decodeTemplateCatalog(data)
+				if parseErr == nil {
+					if err := saveTemplateCatalog(cacheRoot, data); err != nil {
+						return catalog.Templates, fmt.Errorf("loaded template catalog but could not cache it: %w", err)
+					}
+					return catalog.Templates, nil
+				}
+				requestErr = parseErr
+			} else if readErr != nil {
+				requestErr = readErr
+			} else {
+				requestErr = fmt.Errorf("template catalog exceeds 1 MiB limit")
+			}
+		} else {
+			requestErr = fmt.Errorf("GitHub returned %s", resp.Status)
 		}
 	}
-	ids := make([]string, 0, len(found))
-	for id := range found {
-		ids = append(ids, id)
+	return cachedTemplateCatalog(cacheRoot, requestErr)
+}
+
+func decodeTemplateCatalog(data []byte) (templateCatalog, error) {
+	var catalog templateCatalog
+	if err := json.Unmarshal(data, &catalog); err != nil {
+		return catalog, fmt.Errorf("decoding template catalog: %w", err)
 	}
-	sortStrings(ids)
-	return ids, nil
+	if catalog.Version != 1 || len(catalog.Templates) == 0 {
+		return catalog, fmt.Errorf("unsupported or empty template catalog (version %d)", catalog.Version)
+	}
+	seen := make(map[string]bool, len(catalog.Templates))
+	for _, item := range catalog.Templates {
+		if !templateIDPattern.MatchString(item.ID) || strings.TrimSpace(item.Name) == "" || strings.TrimSpace(item.Description) == "" || strings.TrimSpace(item.Category) == "" {
+			return catalog, fmt.Errorf("invalid metadata for template %q", item.ID)
+		}
+		if seen[item.ID] {
+			return catalog, fmt.Errorf("duplicate template ID %q in catalog", item.ID)
+		}
+		seen[item.ID] = true
+	}
+	sort.Slice(catalog.Templates, func(i, j int) bool {
+		if catalog.Templates[i].Category == catalog.Templates[j].Category {
+			return catalog.Templates[i].Name < catalog.Templates[j].Name
+		}
+		return catalog.Templates[i].Category < catalog.Templates[j].Category
+	})
+	return catalog, nil
+}
+
+func cachedTemplateCatalog(cacheRoot string, cause error) ([]TemplateInfo, error) {
+	data, err := os.ReadFile(filepath.Join(cacheRoot, "catalog.json"))
+	if err == nil {
+		catalog, parseErr := decodeTemplateCatalog(data)
+		if parseErr == nil {
+			return catalog.Templates, nil
+		}
+		err = parseErr
+	}
+	if cause != nil {
+		return nil, fmt.Errorf("could not load template catalog (%v); no usable offline catalog is cached: %w", cause, err)
+	}
+	return nil, fmt.Errorf("no usable offline template catalog is cached: %w", err)
+}
+
+func saveTemplateCatalog(cacheRoot string, data []byte) error {
+	if err := os.MkdirAll(cacheRoot, 0750); err != nil {
+		return err
+	}
+	tmp, err := os.CreateTemp(cacheRoot, ".catalog-")
+	if err != nil {
+		return err
+	}
+	name := tmp.Name()
+	defer os.Remove(name)
+	if _, err := tmp.Write(data); err != nil {
+		tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	dest := filepath.Join(cacheRoot, "catalog.json")
+	if err := os.Remove(dest); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return os.Rename(name, dest)
 }
 
 // ResolveTemplate returns a cached template, downloading it on first use.
@@ -144,6 +226,7 @@ func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 	if len(files) > maxTemplateFiles {
 		return "", fmt.Errorf("template %q has too many files (%d)", id, len(files))
 	}
+	sort.Strings(files)
 
 	if err := os.MkdirAll(cacheRoot, 0750); err != nil {
 		return "", fmt.Errorf("creating template cache: %w", err)
@@ -189,24 +272,69 @@ func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 			return "", fmt.Errorf("caching template file %s: %w", rel, err)
 		}
 	}
-	_ = os.Remove(filepath.Join(cacheRoot, id+".ready"))
-	if err := os.RemoveAll(dest); err != nil {
-		return "", fmt.Errorf("replacing cached template: %w", err)
-	}
-	if err := os.Rename(tmp, dest); err != nil {
-		return "", fmt.Errorf("saving template cache: %w", err)
-	}
-	if err := os.WriteFile(filepath.Join(cacheRoot, id+".ready"), []byte("flushwhy/fe-templates main\\n"), 0600); err != nil {
-		return "", fmt.Errorf("writing template cache marker: %w", err)
+	if err := replaceTemplateCache(cacheRoot, id, tmp, dest); err != nil {
+		return "", err
 	}
 	return dest, nil
 }
 
-func sortStrings(values []string) { sort.Strings(values) }
+// replaceTemplateCache keeps the last usable cache until the replacement is complete.
+func replaceTemplateCache(cacheRoot, id, tmp, dest string) error {
+	marker := filepath.Join(cacheRoot, id+".ready")
+	markerBackup := marker + ".old"
+	dirBackup := dest + ".old"
+	_ = os.Remove(markerBackup)
+	_ = os.RemoveAll(dirBackup)
 
+	markerTmp, err := os.CreateTemp(cacheRoot, "."+id+"-ready-")
+	if err != nil {
+		return fmt.Errorf("creating template cache marker: %w", err)
+	}
+	markerTmpName := markerTmp.Name()
+	if _, err := markerTmp.WriteString("flushwhy/fe-templates main\n"); err != nil {
+		markerTmp.Close()
+		os.Remove(markerTmpName)
+		return fmt.Errorf("writing template cache marker: %w", err)
+	}
+	if err := markerTmp.Close(); err != nil {
+		os.Remove(markerTmpName)
+		return fmt.Errorf("closing template cache marker: %w", err)
+	}
+	defer os.Remove(markerTmpName)
 
-// decodeRepoTree accepts exactly one complete JSON document and enforces the
-// response limit, including trailing data.
+	hadMarker, hadDir := false, false
+	if _, err := os.Lstat(marker); err == nil {
+		if err := os.Rename(marker, markerBackup); err != nil {
+			return fmt.Errorf("preserving template cache marker: %w", err)
+		}
+		hadMarker = true
+	}
+	if _, err := os.Lstat(dest); err == nil {
+		if err := os.Rename(dest, dirBackup); err != nil {
+			if hadMarker { _ = os.Rename(markerBackup, marker) }
+			return fmt.Errorf("preserving existing template cache: %w", err)
+		}
+		hadDir = true
+	}
+	restore := func() {
+		_ = os.RemoveAll(dest)
+		if hadDir { _ = os.Rename(dirBackup, dest) }
+		_ = os.Remove(marker)
+		if hadMarker { _ = os.Rename(markerBackup, marker) }
+	}
+	if err := os.Rename(tmp, dest); err != nil {
+		restore()
+		return fmt.Errorf("saving template cache: %w", err)
+	}
+	if err := os.Rename(markerTmpName, marker); err != nil {
+		restore()
+		return fmt.Errorf("publishing template cache marker: %w", err)
+	}
+	if hadDir { _ = os.RemoveAll(dirBackup) }
+	if hadMarker { _ = os.Remove(markerBackup) }
+	return nil
+}
+
 func decodeRepoTree(body io.Reader) (repoTree, error) {
 	var tree repoTree
 	data, err := io.ReadAll(io.LimitReader(body, (5<<20)+1))
