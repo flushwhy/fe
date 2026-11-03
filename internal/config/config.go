@@ -61,8 +61,8 @@ type GodotConfig struct {
 }
 
 type PreflightConfig struct {
-	Enabled bool `mapstructure:"enabled"`
-	Detect  bool `mapstructure:"detect"`
+	Enabled bool             `mapstructure:"enabled"`
+	Detect  bool             `mapstructure:"detect"`
 	Checks  []PreflightCheck `mapstructure:"checks"`
 }
 
@@ -75,8 +75,8 @@ type PreflightCheck struct {
 }
 
 type BuildConfig struct {
-	Targets   []BuildTarget    `mapstructure:"targets"`
-	Container ContainerBuild   `mapstructure:"container"`
+	Targets   []BuildTarget  `mapstructure:"targets"`
+	Container ContainerBuild `mapstructure:"container"`
 }
 
 type ContainerBuild struct {
@@ -84,8 +84,10 @@ type ContainerBuild struct {
 	Command string `mapstructure:"command"`
 }
 
-// BuildTarget represents a single platform build.
+// BuildTarget represents one configured build. Name is optional so existing
+// platform-only .fe.yaml targets remain valid.
 type BuildTarget struct {
+	Name     string `mapstructure:"name"`
 	Platform string `mapstructure:"platform"`
 	Cmd      string `mapstructure:"cmd"`
 	Output   string `mapstructure:"output"`
@@ -220,11 +222,14 @@ build:
   #   image: flushy/odin:nightly
   #   command: "odin build . -out:builds/game"
   targets:
-    - platform: linux-x64
+    - name: linux-release
+      platform: linux-x64
       cmd: "gcc -o builds/linux-x64/game src/main.c"
-    - platform: windows-x64
+    - name: windows-release
+      platform: windows-x64
       cmd: "x86_64-w64-mingw32-gcc -o builds/windows-x64/game.exe src/main.c"
-    - platform: macos-arm64
+    - name: macos-release
+      platform: macos-arm64
       cmd: "gcc -o builds/macos-arm64/game src/main.c"
 `
 
@@ -244,11 +249,14 @@ func (c *Config) SummaryLines() []string {
 	}
 
 	if len(c.Build.Targets) > 0 {
-		platforms := make([]string, len(c.Build.Targets))
+		labels := make([]string, len(c.Build.Targets))
 		for i, t := range c.Build.Targets {
-			platforms[i] = t.Platform
+			labels[i] = t.Platform
+			if t.Name != "" {
+				labels[i] = t.Name + " (" + t.Platform + ")"
+			}
 		}
-		lines = append(lines, fmt.Sprintf("  build targets: %s", strings.Join(platforms, ", ")))
+		lines = append(lines, fmt.Sprintf("  build targets: %s", strings.Join(labels, ", ")))
 	}
 
 	return lines
