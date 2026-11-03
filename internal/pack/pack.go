@@ -101,7 +101,7 @@ func loadPNGs(dir string) ([]image.Image, error) {
 	var totalPixels int64
 	pngCount := 0
 	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".png" {
+		if entry.IsDir() || !entry.Type().IsRegular() || filepath.Ext(entry.Name()) != ".png" {
 			continue
 		}
 		pngCount++
