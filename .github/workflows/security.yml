@@ -30,6 +30,9 @@ jobs:
       - name: Trace legacy AWS SDK dependency
         run: go mod why -m github.com/aws/aws-sdk-go
 
+      - name: Show required module tidy changes
+        run: go mod tidy -diff || true
+
   codeql:
     name: CodeQL analysis
     runs-on: ubuntu-latest
