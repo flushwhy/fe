@@ -6,6 +6,7 @@ import (
 	"image/png"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/flushwhy/fe/internal/config"
@@ -126,5 +127,25 @@ func TestLoadPNGsRejectsOversizedDimensionsBeforeDecode(t *testing.T) {
 	writeTestPNG(t, filepath.Join(root, "oversized.png"), maxImageDimension+1, 1)
 	if _, err := loadPNGs(root); err == nil {
 		t.Fatal("loadPNGs accepted an image wider than the configured dimension limit")
+	}
+}
+
+
+func TestLoadPNGsSkipsSymlinks(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation may require elevated privileges on Windows")
+	}
+	root := t.TempDir()
+	target := filepath.Join(t.TempDir(), "outside.png")
+	writeTestPNG(t, target, 2, 2)
+	if err := os.Symlink(target, filepath.Join(root, "linked.png")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	images, err := loadPNGs(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(images) != 0 {
+		t.Fatalf("loadPNGs loaded %d symlinked images, want 0", len(images))
 	}
 }
