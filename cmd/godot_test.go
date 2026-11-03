@@ -81,3 +81,55 @@ func TestGodotExportRequiresExportPresetsFile(t *testing.T) {
 		t.Fatalf("expected missing-export-presets error, got %v", err)
 	}
 }
+
+func TestSelectGodotEngineRejectsSingleIncompatibleEngine(t *testing.T) {
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte(`config/features=PackedStringArray("4.3", "GL Compatibility")`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	_, err := selectGodotEngineFrom(project, "", []godotEngine{{Path: "godot-4.2", Version: "4.2.stable.official"}})
+	if err == nil || !strings.Contains(err.Error(), "project requires Godot 4.3") {
+		t.Fatalf("expected incompatible engine error, got %v", err)
+	}
+}
+
+func TestSelectGodotEngineMatchesProjectVersion(t *testing.T) {
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte(`config/features=PackedStringArray("4.3", "GL Compatibility")`), 0600); err != nil {
+		t.Fatal(err)
+	}
+	engines := []godotEngine{
+		{Path: "godot-4.2", Version: "4.2.stable.official"},
+		{Path: "godot-4.3", Version: "4.3.1.stable.official"},
+	}
+	got, err := selectGodotEngineFrom(project, "", engines)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Path != "godot-4.3" {
+		t.Fatalf("selected %q, want godot-4.3", got.Path)
+	}
+}
+
+func TestSelectGodotEngineUsesOnlyEngineWhenProjectVersionIsUnknown(t *testing.T) {
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\\n"), 0600); err != nil {
+		t.Fatal(err)
+	}
+	got, err := selectGodotEngineFrom(project, "", []godotEngine{{Path: "godot", Version: "4.3.stable.official"}})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Path != "godot" {
+		t.Fatalf("selected %q, want godot", got.Path)
+	}
+}
+
+func TestGodotVersionMatchesWholeComponent(t *testing.T) {
+	if !godotVersionMatches("4.3.1.stable.official", "4.3") {
+		t.Fatal("4.3 should match 4.3.1")
+	}
+	if godotVersionMatches("4.30.stable.official", "4.3") {
+		t.Fatal("4.3 must not match 4.30")
+	}
+}
