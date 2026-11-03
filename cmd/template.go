@@ -17,16 +17,17 @@ var templateListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List templates available from fe-templates.",
 	RunE: func(cmd *cobra.Command, args []string) error {
-		ids, err := scaffold.ListRemoteTemplates()
+		templates, err := scaffold.ListRemoteTemplates()
 		if err != nil {
 			return err
 		}
-		if len(ids) == 0 {
+		if len(templates) == 0 {
 			fmt.Println("No templates are available.")
 			return nil
 		}
-		for _, id := range ids {
-			fmt.Println(id)
+		fmt.Printf("%-34s %-12s %s\n", "TEMPLATE", "CATEGORY", "DESCRIPTION")
+		for _, item := range templates {
+			fmt.Printf("%-34s %-12s %s\n", item.Name+" ("+item.ID+")", item.Category, item.Description)
 		}
 		return nil
 	},
