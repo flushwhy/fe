@@ -6,6 +6,7 @@ import (
 	"compress/gzip"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 )
 
@@ -51,5 +52,19 @@ func TestCreateZipAndTarGz(t *testing.T) {
 	}
 	if entry.Name != "bin/fe" {
 		t.Fatalf("unexpected TAR entry: %q", entry.Name)
+	}
+}
+
+
+func TestCreateRejectsWindowsAmbiguousArchiveNames(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("backslash is a path separator on Windows")
+	}
+	root := t.TempDir()
+	if err := os.WriteFile(filepath.Join(root, "bad\\name.txt"), []byte("unsafe"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	if err := Create(root, filepath.Join(t.TempDir(), "unsafe.zip"), "zip"); err == nil {
+		t.Fatal("Create() accepted a filename containing a backslash")
 	}
 }

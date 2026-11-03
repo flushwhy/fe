@@ -10,6 +10,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/flushwhy/fe/internal/archivepath"
 )
 
 func Create(root, output, format string) error {
@@ -46,7 +48,7 @@ func Create(root, output, format string) error {
 			if err != nil {
 				return err
 			}
-			header.Name = filepath.ToSlash(path)
+			header.Name = path
 			header.Method = zip.Deflate
 			target, err := writer.CreateHeader(header)
 			if err != nil {
@@ -63,7 +65,7 @@ func Create(root, output, format string) error {
 			if err != nil {
 				return err
 			}
-			header.Name = filepath.ToSlash(path)
+			header.Name = path
 			if err := writer.WriteHeader(header); err != nil {
 				return err
 			}
@@ -90,7 +92,11 @@ func walkFiles(root, output string, visit func(string, os.FileInfo) error) error
 		if err != nil {
 			return err
 		}
-		if err := visit(relative, info); err != nil {
+		name := filepath.ToSlash(relative)
+		if err := archivepath.Validate(name); err != nil {
+			return fmt.Errorf("unsafe archive entry %q: %w", name, err)
+		}
+		if err := visit(name, info); err != nil {
 			return err
 		}
 		count++
