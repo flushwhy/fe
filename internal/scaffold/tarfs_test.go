@@ -40,7 +40,7 @@ func TestExtractTarGzCountsDirectoryEntries(t *testing.T) {
 }
 
 func TestExtractTarGzRejectsAmbiguousPaths(t *testing.T) {
-	data := makeTarGz(t, []tar.Header{{Name: `repo\\evil.txt`, Typeflag: tar.TypeReg, Mode: 0644, Size: 1}})
+	data := makeTarGz(t, []tar.Header{{Name: `repo\\evil.txt`, Typeflag: tar.TypeDir, Mode: 0755}})
 	if _, err := extractTarGz(data); err == nil {
 		t.Fatal("extractTarGz accepted a path containing a backslash")
 	}
