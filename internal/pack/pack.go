@@ -15,6 +15,7 @@ import (
 )
 const (
 	maxPNGBytes       = 32 << 20
+	maxPNGTotalBytes  = int64(64 << 20)
 	maxSheetPixels    = int64(16 << 20)
 	maxImageDimension = 16384
 	maxSheetImages    = 4096
@@ -99,6 +100,7 @@ func loadPNGs(dir string) ([]image.Image, error) {
 
 	var images []image.Image
 	var totalPixels int64
+	var totalEncodedBytes int64
 	pngCount := 0
 	for _, entry := range entries {
 		if entry.IsDir() || !entry.Type().IsRegular() || filepath.Ext(entry.Name()) != ".png" {
@@ -120,10 +122,11 @@ func loadPNGs(dir string) ([]image.Image, error) {
 			f.Close()
 			return nil, fmt.Errorf("inspect PNG %s: %w", path, err)
 		}
-		if info.Size() > maxPNGBytes {
+		if err := validatePNGFileSize(info.Size(), totalEncodedBytes); err != nil {
 			f.Close()
-			return nil, fmt.Errorf("PNG %s exceeds the %d MiB encoded-size limit", path, maxPNGBytes>>20)
+			return nil, fmt.Errorf("PNG %s: %w", path, err)
 		}
+		totalEncodedBytes += info.Size()
 
 		config, err := png.DecodeConfig(f)
 		if err != nil {
@@ -154,6 +157,17 @@ func loadPNGs(dir string) ([]image.Image, error) {
 	}
 
 	return images, nil
+}
+
+// validatePNGFileSize bounds both individual and aggregate encoded input.
+func validatePNGFileSize(size, totalBytes int64) error {
+	if size < 0 || size > maxPNGBytes {
+		return fmt.Errorf("encoded size exceeds the %d MiB per-file limit", maxPNGBytes>>20)
+	}
+	if size > maxPNGTotalBytes-totalBytes {
+		return fmt.Errorf("spritesheet exceeds the %d MiB total encoded-size limit", maxPNGTotalBytes>>20)
+	}
+	return nil
 }
 
 // validateImageSize bounds dimensions before decoding and tracks the aggregate
