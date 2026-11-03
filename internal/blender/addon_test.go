@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"os"
 	"path/filepath"
+	"runtime"
 	"reflect"
 	"testing"
 )
@@ -130,5 +131,19 @@ license = []
 func TestInspectRejectsUnknownDirectory(t *testing.T) {
 	if _, err := Inspect(t.TempDir()); err == nil {
 		t.Fatal("expected unrecognized add-on error")
+	}
+}
+
+
+func TestPackageRejectsWindowsAmbiguousArchiveNames(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("backslash is a path separator on Windows")
+	}
+	root := t.TempDir()
+	writeFile(t, root, "blender_manifest.toml", validManifest)
+	writeFile(t, root, "__init__.py", "bl_info = {}\n")
+	writeFile(t, root, "bad\\name.py", "VALUE = 1\n")
+	if err := Package(root, filepath.Join(t.TempDir(), "unsafe.zip")); err == nil {
+		t.Fatal("Package() accepted a filename containing a backslash")
 	}
 }
