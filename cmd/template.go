@@ -25,9 +25,9 @@ var templateListCmd = &cobra.Command{
 			fmt.Println("No templates are available.")
 			return nil
 		}
-		fmt.Printf("%-24s %-12s %s\\n", "TEMPLATE", "CATEGORY", "DESCRIPTION")
+		fmt.Printf("%-34s %-12s %s\n", "TEMPLATE", "CATEGORY", "DESCRIPTION")
 		for _, item := range templates {
-			fmt.Printf("%-24s %-12s %s\\n", item.ID, item.Category, item.Description)
+			fmt.Printf("%-34s %-12s %s\n", item.Name+" ("+item.ID+")", item.Category, item.Description)
 		}
 		return nil
 	},
