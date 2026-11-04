@@ -48,6 +48,12 @@ type TranscodeConfig struct {
 	OutputFile      string `mapstructure:"outputFile"`
 	Codec           string `mapstructure:"codec"`
 	Bitrate         string `mapstructure:"bitrate"`
+	VideoCodec      string `mapstructure:"videoCodec"`
+	AudioCodec      string `mapstructure:"audioCodec"`
+	Preset          string `mapstructure:"preset"`
+	CRF             string `mapstructure:"crf"`
+	PixelFormat     string `mapstructure:"pixelFormat"`
+	AudioBitrate    string `mapstructure:"audioBitrate"`
 	AudioChannels   string `mapstructure:"audioChannels"`
 	VideoFrameRate  string `mapstructure:"videoFrameRate"`
 	VideoResolution string `mapstructure:"videoResolution"`
@@ -240,8 +246,14 @@ pack:
   #     output: "assets/npcs.png"
 
 transcode:
-  codec: "libvorbis"
-  bitrate: "128k"
+  # Video outputs default to H.264/AAC MP4 settings; audio outputs use
+  # the selected output extension and FFmpeg defaults unless overridden.
+  # videoCodec: "libx264"
+  # audioCodec: "aac"
+  # preset: "medium"
+  # crf: "20"
+  # pixelFormat: "yuv420p"
+  # audioBitrate: "192k"
 
 build:
   # Optional: build inside a temporary Docker/Podman container.

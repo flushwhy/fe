@@ -14,12 +14,13 @@ import (
 var transcodeCmd = &cobra.Command{
 	Use:   "transcode",
 	Short: "Convert audio/video via ffmpeg.",
-	Long: `Transcodes a file using ffmpeg. All options are optional — omitted
-flags fall through to ffmpeg defaults.
+	Long: `Transcodes audio or video using ffmpeg. Video output gets game-friendly
+H.264/AAC MP4 defaults (or VP9/Opus for WebM); explicit flags override them.
 
 Examples:
   fe transcode --inputFile music.wav --outputFile music.ogg --codec libvorbis
-  fe transcode --inputFile video.mov --outputFile video.mp4 --codec libx264 --bitrate 2M`,
+  fe transcode --inputFile capture.mov --outputFile trailer.mp4
+  fe transcode --inputFile capture.mp4 --outputFile web-preview.webm --crf 30`,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		cfg, err := config.Load()
 		if err != nil {
@@ -52,22 +53,27 @@ Examples:
 
 func init() {
 	rootCmd.AddCommand(transcodeCmd)
-	transcodeCmd.Flags().String("inputFile", "", "input file path (required)")
-	transcodeCmd.Flags().String("outputFile", "output.ogg", "output file path")
-	transcodeCmd.Flags().String("codec", "", "codec (e.g. libvorbis, libx264)")
-	transcodeCmd.Flags().String("bitrate", "", "bitrate (e.g. 128k, 2M)")
-	transcodeCmd.Flags().String("audioChannels", "", "number of audio channels")
-	transcodeCmd.Flags().String("videoFrameRate", "", "video frame rate")
-	transcodeCmd.Flags().String("videoResolution", "", "video resolution (e.g. 1920x1080)")
-	transcodeCmd.Flags().String("startTime", "", "start time offset")
-	transcodeCmd.Flags().String("endTime", "", "end/duration")
-	viper.BindPFlag("transcode.inputFile", transcodeCmd.Flags().Lookup("inputFile"))
-	viper.BindPFlag("transcode.outputFile", transcodeCmd.Flags().Lookup("outputFile"))
-	viper.BindPFlag("transcode.codec", transcodeCmd.Flags().Lookup("codec"))
-	viper.BindPFlag("transcode.bitrate", transcodeCmd.Flags().Lookup("bitrate"))
-	viper.BindPFlag("transcode.audioChannels", transcodeCmd.Flags().Lookup("audioChannels"))
-	viper.BindPFlag("transcode.videoFrameRate", transcodeCmd.Flags().Lookup("videoFrameRate"))
-	viper.BindPFlag("transcode.videoResolution", transcodeCmd.Flags().Lookup("videoResolution"))
-	viper.BindPFlag("transcode.startTime", transcodeCmd.Flags().Lookup("startTime"))
-	viper.BindPFlag("transcode.endTime", transcodeCmd.Flags().Lookup("endTime"))
+	flags := transcodeCmd.Flags()
+	flags.String("inputFile", "", "input file path (required)")
+	flags.String("outputFile", "output.ogg", "output file path")
+	flags.String("codec", "", "legacy codec override for the selected media type")
+	flags.String("bitrate", "", "legacy bitrate override for the selected media type")
+	flags.String("videoCodec", "", "video codec (defaults to H.264 for video output)")
+	flags.String("audioCodec", "", "audio codec (defaults to AAC for video output)")
+	flags.String("preset", "", "video encoder preset (default: medium)")
+	flags.String("crf", "", "video quality, lower is higher quality (default: 20 for MP4)")
+	flags.String("pixelFormat", "", "video pixel format (default: yuv420p)")
+	flags.String("audioBitrate", "", "audio bitrate (default: 192k for video output)")
+	flags.String("audioChannels", "", "number of audio channels")
+	flags.String("videoFrameRate", "", "video frame rate (default: preserve source)")
+	flags.String("videoResolution", "", "video resolution (e.g. 1920x1080)")
+	flags.String("startTime", "", "start time offset")
+	flags.String("endTime", "", "end/duration")
+	for _, name := range []string{
+		"inputFile", "outputFile", "codec", "bitrate", "videoCodec", "audioCodec",
+		"preset", "crf", "pixelFormat", "audioBitrate", "audioChannels",
+		"videoFrameRate", "videoResolution", "startTime", "endTime",
+	} {
+		_ = viper.BindPFlag("transcode."+name, flags.Lookup(name))
+	}
 }
