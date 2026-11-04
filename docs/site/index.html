@@ -226,7 +226,6 @@
     <section class="hero">
       <div class="wrap hero-grid">
         <div class="hero-copy">
-          <span class="eyebrow"><i></i> The practical project toolkit</span>
           <h1>Make the work <span>flow.</span></h1>
           <p class="lead">From the first project folder to the final build, Fe connects the tools you already use. Less setup glue. More time making things worth shipping.</p>
           <div class="hero-actions">
@@ -448,7 +447,7 @@ butler:
           if (index >= sequence.length) {
             stepLabel.textContent = "DEMO COMPLETE · 04 / 04";
             cursor.style.display = "none";
-            skip.textContent = "Replay animation ↻";
+            timer = setTimeout(play, 1800);
             return;
           }
           var item = sequence[index];
