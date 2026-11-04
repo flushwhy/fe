@@ -216,8 +216,12 @@ func TestConfigWritersRejectSymlinks(t *testing.T) {
 	if err := addZLS(dir); err == nil {
 		t.Fatal("addZLS accepted a symlink destination")
 	}
-	if err := writeFileWithBackup(filepath.Join(dir, ".clangd"), []byte("new config")); err != nil {
+	clangd := filepath.Join(dir, ".clangd")
+	if err := os.Symlink(target, clangd); err != nil {
 		t.Fatal(err)
+	}
+	if err := writeFileWithBackup(clangd, []byte("new config")); err == nil {
+		t.Fatal("writeFileWithBackup accepted a symlink destination")
 	}
 	got, err := os.ReadFile(target)
 	if err != nil {
