@@ -26,11 +26,11 @@ func Run(cfg config.TranscodeConfig, runner Runner) error {
 	if cfg.InputFile == "" {
 		return errors.New("inputFile is required")
 	}
-	if runner == nil {
-		return errors.New("transcode runner is required")
-	}
 	if cfg.OutputFile == "" {
 		return errors.New("outputFile is required")
+	}
+	if runner == nil {
+		return errors.New("transcode runner is required")
 	}
 
 	if err := runner(cfg.InputFile, cfg.OutputFile, buildArgs(cfg)); err != nil {
