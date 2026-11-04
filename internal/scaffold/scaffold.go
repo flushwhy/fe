@@ -14,6 +14,8 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/flushwhy/fe/internal/archivepath"
+
 	"github.com/flushwhy/fe/internal/ui"
 )
 
@@ -183,6 +185,9 @@ func writeTemplate(src fs.FS, destRoot string, data TemplateData) error {
 				return nil
 			}
 			return fmt.Errorf("unsafe template path %q", path)
+		}
+		if err := archivepath.Validate(path); err != nil {
+			return fmt.Errorf("unsafe template path %q: %w", path, err)
 		}
 		dest := filepath.Join(destRoot, filepath.FromSlash(path))
 		rel, err := filepath.Rel(destRoot, dest)
