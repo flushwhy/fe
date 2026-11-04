@@ -5,12 +5,21 @@ import (
 	"image"
 	"image/draw"
 	"image/png"
+	"io"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 
 	"github.com/flushwhy/fe/internal/config"
+)
+
+const (
+	maxPNGBytes       = 32 << 20
+	maxPNGTotalBytes  = int64(64 << 20)
+	maxSheetPixels    = int64(16 << 20)
+	maxImageDimension = 16384
+	maxSheetImages    = 4096
 )
 
 // Run packs PNG files into either one conventional spritesheet or a set of
@@ -71,6 +80,9 @@ func packOne(input, output string) error {
 	if len(images) == 0 {
 		return fmt.Errorf("no PNG files found in %s", input)
 	}
+	if err := validateCanvas(images); err != nil {
+		return err
+	}
 	canvas := stitch(images)
 	if err := writePNG(output, canvas); err != nil {
 		return err
@@ -87,10 +99,16 @@ func loadPNGs(dir string) ([]image.Image, error) {
 	}
 
 	var images []image.Image
+	var totalPixels, totalEncodedBytes int64
+	pngCount := 0
 
 	for _, entry := range entries {
-		if entry.IsDir() || filepath.Ext(entry.Name()) != ".png" {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".png" || entry.Type()&os.ModeSymlink != 0 {
 			continue
+		}
+		pngCount++
+		if pngCount > maxSheetImages {
+			return nil, fmt.Errorf("sprite sheet contains more than %d PNG files", maxSheetImages)
 		}
 
 		path := filepath.Join(dir, entry.Name())
@@ -99,18 +117,88 @@ func loadPNGs(dir string) ([]image.Image, error) {
 			fmt.Printf("  warning: could not open %s: %v\n", path, err)
 			continue
 		}
+		info, err := f.Stat()
+		if err != nil {
+			f.Close()
+			return nil, fmt.Errorf("inspect PNG %s: %w", path, err)
+		}
+		if !info.Mode().IsRegular() {
+			f.Close()
+			continue
+		}
+		if err := validatePNGFileSize(info.Size(), totalEncodedBytes); err != nil {
+			f.Close()
+			return nil, fmt.Errorf("PNG %s: %w", path, err)
+		}
+		totalEncodedBytes += info.Size()
 
-		img, _, err := image.Decode(f)
-		f.Close()
+		cfg, err := png.DecodeConfig(f)
+		if err != nil {
+			f.Close()
+			fmt.Printf("  warning: could not read PNG dimensions %s: %v\n", path, err)
+			continue
+		}
+		pixels, err := validateImageSize(cfg.Width, cfg.Height, totalPixels)
+		if err != nil {
+			f.Close()
+			return nil, fmt.Errorf("PNG %s: %w", path, err)
+		}
+		if _, err := f.Seek(0, io.SeekStart); err != nil {
+			f.Close()
+			return nil, fmt.Errorf("rewind PNG %s: %w", path, err)
+		}
+		img, err := png.Decode(f)
+		closeErr := f.Close()
 		if err != nil {
 			fmt.Printf("  warning: could not decode %s: %v\n", path, err)
 			continue
 		}
-
+		if closeErr != nil {
+			return nil, fmt.Errorf("close PNG %s: %w", path, closeErr)
+		}
+		totalPixels += pixels
 		images = append(images, img)
 	}
-
 	return images, nil
+}
+
+func validatePNGFileSize(size, totalBytes int64) error {
+	if size < 0 || size > maxPNGBytes {
+		return fmt.Errorf("encoded size exceeds the %d MiB per-file limit", maxPNGBytes>>20)
+	}
+	if size > maxPNGTotalBytes-totalBytes {
+		return fmt.Errorf("spritesheet exceeds the %d MiB total encoded-size limit", maxPNGTotalBytes>>20)
+	}
+	return nil
+}
+
+func validateImageSize(width, height int, totalPixels int64) (int64, error) {
+	if width <= 0 || height <= 0 || width > maxImageDimension || height > maxImageDimension {
+		return 0, fmt.Errorf("dimensions %dx%d exceed the %dx%d limit", width, height, maxImageDimension, maxImageDimension)
+	}
+	pixels := int64(width) * int64(height)
+	if pixels > maxSheetPixels-totalPixels {
+		return 0, fmt.Errorf("spritesheet exceeds the %d million decoded-pixel limit", maxSheetPixels>>20)
+	}
+	return pixels, nil
+}
+
+func validateCanvas(images []image.Image) error {
+	var totalWidth, maxHeight int64
+	for _, img := range images {
+		bounds := img.Bounds()
+		totalWidth += int64(bounds.Dx())
+		if int64(bounds.Dy()) > maxHeight {
+			maxHeight = int64(bounds.Dy())
+		}
+		if totalWidth > maxImageDimension || maxHeight > maxImageDimension {
+			return fmt.Errorf("spritesheet dimensions exceed the %dx%d limit", maxImageDimension, maxImageDimension)
+		}
+	}
+	if totalWidth == 0 || maxHeight == 0 || totalWidth*maxHeight > maxSheetPixels {
+		return fmt.Errorf("spritesheet exceeds the %d million output-pixel limit", maxSheetPixels>>20)
+	}
+	return nil
 }
 
 // stitch combines images horizontally into a single RGBA canvas.
