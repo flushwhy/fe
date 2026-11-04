@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: rolling-release
@@ -20,7 +20,7 @@ jobs:
     outputs:
       changed: ${{ steps.check.outputs.changed }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: master
           fetch-depth: 0
@@ -47,12 +47,12 @@ jobs:
     name: Build ARM64 Linux packages natively
     runs-on: ubuntu-24.04-arm
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: master
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: "1.26.10"
           cache: true
@@ -74,7 +74,7 @@ jobs:
           version="$major.$minor.$((patch + 1))"
           bash scripts/package-linux.sh "$version" "rolling.g${GITHUB_SHA:0:7}" arm64
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: fe-linux-arm64-packages
           path: dist/packages/*
@@ -87,12 +87,12 @@ jobs:
     name: Build Linux RISC-V 64-bit binary on native hardware
     runs-on: ubuntu-24.04-riscv
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: master
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: "1.26.10"
           cache: true
@@ -104,7 +104,7 @@ jobs:
           mkdir -p dist
           CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 go build -trimpath -ldflags="-s -w" -o dist/fe-linux-riscv64 .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: fe-linux-riscv64
           path: dist/fe-linux-riscv64
@@ -113,16 +113,18 @@ jobs:
 
   rolling:
     name: Build and publish rolling release
+    permissions:
+      contents: write
     needs: [check-changes, arm64-packages, riscv-binary]
     if: needs.check-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
           ref: master
           fetch-depth: 0
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: "1.26.10"
           cache: true
@@ -130,12 +132,12 @@ jobs:
       - name: Test
         run: go test ./...
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
           name: fe-linux-arm64-packages
           path: dist/packages
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
           name: fe-linux-riscv64
           path: dist
@@ -160,19 +162,8 @@ jobs:
           cp dist/packages/* dist/
           sha256sum dist/fe-* dist/*.deb dist/*.rpm dist/*.tar.gz > dist/SHA256SUMS
 
-      - name: Remove stale assets from the rolling release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/rolling" --jq '.id')"
-          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --jq '.assets[].id' | while IFS= read -r asset_id; do
-            [ -n "$asset_id" ] || continue
-            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
-          done
-
       - name: Update rolling GitHub Release page
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
           tag_name: rolling
           name: Fe Rolling Release
@@ -194,6 +185,20 @@ jobs:
             dist/*.rpm
             dist/*.tar.gz
             dist/SHA256SUMS
+
+      - name: Remove stale assets after successful upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/rolling" --jq '.id')"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --jq '.assets[] | [.id, .name] | @tsv' |
+            while IFS="$(printf '\t')" read -r asset_id asset_name; do
+              [ -n "$asset_id" ] || continue
+              if [ ! -f "dist/$asset_name" ]; then
+                gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
+              fi
+            done
 
       - name: Install butler
         run: |

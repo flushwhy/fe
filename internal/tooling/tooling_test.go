@@ -198,3 +198,50 @@ func TestFindCompileCommandsDir(t *testing.T) {
 		}
 	})
 }
+
+
+func TestConfigWritersRejectSymlinks(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("symlink creation may require elevated privileges on Windows")
+	}
+	dir := t.TempDir()
+	target := filepath.Join(t.TempDir(), "outside.json")
+	if err := os.WriteFile(target, []byte("keep me"), 0644); err != nil {
+		t.Fatal(err)
+	}
+	path := filepath.Join(dir, "zls.json")
+	if err := os.Symlink(target, path); err != nil {
+		t.Fatal(err)
+	}
+	if err := addZLS(dir); err == nil {
+		t.Fatal("addZLS accepted a symlink destination")
+	}
+	clangd := filepath.Join(dir, ".clangd")
+	if err := os.Symlink(target, clangd); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeFileWithBackup(clangd, []byte("new config")); err == nil {
+		t.Fatal("writeFileWithBackup accepted a symlink destination")
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "keep me" {
+		t.Fatalf("symlink target was modified: %q", got)
+	}
+}
+
+func TestConfigWritersRejectDanglingSymlinks(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("symlink creation may require elevated privileges on Windows")
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "zls.json")
+	if err := os.Symlink(filepath.Join(dir, "missing-target"), path); err != nil {
+		t.Fatal(err)
+	}
+	if err := addZLS(dir); err == nil {
+		t.Fatal("addZLS accepted a dangling symlink destination")
+	}
+}
