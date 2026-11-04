@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: rolling-release
@@ -113,6 +113,8 @@ jobs:
 
   rolling:
     name: Build and publish rolling release
+    permissions:
+      contents: write
     needs: [check-changes, arm64-packages, riscv-binary]
     if: needs.check-changes.outputs.changed == 'true'
     runs-on: ubuntu-latest
@@ -160,17 +162,6 @@ jobs:
           cp dist/packages/* dist/
           sha256sum dist/fe-* dist/*.deb dist/*.rpm dist/*.tar.gz > dist/SHA256SUMS
 
-      - name: Remove stale assets from the rolling release
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          set -euo pipefail
-          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/rolling" --jq '.id')"
-          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --jq '.assets[].id' | while IFS= read -r asset_id; do
-            [ -n "$asset_id" ] || continue
-            gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
-          done
-
       - name: Update rolling GitHub Release page
         uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
@@ -194,6 +185,20 @@ jobs:
             dist/*.rpm
             dist/*.tar.gz
             dist/SHA256SUMS
+
+      - name: Remove stale assets after successful upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          release_id="$(gh api "repos/${GITHUB_REPOSITORY}/releases/tags/rolling" --jq '.id')"
+          gh api "repos/${GITHUB_REPOSITORY}/releases/${release_id}" --jq '.assets[] | [.id, .name] | @tsv' |
+            while IFS="$(printf '\t')" read -r asset_id asset_name; do
+              [ -n "$asset_id" ] || continue
+              if [ ! -f "dist/$asset_name" ]; then
+                gh api --method DELETE "repos/${GITHUB_REPOSITORY}/releases/assets/${asset_id}"
+              fi
+            done
 
       - name: Install butler
         run: |
