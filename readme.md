@@ -146,8 +146,13 @@ pack:
   output: "assets/spritesheet.png"
 
 transcode:
-  codec: "libvorbis"
-  bitrate: "128k"
+  # Video outputs default to H.264/AAC with game-friendly MP4 settings.
+  # videoCodec: "libx264"
+  # audioCodec: "aac"
+  # preset: "medium"
+  # crf: "20"
+  # pixelFormat: "yuv420p"
+  # audioBitrate: "192k"
 
 build:
   targets:
@@ -187,6 +192,32 @@ env vars  >  .fe.yaml  >  conventions  >  defaults
 | `ITCHIO_GAME` | `itchio.game` |
 | `FE_USERVERSION` | `butler.userversion` |
 | `FE_BUILD_DIR` | `butler.directory` |
+
+### Audio and video transcoding
+
+`fe transcode` chooses defaults from the output extension. MP4/MOV video uses
+H.264, AAC audio, CRF 20, the medium encoder preset, and `yuv420p` for broad
+playback compatibility. MP4/MOV files are marked for fast-start streaming.
+WebM uses VP9 and Opus. The source frame rate and resolution are preserved
+unless explicitly changed.
+
+```sh
+# Game capture or trailer: compatible MP4 defaults
+fe transcode --inputFile capture.mov --outputFile trailer.mp4
+
+# Smaller web preview
+fe transcode --inputFile capture.mp4 --outputFile preview.webm --crf 30
+
+# Audio conversion
+fe transcode --inputFile music.wav --outputFile music.ogg --codec libvorbis --bitrate 128k
+
+# Override video settings
+fe transcode --inputFile capture.mp4 --outputFile trailer.mp4 --crf 18 --preset slow --videoFrameRate 60
+```
+
+Use `--videoCodec`, `--audioCodec`, `--audioBitrate`, and
+`--pixelFormat` to override the defaults. The older `--codec` and
+`--bitrate` flags remain supported as media-type-specific overrides.
 
 ## CI usage
 
