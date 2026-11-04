@@ -90,3 +90,44 @@ func TestRunNamedSheetsRejectsUnsafeName(t *testing.T) {
 		t.Fatal("Run() error = nil, want invalid sheet name error")
 	}
 }
+
+
+func TestValidateImageSizeEnforcesDimensionAndAggregateBudgets(t *testing.T) {
+	if _, err := validateImageSize(maxImageDimension+1, 1, 0); err == nil {
+		t.Fatal("accepted image wider than the dimension limit")
+	}
+	if _, err := validateImageSize(4096, 4096, maxSheetPixels-1); err == nil {
+		t.Fatal("accepted image exceeding the aggregate decoded-pixel budget")
+	}
+	if pixels, err := validateImageSize(64, 32, 0); err != nil || pixels != 2048 {
+		t.Fatalf("validateImageSize() = %d, %v; want 2048, nil", pixels, err)
+	}
+}
+
+func TestValidateCanvasEnforcesOutputPixelBudget(t *testing.T) {
+	images := []image.Image{
+		boundsOnlyImage{bounds: image.Rect(0, 0, 8192, 2048)},
+		boundsOnlyImage{bounds: image.Rect(0, 0, 8192, 2048)},
+	}
+	if err := validateCanvas(images); err == nil {
+		t.Fatal("accepted a canvas exceeding the output-pixel budget")
+	}
+}
+
+type boundsOnlyImage struct{ bounds image.Rectangle }
+
+func (img boundsOnlyImage) ColorModel() color.Model { return color.RGBAModel }
+func (img boundsOnlyImage) Bounds() image.Rectangle { return img.bounds }
+func (img boundsOnlyImage) At(x, y int) color.Color { return color.RGBA{} }
+
+func TestValidatePNGFileSizeEnforcesAggregateBudget(t *testing.T) {
+	if err := validatePNGFileSize(maxPNGBytes+1, 0); err == nil {
+		t.Fatal("accepted an encoded PNG larger than the per-file limit")
+	}
+	if err := validatePNGFileSize(maxPNGBytes, maxPNGTotalBytes-maxPNGBytes+1); err == nil {
+		t.Fatal("accepted encoded PNG input exceeding the aggregate limit")
+	}
+	if err := validatePNGFileSize(1024, 0); err != nil {
+		t.Fatalf("validatePNGFileSize() rejected a small PNG: %v", err)
+	}
+}
