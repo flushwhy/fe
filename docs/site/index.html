@@ -3,346 +3,492 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#f6f3ec">
-  <meta name="description" content="Fe is the practical command-line toolkit for game development: project templates, engine workflows, asset utilities, release previews, artifact manifests, and publishing automation. Find the docs and get building.">
-  <title>Fe — ship games, not glue code</title>
+  <meta name="theme-color" content="#f3f0e8">
+  <meta name="description" content="Fe is the practical CLI for game and software projects: scaffold, build, export, package, inspect, and ship without the glue work.">
+  <title>Fe — make the work flow</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
   <style>
     :root {
       color-scheme: light;
-      --bg: #f6f3ec;
-      --panel: #fffdf8;
-      --panel-2: #e9eee5;
-      --text: #202a24;
-      --muted: #657168;
-      --line: #deddd3;
-      --green: #315c45;
-      --green-dark: #e2ebdf;
-      --orange: #b96d4a;
-      --code: #1c2922;
-      --max: 1160px;
+      --paper: #f3f0e8;
+      --paper-deep: #e9e6dc;
+      --ink: #202a24;
+      --muted: #667168;
+      --green: #315b45;
+      --green-dark: #203e30;
+      --mint: #dce8dc;
+      --clay: #fffdf7;
+      --clay-shadow: #d9d6cc;
+      --orange: #d17b51;
+      --yellow: #e9c77c;
+      --terminal: #17251e;
+      --terminal-text: #dfe9dc;
+      --line: rgba(42, 59, 47, .12);
+      --max: 1220px;
+      --soft-shadow: 12px 12px 28px rgba(73, 76, 62, .10), -10px -10px 26px rgba(255,255,255,.78);
+      --lift-shadow: 16px 20px 38px rgba(55, 66, 52, .13), -10px -10px 25px rgba(255,255,255,.82);
     }
     * { box-sizing: border-box; }
-    html { scroll-behavior: smooth; scroll-padding-top: 88px; }
-    body { margin: 0; background: var(--bg); color: var(--text); font: 16px/1.7 "DM Sans", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    html { scroll-behavior: smooth; scroll-padding-top: 96px; }
+    body { margin: 0; color: var(--ink); background: var(--paper); font: 16px/1.65 "DM Sans", system-ui, sans-serif; overflow-x: hidden; }
     a { color: var(--green); text-decoration: none; }
-    a:hover { text-decoration: underline; }
-    a:focus-visible, button:focus-visible, input:focus-visible { outline: 3px solid var(--orange); outline-offset: 3px; }
+    a:hover { color: var(--orange); }
     button, input { font: inherit; }
-    .wrap { width: min(var(--max), calc(100% - 40px)); margin-inline: auto; }
-    .topbar { position: sticky; top: 0; z-index: 10; background: rgba(246,243,236,.94); backdrop-filter: blur(14px); border-bottom: 1px solid var(--line); }
-    .nav { min-height: 72px; display: flex; align-items: center; gap: 28px; }
-    .brand { display: inline-flex; align-items: center; gap: 10px; color: var(--text); font-size: 1.25rem; font-weight: 850; letter-spacing: -.04em; }
-    .mark { display: grid; place-items: center; width: 34px; height: 34px; background: var(--green); color: #fffdf8; border-radius: 10px; font-weight: 950; }
-    .navlinks { display: flex; align-items: center; gap: 22px; margin-left: auto; color: var(--muted); font-size: .92rem; }
+    button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid var(--orange); outline-offset: 4px; }
+    .wrap { width: min(var(--max), calc(100% - 48px)); margin-inline: auto; }
+    .mono { font-family: "DM Mono", ui-monospace, monospace; }
+    .topbar { position: sticky; top: 0; z-index: 30; backdrop-filter: blur(18px); background: rgba(243,240,232,.82); border-bottom: 1px solid var(--line); }
+    .nav { min-height: 76px; display: flex; align-items: center; gap: 28px; }
+    .brand { display: inline-flex; align-items: center; gap: 11px; color: var(--ink); font: 700 1.3rem "Space Grotesk", sans-serif; letter-spacing: -.06em; }
+    .brand-mark { display: grid; place-items: center; width: 39px; height: 39px; border-radius: 14px; color: #fffdf7; background: var(--green); box-shadow: inset 3px 3px 7px rgba(255,255,255,.17), 4px 5px 10px rgba(38,64,46,.2); font-size: 1rem; }
+    .navlinks { display: flex; align-items: center; gap: 25px; margin-left: auto; font-size: .9rem; color: var(--muted); }
     .navlinks a { color: inherit; }
-    .navlinks a:hover { color: var(--text); }
-    .github { border: 1px solid var(--line); border-radius: 9px; padding: 8px 13px; color: var(--text) !important; }
-    .hero { padding: 94px 0 82px; border-bottom: 1px solid var(--line); overflow: hidden; position: relative; }
-    .hero:after { content: ""; position: absolute; width: 420px; height: 420px; border-radius: 50%; background: radial-gradient(circle, rgba(49,92,69,.13), transparent 68%); right: -70px; top: -90px; pointer-events: none; }
-    .eyebrow { display: inline-flex; gap: 9px; align-items: center; border: 1px solid var(--line); border-radius: 999px; padding: 5px 12px; color: var(--muted); font-size: .8rem; text-transform: uppercase; letter-spacing: .11em; font-weight: 750; }
-    .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--green); box-shadow: 0 0 14px rgba(49,92,69,.24); }
-    h1 { font-family: "Fraunces", Georgia, serif; font-size: clamp(3.2rem, 8vw, 6.5rem); letter-spacing: -.085em; line-height: .98; max-width: 850px; margin: 26px 0; font-weight: 900; }
-    h1 span { color: var(--green); }
-    .lead { color: #59665d; max-width: 690px; font-size: clamp(1.08rem, 2vw, 1.28rem); }
-    .actions { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 30px; }
-    .btn { display: inline-flex; justify-content: center; align-items: center; gap: 9px; padding: 12px 17px; border-radius: 10px; border: 1px solid var(--line); font-weight: 750; color: var(--text); }
-    .btn.primary { background: var(--green); color: #fffdf8; border-color: var(--green); }
-    .btn:hover { transform: translateY(-1px); text-decoration: none; }
-    .terminal { max-width: 730px; margin-top: 44px; border: 1px solid #3a4635; border-radius: 14px; overflow: hidden; background: var(--code); box-shadow: 0 22px 70px rgba(0,0,0,.22); }
-    .term-head { display: flex; align-items: center; gap: 7px; padding: 13px 16px; border-bottom: 1px solid #283025; color: #8f9a87; font-size: .8rem; }
-    .term-head .term-title { margin-left: 7px; }
-    .traffic { width: 9px; height: 9px; border-radius: 50%; background: #687361; }
-    pre { margin: 0; padding: 19px 21px; overflow-x: auto; font: 14px/1.9 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; color: #e0e9d8; }
-    .prompt { color: var(--green); user-select: none; }
-    .comment { color: #788572; }
-    .section { padding: 78px 0; border-bottom: 1px solid var(--line); }
-    .section-head { display: flex; gap: 28px; align-items: end; justify-content: space-between; margin-bottom: 30px; }
-    .kicker { color: var(--green); font-size: .78rem; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
-    h1 span { font-style: italic; }
-    h2 { font-family: "Fraunces", Georgia, serif; font-weight: 600; margin: 7px 0 0; font-size: clamp(2rem, 4vw, 3rem); line-height: 1.12; letter-spacing: -.055em; }
-    h3 { margin: 0 0 8px; font-size: 1.15rem; letter-spacing: -.02em; }
-    p { margin: 0 0 14px; }
-    .muted { color: var(--muted); }
-    .grid { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 14px; }
-    .card { border: 1px solid var(--line); border-radius: 14px; padding: 22px; background: linear-gradient(145deg, var(--panel), #f0eee6); min-width: 0; }
-    .card p { color: var(--muted); font-size: .94rem; }
-    .icon { width: 36px; height: 36px; display: grid; place-items: center; background: var(--green-dark); color: var(--green); border-radius: 10px; margin-bottom: 17px; font-size: 1.1rem; font-weight: 800; }
-    .two-col { display: grid; grid-template-columns: minmax(0, .8fr) minmax(0, 1.2fr); gap: 35px; align-items: start; }
-    .side-nav { display: grid; gap: 5px; position: sticky; top: 100px; }
-    .side-nav a { padding: 9px 12px; border-radius: 8px; color: var(--muted); }
-    .side-nav a.active, .side-nav a:hover { background: var(--panel-2); color: var(--green); text-decoration: none; }
-    .doc-section { padding: 0 0 36px; margin-bottom: 35px; border-bottom: 1px solid var(--line); }
-    .doc-section:last-child { border: 0; }
-    .doc-section h3 { font-size: 1.35rem; margin-bottom: 10px; }
-    code { font: .9em ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; background: var(--panel-2); border: 1px solid var(--line); padding: 2px 5px; border-radius: 5px; color: #315c45; }
-    pre code { border: 0; padding: 0; background: transparent; color: inherit; }
-    .copyline { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--code); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px 10px 16px; margin: 12px 0 18px; }
-    .copyline code { border: 0; background: none; padding: 0; overflow-x: auto; white-space: nowrap; }
-    .copy { background: var(--panel-2); border: 1px solid var(--line); color: var(--text); border-radius: 7px; padding: 6px 10px; cursor: pointer; font-size: .82rem; flex-shrink: 0; }
-    .copy:hover { border-color: var(--green); }
-    .callout { border-left: 3px solid var(--orange); background: #f1e8df; padding: 14px 16px; border-radius: 0 9px 9px 0; color: #624332; font-size: .93rem; }
-    .command-list { display: grid; grid-template-columns: repeat(2, minmax(0,1fr)); gap: 10px; }
-    .command { padding: 15px 16px; border: 1px solid var(--line); border-radius: 10px; background: var(--panel); }
-    .command code { display: inline-block; margin-bottom: 6px; }
-    .command p { margin: 0; font-size: .88rem; color: var(--muted); }
-    .search { width: min(100%, 330px); background: var(--panel); color: var(--text); border: 1px solid var(--line); border-radius: 9px; padding: 10px 13px; }
-    .footer { padding: 36px 0 45px; color: var(--muted); font-size: .9rem; }
-    .footer-inner { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; }
-    @media (max-width: 800px) {
-      .nav { flex-wrap: wrap; padding: 13px 0; gap: 13px; }
-      .navlinks { order: 3; width: 100%; overflow-x: auto; margin: 0; gap: 18px; padding-bottom: 3px; }
+    .navlinks a:hover { color: var(--green); }
+    .nav-cta, .button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; border-radius: 999px; padding: 11px 18px; font-weight: 750; transition: transform .2s ease, box-shadow .2s ease, background .2s ease; }
+    .nav-cta { color: white; background: var(--green); box-shadow: 4px 5px 12px rgba(43,75,54,.2), inset 1px 1px 2px rgba(255,255,255,.22); }
+    .button { border: 1px solid var(--line); color: var(--ink); background: var(--clay); box-shadow: 5px 6px 14px rgba(70,73,61,.09), -4px -4px 12px rgba(255,255,255,.8); }
+    .button.primary { background: var(--green); color: white; border-color: var(--green); box-shadow: 5px 7px 15px rgba(43,75,54,.22), inset 1px 1px 2px rgba(255,255,255,.2); }
+    .button:hover, .nav-cta:hover { transform: translateY(-3px); color: inherit; text-decoration: none; }
+    .button.primary:hover, .nav-cta:hover { color: white; background: var(--green-dark); }
+    .hero { position: relative; padding: 76px 0 94px; isolation: isolate; }
+    .hero:before { content:""; position:absolute; z-index:-1; width:570px; height:570px; border-radius:50%; right:-220px; top:-140px; background: radial-gradient(circle, rgba(209,123,81,.17), rgba(209,123,81,0) 68%); }
+    .hero-grid { display: grid; grid-template-columns: minmax(0, .9fr) minmax(430px, 1.1fr); align-items: center; gap: 48px; }
+    .eyebrow, .kicker { color: var(--green); text-transform: uppercase; letter-spacing: .16em; font-size: .72rem; font-weight: 800; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 10px; border: 1px solid var(--line); background: rgba(255,253,247,.58); border-radius: 999px; padding: 8px 13px; }
+    .eyebrow i { width: 8px; height: 8px; background: var(--orange); border-radius: 50%; box-shadow: 0 0 0 4px rgba(209,123,81,.13); }
+    h1, h2, h3, p { margin-top: 0; }
+    h1 { max-width: 650px; margin: 23px 0 20px; font: 700 clamp(3.6rem, 7vw, 6.8rem)/.93 "Space Grotesk", sans-serif; letter-spacing: -.085em; }
+    h1 span { color: var(--green); display: inline-block; }
+    .lead { max-width: 560px; color: var(--muted); font-size: clamp(1.05rem, 1.8vw, 1.2rem); }
+    .hero-actions { display: flex; flex-wrap: wrap; gap: 13px; margin-top: 29px; }
+    .hero-note { margin-top: 22px; color: var(--muted); font-size: .82rem; }
+    .hero-note strong { color: var(--green); }
+    .terminal-shell { position: relative; border-radius: 25px; padding: 10px; background: #e7e5db; box-shadow: 18px 22px 45px rgba(56,64,50,.17), -10px -10px 26px rgba(255,255,255,.85), inset 2px 2px 5px rgba(255,255,255,.8), inset -2px -2px 6px rgba(95,99,82,.08); transform: rotate(1.2deg); }
+    .terminal { overflow: hidden; border-radius: 17px; background: var(--terminal); color: var(--terminal-text); box-shadow: inset 0 0 35px rgba(0,0,0,.2); }
+    .termbar { height: 49px; display: flex; align-items: center; gap: 7px; padding: 0 17px; border-bottom: 1px solid rgba(255,255,255,.09); color: #9da99d; font-size: .75rem; }
+    .traffic { width: 9px; height: 9px; border-radius: 50%; background: #d17b51; }
+    .traffic:nth-child(2) { background: #e6c477; } .traffic:nth-child(3) { background: #7da184; }
+    .termname { margin-left: 8px; }
+    .term-status { margin-left: auto; color: #8da38f; }
+    .term-body { min-height: 288px; padding: 23px 23px 25px; font: .83rem/1.9 "DM Mono", monospace; }
+    .term-line { min-height: 1.9em; white-space: pre-wrap; overflow-wrap: anywhere; }
+    .prompt { color: #9dc79e; } .term-comment { color: #809184; } .term-output { color: #b8c8b8; } .term-accent { color: #e7c47b; }
+    .cursor { display: inline-block; width: 7px; height: 15px; margin-left: 3px; vertical-align: -2px; background: #a8cba5; animation: blink 1s steps(2,start) infinite; }
+    @keyframes blink { to { visibility: hidden; } }
+    .term-controls { display: flex; justify-content: space-between; align-items: center; padding: 12px 17px; background: rgba(255,255,255,.035); border-top: 1px solid rgba(255,255,255,.08); color: #94a397; font-size: .72rem; }
+    .term-skip { cursor: pointer; border: 0; padding: 4px 0; color: #d6e2d4; background: none; font-size: .75rem; }
+    .term-skip:hover { color: white; }
+    .float-tag { position: absolute; z-index: 2; right: -24px; bottom: -22px; padding: 13px 17px; border-radius: 16px; background: var(--yellow); color: #4b4028; font-size: .78rem; font-weight: 800; box-shadow: 7px 9px 18px rgba(85,72,42,.15), inset 2px 2px 5px rgba(255,255,255,.5); transform: rotate(-4deg); }
+    .ticker { border-block: 1px solid var(--line); background: rgba(255,253,247,.46); }
+    .ticker-inner { display: flex; justify-content: space-between; gap: 20px; flex-wrap: wrap; padding: 17px 0; color: var(--muted); font: .72rem "DM Mono", monospace; text-transform: uppercase; letter-spacing: .08em; }
+    .ticker b { color: var(--green); font-weight: 500; }
+    .section { padding: 100px 0; position: relative; }
+    .section-head { max-width: 700px; margin-bottom: 43px; }
+    .section-head h2, .split-copy h2, .closing h2 { margin: 11px 0 14px; font: 600 clamp(2.5rem, 5vw, 4.5rem)/1.02 "Space Grotesk", sans-serif; letter-spacing: -.075em; }
+    .section-head p, .split-copy > p { max-width: 610px; color: var(--muted); font-size: 1.04rem; }
+    .feature-layout { display: grid; grid-template-columns: 1.05fr .8fr 1fr; grid-template-rows: auto auto; gap: 20px; align-items: stretch; }
+    .clay { border: 1px solid rgba(255,255,255,.65); border-radius: 25px; background: linear-gradient(145deg, #fffef9, #eeece3); box-shadow: var(--soft-shadow), inset 1px 1px 2px rgba(255,255,255,.9); }
+    .feature { min-height: 245px; padding: 27px; transition: transform .25s ease, box-shadow .25s ease; }
+    .feature:hover { transform: translateY(-6px) rotate(-.4deg); box-shadow: var(--lift-shadow); }
+    .feature:nth-child(1) { grid-row: span 2; min-height: 510px; background: linear-gradient(155deg,#e2ebe0,#f8f7ef 78%); }
+    .feature:nth-child(2) { margin-top: 38px; }
+    .feature:nth-child(3) { margin-top: -12px; background: linear-gradient(150deg,#f7e8d9,#fffaf2); }
+    .feature:nth-child(4) { margin-bottom: 30px; }
+    .feature:nth-child(5) { grid-column: 3; background: linear-gradient(145deg,#e7e9df,#fffdf7); }
+    .feature-icon { display: grid; place-items: center; width: 46px; height: 46px; margin-bottom: 30px; border-radius: 16px; color: var(--green); background: var(--mint); box-shadow: inset 2px 2px 5px rgba(255,255,255,.8), 4px 5px 10px rgba(48,69,49,.09); font-size: 1.1rem; }
+    .feature h3 { margin-bottom: 9px; font: 600 1.35rem "Space Grotesk",sans-serif; letter-spacing: -.04em; }
+    .feature p { color: var(--muted); font-size: .93rem; }
+    .feature .mini-code { display: block; margin-top: 24px; padding: 14px 16px; border-radius: 13px; background: var(--terminal); color: #dfe9dc; font: .73rem/1.9 "DM Mono",monospace; box-shadow: inset 0 2px 9px rgba(0,0,0,.2); }
+    .mini-code span { color: #9dc79e; }
+    .mini-label { display: inline-block; margin-top: 14px; color: var(--green); font: .7rem "DM Mono",monospace; }
+    .split { display: grid; grid-template-columns: .85fr 1.15fr; gap: 75px; align-items: center; }
+    .split.reverse { grid-template-columns: 1.15fr .85fr; }
+    .split-copy { position: relative; }
+    .split-copy .big-number { display: block; color: rgba(49,91,69,.13); font: 700 8rem/.8 "Space Grotesk",sans-serif; letter-spacing: -.1em; margin-bottom: 24px; }
+    .steps { display: grid; gap: 14px; }
+    .step { display: grid; grid-template-columns: 44px 1fr; gap: 15px; align-items: start; padding: 18px 20px; border-radius: 19px; background: rgba(255,253,247,.7); border: 1px solid var(--line); box-shadow: 6px 7px 18px rgba(75,78,65,.06), -4px -4px 12px rgba(255,255,255,.65); }
+    .step-num { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 13px; background: var(--green); color: white; font: .8rem "DM Mono",monospace; }
+    .step h3 { margin: 1px 0 4px; font: 600 1rem "Space Grotesk",sans-serif; }
+    .step p { margin: 0; color: var(--muted); font-size: .86rem; }
+    .step code { color: var(--green); font: .78rem "DM Mono",monospace; }
+    .code-card { padding: 11px; border-radius: 24px; background: #e7e5db; box-shadow: var(--soft-shadow), inset 2px 2px 5px rgba(255,255,255,.8); transform: rotate(-1deg); }
+    .code-card .terminal { border-radius: 16px; }
+    .code-card pre { margin: 0; padding: 22px; overflow: auto; white-space: pre; font: .78rem/1.9 "DM Mono",monospace; color: var(--terminal-text); }
+    .code-card .comment { color: #829485; } .code-card .key { color: #e7c47b; }
+    .command-section { background: #e9e7dd; border-block: 1px solid var(--line); }
+    .command-top { display: flex; justify-content: space-between; align-items: end; gap: 25px; margin-bottom: 32px; }
+    .command-search { width: min(100%, 320px); border: 1px solid rgba(49,91,69,.16); border-radius: 999px; padding: 13px 18px; color: var(--ink); background: #f8f6ef; box-shadow: inset 3px 3px 7px rgba(73,76,62,.07), inset -3px -3px 7px rgba(255,255,255,.9); }
+    .command-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 13px; }
+    .command { padding: 19px 20px; border-radius: 17px; background: rgba(255,253,247,.82); border: 1px solid rgba(255,255,255,.85); box-shadow: 5px 6px 14px rgba(70,73,61,.07), -4px -4px 10px rgba(255,255,255,.7); min-width: 0; }
+    .command code { display: inline-block; margin-bottom: 8px; color: var(--green); font: .78rem "DM Mono",monospace; overflow-wrap: anywhere; }
+    .command p { margin: 0; color: var(--muted); font-size: .84rem; line-height: 1.55; }
+    .command[hidden] { display: none; }
+    .no-results { margin-top: 20px; color: var(--muted); }
+    .ecosystem-grid { display: grid; grid-template-columns: 1fr 1.25fr 1fr; gap: 18px; align-items: center; }
+    .eco-card { padding: 25px; min-height: 215px; }
+    .eco-card:nth-child(2) { min-height: 260px; background: linear-gradient(145deg,#dce8dc,#f9f8f1); transform: translateY(-20px) rotate(1deg); }
+    .eco-card:nth-child(3) { background: linear-gradient(145deg,#f5e5d8,#fffdf7); transform: translateY(18px); }
+    .eco-card h3 { font: 600 1.35rem "Space Grotesk",sans-serif; }
+    .eco-card p { color: var(--muted); font-size: .9rem; }
+    .eco-card a { font-weight: 750; font-size: .86rem; }
+    .support-band { padding: 65px 0; background: var(--green-dark); color: #f5f3e9; }
+    .support-inner { display: grid; grid-template-columns: 1fr 1.1fr; align-items: center; gap: 60px; }
+    .support-band .kicker { color: #b6cfb5; }
+    .support-band h2 { margin: 10px 0; font: 600 clamp(2.4rem,4vw,3.8rem)/1 "Space Grotesk",sans-serif; letter-spacing: -.07em; }
+    .support-band p { max-width: 450px; color: #c3cec3; }
+    .support-links { display: flex; flex-wrap: wrap; gap: 10px; }
+    .support-links a { padding: 10px 14px; border-radius: 999px; color: #eff4eb; border: 1px solid rgba(255,255,255,.2); font-size: .83rem; }
+    .support-links a:hover { background: rgba(255,255,255,.1); color: white; }
+    .closing { padding: 92px 0; text-align: center; }
+    .closing h2 { max-width: 760px; margin: 13px auto; }
+    .closing p { max-width: 540px; margin: 0 auto 25px; color: var(--muted); }
+    footer { padding: 27px 0 38px; border-top: 1px solid var(--line); color: var(--muted); font-size: .82rem; }
+    .footer-inner { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 16px; }
+    .footer-links { display: flex; flex-wrap: wrap; gap: 17px; }
+    .reveal { opacity: 0; transform: translateY(22px); transition: opacity .65s ease, transform .65s cubic-bezier(.2,.7,.2,1); }
+    .reveal.visible { opacity: 1; transform: translateY(0); }
+    @media (max-width: 900px) {
+      .hero-grid { grid-template-columns: 1fr; gap: 45px; }
+      .hero-copy { max-width: 700px; }
+      .terminal-shell { width: min(100%, 700px); margin-inline: auto; transform: none; }
+      .feature-layout { grid-template-columns: repeat(2,minmax(0,1fr)); }
+      .feature:nth-child(1) { grid-row: auto; min-height: 300px; }
+      .feature:nth-child(2), .feature:nth-child(3), .feature:nth-child(4), .feature:nth-child(5) { margin: 0; grid-column: auto; }
+      .feature:nth-child(5) { grid-column: span 2; }
+      .split, .split.reverse { grid-template-columns: 1fr; gap: 35px; }
+      .split.reverse .code-card { order: 2; }
+      .ecosystem-grid { grid-template-columns: 1fr 1fr; }
+      .eco-card:nth-child(2) { transform: none; }
+      .eco-card:nth-child(3) { transform: none; grid-column: span 2; }
+      .support-inner { grid-template-columns: 1fr; gap: 28px; }
+    }
+    @media (max-width: 620px) {
+      .wrap { width: min(var(--max), calc(100% - 30px)); }
+      .nav { min-height: 68px; flex-wrap: wrap; gap: 10px; padding: 12px 0; }
+      .navlinks { order: 3; width: 100%; margin: 0; gap: 19px; overflow-x: auto; padding: 4px 0; }
       .navlinks a { white-space: nowrap; }
-      .hero { padding: 65px 0 60px; }
-      .grid { grid-template-columns: repeat(2, minmax(0,1fr)); }
-      .two-col { grid-template-columns: 1fr; gap: 20px; }
-      .side-nav { position: static; display: flex; overflow-x: auto; }
-      .side-nav a { white-space: nowrap; }
-      .section-head { align-items: start; flex-direction: column; }
+      .nav-cta { margin-left: auto; padding: 9px 13px; font-size: .82rem; }
+      .hero { padding: 55px 0 65px; }
+      h1 { font-size: clamp(3.6rem, 17vw, 5.4rem); }
+      .term-body { min-height: 270px; padding: 17px 15px; font-size: .72rem; }
+      .float-tag { right: -5px; bottom: -22px; }
+      .ticker-inner { justify-content: flex-start; gap: 11px 22px; }
+      .section { padding: 72px 0; }
+      .section-head h2, .split-copy h2, .closing h2 { font-size: 2.8rem; }
+      .feature-layout, .command-grid, .ecosystem-grid { grid-template-columns: 1fr; }
+      .feature:nth-child(1) { min-height: 0; }
+      .feature:nth-child(5), .eco-card:nth-child(3) { grid-column: auto; }
+      .feature { min-height: 0; }
+      .command-top { align-items: stretch; flex-direction: column; }
+      .command-search { width: 100%; }
+      .split-copy .big-number { font-size: 6rem; }
+      .code-card { transform: none; }
+      .support-band { padding: 55px 0; }
+      .closing { padding: 72px 0; }
     }
-    @media (max-width: 540px) {
-      .wrap { width: min(var(--max), calc(100% - 28px)); }
-      .grid, .command-list { grid-template-columns: 1fr; }
-      h1 { font-size: clamp(3rem, 16vw, 4.5rem); }
-      .hero { padding-top: 48px; }
-      .section { padding: 55px 0; }
-      .github { margin-left: auto; }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+      .reveal { opacity: 1; transform: none; }
     }
-    @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } *, *:before, *:after { transition: none !important; animation: none !important; } }
   </style>
 </head>
 <body>
   <header class="topbar">
     <div class="wrap nav">
-      <a class="brand" href="#top" aria-label="Fe home"><span class="mark">fe</span><span>Fe</span></a>
+      <a class="brand" href="#top" aria-label="Fe home"><span class="brand-mark">fe</span><span>Fe</span></a>
       <nav class="navlinks" aria-label="Main navigation">
-        <a href="#docs">Docs</a>
-        <a href="#quickstart">Quick start</a>
-        <a href="#commands">Commands</a>
-        <a href="#features">Features</a>
+        <a href="#workflow">Workflow</a><a href="#features">What it does</a><a href="#commands">Commands</a><a href="#ecosystem">Ecosystem</a>
       </nav>
-      <a class="github" href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">GitHub ↗</a>
+      <a class="nav-cta" href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">View on GitHub ↗</a>
     </div>
   </header>
 
   <main id="top">
     <section class="hero">
-      <div class="wrap">
-        <span class="eyebrow"><span class="dot"></span> The game-dev command line toolkit</span>
-        <h1>Ship games.<br><span>Skip the glue.</span></h1>
-        <p class="lead">Fe brings project scaffolding, engine workflows, asset utilities, and release automation into one practical CLI. Keep your tools; spend less time wiring them together.</p>
-        <div class="actions">
-          <a class="btn primary" href="#quickstart">Get started <span aria-hidden="true">→</span></a>
-          <a class="btn" href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">Explore the source ↗</a>
+      <div class="wrap hero-grid">
+        <div class="hero-copy">
+          <span class="eyebrow"><i></i> The practical project toolkit</span>
+          <h1>Make the work <span>flow.</span></h1>
+          <p class="lead">From the first project folder to the final build, Fe connects the tools you already use. Less setup glue. More time making things worth shipping.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="#quickstart">Get started <span>↗</span></a>
+            <a class="button" href="#commands">Explore commands</a>
+          </div>
+          <p class="hero-note"><strong>Open source.</strong> Built for game development and adaptable to everyday software projects.</p>
         </div>
-        <div class="terminal" aria-label="Terminal example">
-          <div class="term-head"><span class="traffic"></span><span class="traffic"></span><span class="traffic"></span><span class="term-title">fe · project terminal</span></div>
-          <pre><span class="comment"># Start a project from a template</span>
-<span class="prompt">$</span> fe template list
-<span class="prompt">$</span> fe init --template cpp-raylib-xmake --name starfall
-
-<span class="comment"># Build, then ship</span>
-<span class="prompt">$</span> fe build
-<span class="prompt">$</span> fe release --dry-run
-<span class="prompt">$</span> fe release</pre>
-        </div>
-      </div>
-    </section>
-
-
-    <section class="section" id="docs">
-      <div class="wrap">
-        <div class="section-head">
-          <div><div class="kicker">Start here</div><h2>Everything you need to get moving.</h2></div>
-          <p class="muted" style="max-width:390px">Practical guides first, searchable commands close at hand, and configuration examples you can adapt to your project.</p>
-        </div>
-        <div class="grid">
-          <article class="card"><div class="icon">01</div><h3>Quick start</h3><p>Install Fe, choose a template, and get your first project scaffolded.</p><a href="#quickstart">Start building ↗</a></article>
-          <article class="card"><div class="icon">02</div><h3>Command reference</h3><p>Search commands for builds, templates, assets, engines, and releases.</p><a href="#commands">Browse commands ↗</a></article>
-          <article class="card"><div class="icon">03</div><h3>Project configuration</h3><p>Learn how <code>.fe.yaml</code> keeps build targets, output paths, and publishing settings with your project.</p><a href="#configuration">Explore configuration ↗</a></article>
-          <article class="card"><div class="icon">04</div><h3>Container builds</h3><p>Read the guide for building Fe in container-based environments.</p><a href="https://github.com/flushwhy/fe/blob/master/docs/container-builds.md" target="_blank" rel="noreferrer">Read the guide ↗</a></article>
-          <article class="card"><div class="icon">05</div><h3>Templates</h3><p>Browse reusable starter projects maintained in the companion templates repository.</p><a href="https://github.com/flushwhy/fe-templates" target="_blank" rel="noreferrer">Explore templates ↗</a></article>
-          <article class="card"><div class="icon">06</div><h3>Troubleshooting</h3><p>Run <code>fe doctor</code> for local checks, or open an issue for reproducible problems.</p><a href="https://github.com/flushwhy/fe/issues" target="_blank" rel="noreferrer">Get help on GitHub ↗</a></article>
+        <div class="terminal-shell" aria-label="Animated demonstration of Fe commands">
+          <div class="terminal">
+            <div class="termbar"><span class="traffic"></span><span class="traffic"></span><span class="traffic"></span><span class="termname">fe — project session</span><span class="term-status">● ready</span></div>
+            <div class="term-body mono" id="term-output" aria-live="polite">
+              <div class="term-line"><span class="term-comment"># A project takes shape...</span></div>
+              <div class="term-line"><span class="prompt">$</span> <span id="term-command"></span><span class="cursor" id="term-cursor"></span></div>
+              <div id="term-response"></div>
+            </div>
+            <div class="term-controls"><span id="term-step">BOOT SEQUENCE · 01 / 04</span><button class="term-skip" id="term-skip" type="button">Skip animation ↗</button></div>
+          </div>
+          <div class="float-tag">one CLI, fewer loose ends ✳</div>
         </div>
       </div>
     </section>
+
+    <div class="ticker"><div class="wrap ticker-inner"><span><b>01</b> scaffold</span><span>→</span><span><b>02</b> build</span><span>→</span><span><b>03</b> iterate</span><span>→</span><span><b>04</b> package</span><span>→</span><span><b>05</b> ship</span></div></div>
 
     <section class="section" id="features">
       <div class="wrap">
-        <div class="section-head">
-          <div><div class="kicker">One CLI, useful building blocks</div><h2>Tools that fit your workflow.</h2></div>
-          <p class="muted" style="max-width:370px">Fe is a layer over the tools you already use—not a replacement engine or a giant build system.</p>
+        <div class="section-head reveal">
+          <div class="kicker">A little less glue code</div>
+          <h2>Your workflow.<br>With the busywork out of the way.</h2>
+          <p>Fe isn't another engine or heavyweight build system. It's a focused layer that helps your existing tools work together.</p>
         </div>
-        <div class="grid">
-          <article class="card"><div class="icon">↗</div><h3>Project templates</h3><p>Start with ready-made templates for C, C++, Go, Odin, Zig, and game-oriented setups.</p></article>
-          <article class="card"><div class="icon">⌘</div><h3>Engine workflows</h3><p>Use focused commands for O3DE and Godot tasks, with checks and project helpers.</p></article>
-          <article class="card"><div class="icon">▦</div><h3>Asset utilities</h3><p>Pack sprite sheets and transcode media through installed tools with repeatable CLI commands.</p></article>
-          <article class="card"><div class="icon">⚒</div><h3>Build orchestration</h3><p>Describe build targets in project config and run the commands for the platforms you choose.</p></article>
-          <article class="card"><div class="icon">◉</div><h3>Development helpers</h3><p>Watch supported project files and run the appropriate development steps as you iterate.</p></article>
-          <article class="card"><div class="icon">⇧</div><h3>Release automation</h3><p>Preview releases, generate Git-based notes, package ZIP/TAR archives, and publish to itch.io with an artifact manifest.</p></article>
-        </div>
-      </div>
-    </section>
-
-    <section class="section" id="quickstart">
-      <div class="wrap two-col">
-        <div>
-          <div class="kicker">01 / Quick start</div>
-          <h2>From zero to project.</h2>
-          <p class="muted" style="margin-top:14px">Install Fe using the instructions in the repository, then choose a template that fits your project. Templates are maintained separately so they can evolve independently of the CLI.</p>
-          <div class="callout">Fe orchestrates external tools. Install the compiler, engine, runtime, or distribution CLI required by the command you want to run.</div>
-        </div>
-        <div>
-          <div class="doc-section">
-            <h3>1. Install Fe</h3>
-            <p class="muted">Use the current installation instructions and release downloads in the source repository.</p>
-            <div class="copyline"><code>https://github.com/flushwhy/fe/releases</code><button class="copy" data-copy="https://github.com/flushwhy/fe/releases">Copy</button></div>
-          </div>
-          <div class="doc-section">
-            <h3>2. Explore templates</h3>
-            <div class="copyline"><code>fe template list</code><button class="copy" data-copy="fe template list">Copy</button></div>
-            <p class="muted">List available remote templates before selecting one.</p>
-          </div>
-          <div class="doc-section">
-            <h3>3. Create your project</h3>
-            <div class="copyline"><code>fe init --template cpp-raylib-xmake --name my-game</code><button class="copy" data-copy="fe init --template cpp-raylib-xmake --name my-game">Copy</button></div>
-            <p class="muted">Replace the template ID and project name with your preferred setup.</p>
-          </div>
-          <div class="doc-section">
-            <h3>4. Read command help</h3>
-            <div class="copyline"><code>fe --help</code><button class="copy" data-copy="fe --help">Copy</button></div>
-            <p class="muted">Commands and options can change between releases; local help reflects the version you installed.</p>
-          </div>
+        <div class="feature-layout">
+          <article class="feature clay reveal">
+            <div class="feature-icon">✳</div><h3>Start with a real project</h3>
+            <p>Browse reusable templates and scaffold a project without copying folders by hand. Keep templates separate and let them evolve independently.</p>
+            <span class="mini-code"><span>$</span> fe template list<br><span>$</span> fe init --template cpp-raylib-xmake --name starfall<br><br><span class="term-comment">✓ project scaffolded</span></span>
+            <span class="mini-label">TEMPLATES · INIT · INSTALL</span>
+          </article>
+          <article class="feature clay reveal">
+            <div class="feature-icon">⌘</div><h3>Build on your terms</h3>
+            <p>Describe platform targets in <code>.fe.yaml</code>, then run the build you need. Keep your compiler and build system.</p>
+            <span class="mini-label">BUILD · CONFIG · CONTAINERS</span>
+          </article>
+          <article class="feature clay reveal">
+            <div class="feature-icon">◒</div><h3>Work with your engine</h3>
+            <p>Godot export and native extension helpers, plus O3DE project, engine, and gem workflows.</p>
+            <span class="mini-label">GODOT · O3DE · BLENDER</span>
+          </article>
+          <article class="feature clay reveal">
+            <div class="feature-icon">▧</div><h3>Handle the assets</h3>
+            <p>Pack sprite sheets and transcode audio or video through FFmpeg, with game-friendly video defaults.</p>
+            <span class="mini-label">PACK · TRANSCODE</span>
+          </article>
+          <article class="feature clay reveal">
+            <div class="feature-icon">↗</div><h3>Ship with fewer surprises</h3>
+            <p>Preview release steps, package artifacts, generate changelogs and checksums, and publish to itch.io with Butler.</p>
+            <span class="mini-label">RELEASE · MANIFEST · CHANGELOG · BMP</span>
+          </article>
         </div>
       </div>
     </section>
 
-    <section class="section" id="commands">
-      <div class="wrap">
-        <div class="section-head">
-          <div><div class="kicker">02 / Command guide</div><h2>Find the command you need.</h2></div>
-          <input id="command-search" class="search" type="search" placeholder="Filter commands…" aria-label="Filter commands">
+    <section class="section" id="workflow">
+      <div class="wrap split">
+        <div class="split-copy reveal">
+          <span class="big-number">01</span>
+          <div class="kicker">A straightforward path</div>
+          <h2>From a blank folder to a build you can share.</h2>
+          <p>Fe keeps the common steps close together, while leaving the actual engine, compiler, and distribution choices in your hands.</p>
+          <a class="button primary" href="https://github.com/flushwhy/fe-templates" target="_blank" rel="noreferrer">Browse project templates ↗</a>
         </div>
-        <div class="command-list" id="command-list">
-          <article class="command" data-search="init template project scaffold"><code>fe init</code><p>Create a project from a language default or named template. Use <code>fe template list</code> to discover template IDs.</p></article>
-          <article class="command" data-search="template list update"><code>fe template list</code><p>List available remote templates.</p></article>
-          <article class="command" data-search="template update refresh cache"><code>fe template update &lt;template-id&gt;</code><p>Refresh a named template in the local cache.</p></article>
-          <article class="command" data-search="build compile target platform"><code>fe build</code><p>Run the configured build targets from <code>.fe.yaml</code>; use <code>--platform</code> to select one target.</p></article>
-          <article class="command" data-search="watch filesystem development ignore directory debounce"><code>fe watch --ignore-dir generated cache</code><p>Watch supported project files and exclude multiple additional directory names in one flag; subsequent options can still follow. The names are matched case-insensitively and apply to nested directories, including newly created ones.</p></article>
-          <article class="command" data-search="godot engine export extension preset output"><code>fe export --list-presets</code><p>List Godot export presets and expected output paths without exporting.</p></article>
-          <article class="command" data-search="godot engine export extension"><code>fe godot</code><p>Godot engine discovery, diagnostics, export, and native extension helpers.</p></article>
-          <article class="command" data-search="o3de project engine register"><code>fe o3de</code><p>O3DE project and engine registration and management helpers.</p></article>
-          <article class="command" data-search="pack spritesheet sprites"><code>fe pack</code><p>Pack source sprites into one or more configured sprite sheets.</p></article>
-          <article class="command" data-search="transcode audio video ffmpeg"><code>fe transcode</code><p>Transcode media with the configured codec and output settings.</p></article>
-          <article class="command" data-search="release itch io publish upload butler dry run preview changelog package"><code>fe release --dry-run</code><p>Preview build, export, packing, optional changelog and archive stages, and publishing without running them.</p></article>
-          <article class="command" data-search="release itch io publish upload butler changelog package"><code>fe release</code><p>Build, pack, optionally write Git-based release notes and archive artifacts, then publish to itch.io.</p></article>
-          <article class="command" data-search="manifest artifacts checksum sha256 version commit"><code>fe manifest</code><p>Write a JSON inventory of artifacts with platform, size, SHA-256, version, and commit metadata.</p></article>
-          <article class="command" data-search="check static analyzer go vet clang tidy python ruff eslint javascript typescript code quality"><code>fe check [path]</code><p>Detect Go, C/C++, Python, and JavaScript/TypeScript files; run available static analyzers and explain how to install missing tools.</p></article>
-          <article class="command" data-search="doctor diagnostics check config godot"><code>fe doctor</code><p>Check build target configuration and, for Godot projects, executable and export-preset prerequisites.</p></article>
-          <article class="command" data-search="help usage commands"><code>fe --help</code><p>Show the commands and flags available in your installed Fe version.</p></article>
+        <div class="steps">
+          <article class="step reveal"><span class="step-num">01</span><div><h3>Pick a starting point</h3><p>Discover templates, then scaffold a project with <code>fe init</code>.</p></div></article>
+          <article class="step reveal"><span class="step-num">02</span><div><h3>Configure your targets</h3><p>Keep build commands and output paths in your project's <code>.fe.yaml</code>.</p></div></article>
+          <article class="step reveal"><span class="step-num">03</span><div><h3>Build and iterate</h3><p>Build, export, watch files, check code, and diagnose toolchains as you work.</p></div></article>
+          <article class="step reveal"><span class="step-num">04</span><div><h3>Preview before shipping</h3><p>Review the release plan, package artifacts, and publish when you're ready.</p></div></article>
         </div>
-        <p class="muted" id="no-results" hidden style="margin-top:16px">No matching commands. Try another search.</p>
       </div>
     </section>
 
-    <section class="section" id="configuration">
-      <div class="wrap two-col">
-        <div>
-          <div class="kicker">03 / Configuration</div>
-          <h2>Your project, your settings.</h2>
-          <p class="muted" style="margin-top:14px">Fe reads project configuration from <code>.fe.yaml</code>. Keep build commands, output folders, and publishing details alongside the project rather than hidden in a developer's shell history.</p>
-          <div class="actions"><a class="btn" href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">Browse examples on GitHub ↗</a></div>
-        </div>
-        <div>
-          <div class="terminal" style="margin-top:0">
-            <div class="term-head"><span class="traffic"></span><span class="traffic"></span><span class="traffic"></span><span class="term-title">.fe.yaml · example</span></div>
-            <pre><span class="comment"># Configure platform build commands</span>
+    <section class="section command-section" id="quickstart">
+      <div class="wrap split reverse">
+        <div class="code-card reveal">
+          <div class="terminal">
+            <div class="termbar"><span class="traffic"></span><span class="traffic"></span><span class="traffic"></span><span class="termname">.fe.yaml · simplified example</span></div>
+            <pre><span class="comment"># Your build targets</span>
 build:
   targets:
-    - platform: linux-x64
-      cmd: "gcc -o builds/linux-x64/game src/main.c"
-    - platform: windows-x64
-      cmd: "x86_64-w64-mingw32-gcc -o builds/windows-x64/game.exe src/main.c"
+    - platform: <span class="key">linux-x64</span>
+      cmd: "cmake --build build"
 
-<span class="comment"># Keep output paths and publishing settings</span>
+<span class="comment"># Optional publishing output</span>
 butler:
-  directory: "builds"
+  directory: <span class="key">builds</span>
 
-itchio:
-  username: ""
-  game: ""</pre>
+<span class="comment"># Project metadata and more...</span></pre>
           </div>
-          <p class="muted" style="font-size:.9rem;margin-top:13px">This is an illustrative snippet. Start from the config generated by your Fe version and adjust it to your project.</p>
         </div>
+        <div class="split-copy reveal">
+          <span class="big-number">02</span>
+          <div class="kicker">Quick start</div>
+          <h2>Start small.<br>Keep your setup.</h2>
+          <p>Install Fe from the repository's current release instructions, then explore the templates and commands available in your installed version.</p>
+          <div class="steps">
+            <article class="step"><span class="step-num">1</span><div><h3>Get Fe</h3><p><a href="https://github.com/flushwhy/fe/releases" target="_blank" rel="noreferrer">Release downloads and installation ↗</a></p></div></article>
+            <article class="step"><span class="step-num">2</span><div><h3>Find a template</h3><p><code>fe template list</code></p></div></article>
+            <article class="step"><span class="step-num">3</span><div><h3>Create a project</h3><p><code>fe init --template cpp-raylib-xmake --name my-game</code></p></div></article>
+            <article class="step"><span class="step-num">4</span><div><h3>See what's available</h3><p><code>fe --help</code> and <code>fe doctor</code></p></div></article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section command-section" id="commands">
+      <div class="wrap">
+        <div class="command-top">
+          <div class="section-head reveal" style="margin:0"><div class="kicker">The toolbox</div><h2>Find your next command.</h2><p>Search by command, task, or tool. Your local <code>fe --help</code> is always the source of truth for the version you have installed.</p></div>
+          <input id="command-search" class="command-search" type="search" placeholder="Try “Godot” or “release”…" aria-label="Filter Fe commands">
+        </div>
+        <div class="command-grid" id="command-list">
+          <article class="command" data-search="init create project template scaffold"><code>fe init</code><p>Create a project from a language default or named template.</p></article>
+          <article class="command" data-search="template list discover browse"><code>fe template list</code><p>List available remote project templates.</p></article>
+          <article class="command" data-search="template update refresh cache"><code>fe template update &lt;template-id&gt;</code><p>Refresh a named template in the local cache.</p></article>
+          <article class="command" data-search="setup dependencies environment"><code>fe setup</code><p>Prepare project tooling and dependencies where supported by the project configuration.</p></article>
+          <article class="command" data-search="build compile platform target"><code>fe build</code><p>Run configured build targets, optionally selecting a platform.</p></article>
+          <article class="command" data-search="watch development files reload"><code>fe watch</code><p>Watch supported project files and run the configured development steps.</p></article>
+          <article class="command" data-search="godot engine export presets native extension"><code>fe godot</code><p>Godot discovery, diagnostics, export, and native extension helpers.</p></article>
+          <article class="command" data-search="export godot preset output"><code>fe export</code><p>Export configured Godot presets and inspect expected output paths.</p></article>
+          <article class="command" data-search="o3de open 3d engine projects gems engines"><code>fe o3de</code><p>Discover and manage O3DE projects, engines, gems, and build workflows.</p></article>
+          <article class="command" data-search="blender addon plugin"><code>fe blender</code><p>Support Blender add-on project workflows.</p></article>
+          <article class="command" data-search="pack spritesheet image assets"><code>fe pack</code><p>Pack source sprites into configured sprite sheets.</p></article>
+          <article class="command" data-search="transcode ffmpeg audio video mp4 webm"><code>fe transcode</code><p>Convert audio and video through FFmpeg, including game-friendly MP4 and WebM defaults.</p></article>
+          <article class="command" data-search="install library tool"><code>fe install</code><p>Install supported development tools and libraries.</p></article>
+          <article class="command" data-search="add dependency library"><code>fe add</code><p>Add supported project dependencies or integrations.</p></article>
+          <article class="command" data-search="check static analysis lint code quality"><code>fe check [path]</code><p>Run available static analyzers for supported languages and explain missing tools.</p></article>
+          <article class="command" data-search="doctor diagnostics toolchain config"><code>fe doctor</code><p>Diagnose local toolchain and project configuration issues.</p></article>
+          <article class="command" data-search="validate config paths preflight"><code>fe validate</code><p>Check project configuration and paths before running a workflow.</p></article>
+          <article class="command" data-search="manifest artifact inventory checksum sha256"><code>fe manifest</code><p>Write an artifact inventory with SHA-256 checksums and build metadata.</p></article>
+          <article class="command" data-search="changelog git release notes"><code>fe changelog</code><p>Generate Markdown release notes from Git history and tags.</p></article>
+          <article class="command" data-search="package archive zip tar.gz"><code>fe package</code><p>Create portable ZIP or TAR.GZ archives from build artifacts.</p></article>
+          <article class="command" data-search="release publish itch io butler dry run"><code>fe release --dry-run</code><p>Preview the release plan without running its side effects.</p></article>
+          <article class="command" data-search="release publish itch io butler"><code>fe release</code><p>Run the configured build, packaging, and publishing workflow.</p></article>
+          <article class="command" data-search="bmp butler itch io upload push"><code>fe bmp</code><p>Push builds to itch.io through Butler.</p></article>
+          <article class="command" data-search="tui terminal interface interactive"><code>fe tui</code><p>Open the local interactive terminal interface.</p></article>
+          <article class="command" data-search="update updater package manager"><code>fe update</code><p>Check for and apply updates using the supported installation method.</p></article>
+        </div>
+        <p class="no-results" id="no-results" hidden>No matching commands. Try a different search.</p>
       </div>
     </section>
 
     <section class="section" id="ecosystem">
       <div class="wrap">
-        <div class="kicker">04 / Ecosystem</div>
-        <h2>Bring your own tools.</h2>
-        <p class="muted" style="max-width:720px;margin:15px 0 28px">Fe is designed around installed tools and small integrations. Use your preferred engine, compiler, editor, and distribution platform, and let Fe handle the repeatable connective steps.</p>
-        <div class="grid">
-          <article class="card"><h3>Odin</h3><p>Use the Odin compiler and language tooling you already have, or a prepared environment when your workflow calls for one.</p><a href="https://github.com/flushwhy/fe-templates" target="_blank" rel="noreferrer">Browse templates ↗</a></article>
-          <article class="card"><h3>Godot</h3><p>Project export, engine discovery, diagnostics, and native extension scaffolding.</p><a href="https://godotengine.org/" target="_blank" rel="noreferrer">Godot website ↗</a></article>
-          <article class="card"><h3>O3DE</h3><p>Project and engine management helpers that lean on the official O3DE command-line tooling.</p><a href="https://o3de.org/" target="_blank" rel="noreferrer">O3DE website ↗</a></article>
+        <div class="section-head reveal"><div class="kicker">Bring your own tools</div><h2>Made to fit your ecosystem.</h2><p>Fe is designed to sit alongside the tools you already trust—not lock your project into one engine, compiler, or workflow.</p></div>
+        <div class="ecosystem-grid">
+          <article class="eco-card clay reveal"><div class="feature-icon">◇</div><h3>Godot</h3><p>Project export, engine discovery, diagnostics, and native extension helpers.</p><a href="https://godotengine.org/" target="_blank" rel="noreferrer">Godot website ↗</a></article>
+          <article class="eco-card clay reveal"><div class="feature-icon">⬡</div><h3>Open 3D Engine</h3><p>Engine and project discovery, gem workflows, build helpers, and tooling that leans on the official O3DE command line.</p><a href="https://o3de.org/" target="_blank" rel="noreferrer">O3DE website ↗</a></article>
+          <article class="eco-card clay reveal"><div class="feature-icon">✳</div><h3>Templates & more</h3><p>Start with reusable setups for languages and game-oriented toolchains, and adapt Fe to broader software projects.</p><a href="https://github.com/flushwhy/fe-templates" target="_blank" rel="noreferrer">Explore templates ↗</a></article>
         </div>
       </div>
     </section>
 
-
-    <section class="section" id="support">
-      <div class="wrap two-col">
-        <div><div class="kicker">Independent and open source</div><h2>Help keep Fe moving.</h2><p class="muted" style="margin-top:14px">Fe is built in the open. If it helps your workflow, you can support ongoing development through any of these funding options—or help for free by starring the repository and contributing.</p></div>
-        <div class="grid" style="grid-template-columns:repeat(2,minmax(0,1fr))">
-          <article class="card"><div class="icon">♥</div><h3>GitHub Sponsors</h3><p>Support development directly through GitHub.</p><a href="https://github.com/sponsors/flushwhy" target="_blank" rel="noreferrer">Sponsor Fe ↗</a></article>
-          <article class="card"><div class="icon">☕</div><h3>LiberaPay</h3><p>Offer recurring support for independent open-source work.</p><a href="https://liberapay.com/flushwhy/" target="_blank" rel="noreferrer">Support on LiberaPay ↗</a></article>
-          <article class="card"><div class="icon">↗</div><h3>Thanks.dev</h3><p>Support the open-source ecosystem and its maintainers.</p><a href="https://thanks.dev/" target="_blank" rel="noreferrer">Give through Thanks.dev ↗</a></article>
-          <article class="card"><div class="icon">$</div><h3>One-time donation</h3><p>Make a direct contribution to help fund Fe’s continued development.</p><a href="https://donate.stripe.com/5kQdR82EWgVz0P04561ZS00" target="_blank" rel="noreferrer">Donate securely ↗</a></article>
-          <article class="card"><div class="icon">★</div><h3>Spread the word</h3><p>Star the repository so more developers can discover Fe.</p><a href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">Star Fe on GitHub ↗</a></article>
-          <article class="card"><div class="icon">↗</div><h3>Contribute</h3><p>Share a bug report, suggest an improvement, or help with code and docs.</p><a href="https://github.com/flushwhy/fe/issues" target="_blank" rel="noreferrer">Help shape Fe ↗</a></article>
+    <section class="support-band">
+      <div class="wrap support-inner">
+        <div><div class="kicker">Independent and open source</div><h2>Help keep Fe moving.</h2><p>Fe is built in the open. If it makes your workflow better, support development—or help out by reporting an issue, contributing, or sharing the project.</p></div>
+        <div class="support-links">
+          <a href="https://github.com/sponsors/flushwhy" target="_blank" rel="noreferrer">GitHub Sponsors ↗</a>
+          <a href="https://liberapay.com/flushwhy/" target="_blank" rel="noreferrer">LiberaPay ↗</a>
+          <a href="https://thanks.dev/" target="_blank" rel="noreferrer">Thanks.dev ↗</a>
+          <a href="https://donate.stripe.com/5kQdR82EWgVz0P04561ZS00" target="_blank" rel="noreferrer">One-time donation ↗</a>
+          <a href="https://github.com/flushwhy/fe/issues" target="_blank" rel="noreferrer">Report an issue ↗</a>
+          <a href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">Star the repo ↗</a>
         </div>
       </div>
     </section>
 
-    <section class="section">
-      <div class="wrap" style="display:flex;gap:24px;justify-content:space-between;align-items:center;flex-wrap:wrap">
-        <div><div class="kicker">Made to be useful</div><h2>Build something worth shipping.</h2><p class="muted" style="margin-top:12px">Fe is open source. Follow development, report issues, and help shape the workflow.</p></div>
-        <a class="btn primary" href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">Star or contribute ↗</a>
-      </div>
+    <section class="closing">
+      <div class="wrap reveal"><div class="kicker">Less glue. More making.</div><h2>Get back to building the thing.</h2><p>Explore Fe, try it in a project, and help shape the next iteration.</p><a class="button primary" href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">Explore Fe on GitHub ↗</a></div>
     </section>
   </main>
-  <footer class="footer">
-    <div class="wrap footer-inner"><span>© Fe · Open-source game development toolkit</span><span><a href="#docs">Documentation</a> · <a href="#support">Support</a> · <a href="https://github.com/flushwhy/fe">Source</a> · <a href="https://github.com/flushwhy/fe/issues">Issues</a> · <a href="https://github.com/flushwhy/fe-templates">Templates</a></span></div>
-  </footer>
+
+  <footer><div class="wrap footer-inner"><span>© Fe · Open-source project toolkit</span><nav class="footer-links" aria-label="Footer"><a href="#quickstart">Get started</a><a href="https://github.com/flushwhy/fe/blob/master/docs" target="_blank" rel="noreferrer">Guides</a><a href="https://github.com/flushwhy/fe/issues" target="_blank" rel="noreferrer">Issues</a><a href="https://github.com/flushwhy/fe-templates" target="_blank" rel="noreferrer">Templates</a><a href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">Source</a></nav></div></footer>
+
   <script>
-    document.querySelectorAll("[data-copy]").forEach(function (button) {
-      button.addEventListener("click", async function () {
-        var text = button.getAttribute("data-copy");
-        try {
-          await navigator.clipboard.writeText(text);
-          button.textContent = "Copied!";
-          setTimeout(function () { button.textContent = "Copy"; }, 1300);
-        } catch (_) {
-          button.textContent = "Select text";
+    (function () {
+      var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var command = document.getElementById("term-command");
+      var response = document.getElementById("term-response");
+      var cursor = document.getElementById("term-cursor");
+      var stepLabel = document.getElementById("term-step");
+      var skip = document.getElementById("term-skip");
+      var sequence = [
+        { cmd: "fe init --template cpp-raylib-xmake --name starfall", lines: ["↳ creating project structure", "✓ Starfall is ready"] },
+        { cmd: "fe setup", lines: ["↳ checking configured tools", "✓ setup checks complete"] },
+        { cmd: "fe build", lines: ["↳ running configured targets", "✓ build workflow finished"] },
+        { cmd: "fe release --dry-run", lines: ["↳ previewing release stages", "✓ plan ready — no files published"] }
+      ];
+      var timer = null;
+      var stopped = false;
+      var index = 0;
+      function showAll() {
+        stopped = true;
+        if (timer) clearTimeout(timer);
+        command.textContent = sequence[sequence.length - 1].cmd;
+        response.innerHTML = '<div class="term-line term-output">↳ previewing release stages</div><div class="term-line term-accent">✓ plan ready — no files published</div>';
+        stepLabel.textContent = "DEMO COMPLETE · 04 / 04";
+        cursor.style.display = "none";
+        skip.textContent = "Replay animation ↻";
+      }
+      function play() {
+        stopped = false;
+        index = 0;
+        command.textContent = "";
+        response.innerHTML = "";
+        cursor.style.display = "inline-block";
+        skip.textContent = "Skip animation ↗";
+        function next() {
+          if (stopped) return;
+          if (index >= sequence.length) {
+            stepLabel.textContent = "DEMO COMPLETE · 04 / 04";
+            cursor.style.display = "none";
+            skip.textContent = "Replay animation ↻";
+            return;
+          }
+          var item = sequence[index];
+          stepLabel.textContent = "BOOT SEQUENCE · 0" + (index + 1) + " / 04";
+          command.textContent = "";
+          response.innerHTML = "";
+          var pos = 0;
+          function type() {
+            if (stopped) return;
+            command.textContent = item.cmd.slice(0, pos++);
+            if (pos <= item.cmd.length) {
+              timer = setTimeout(type, reducedMotion ? 0 : 31);
+            } else {
+              response.innerHTML = item.lines.map(function (line, n) {
+                return '<div class="term-line ' + (n === item.lines.length - 1 ? "term-accent" : "term-output") + '">' + line + '</div>';
+              }).join("");
+              index++;
+              timer = setTimeout(next, reducedMotion ? 160 : 950);
+            }
+          }
+          type();
         }
+        next();
+      }
+      skip.addEventListener("click", function () { if (stopped || index >= sequence.length) play(); else showAll(); });
+      if (reducedMotion) showAll(); else play();
+
+      var search = document.getElementById("command-search");
+      var cards = Array.prototype.slice.call(document.querySelectorAll("#command-list .command"));
+      var empty = document.getElementById("no-results");
+      search.addEventListener("input", function () {
+        var q = search.value.trim().toLowerCase();
+        var visible = 0;
+        cards.forEach(function (card) {
+          var match = (card.textContent + " " + card.getAttribute("data-search")).toLowerCase().indexOf(q) !== -1;
+          card.hidden = !match;
+          if (match) visible++;
+        });
+        empty.hidden = visible !== 0;
       });
-    });
-    var search = document.getElementById("command-search");
-    var commands = Array.from(document.querySelectorAll("#command-list .command"));
-    var noResults = document.getElementById("no-results");
-    search.addEventListener("input", function () {
-      var query = search.value.trim().toLowerCase();
-      var visible = 0;
-      commands.forEach(function (card) {
-        var match = (card.innerText + " " + card.dataset.search).toLowerCase().includes(query);
-        card.hidden = !match;
-        if (match) visible += 1;
-      });
-      noResults.hidden = visible > 0;
-    });
+
+      var reveals = document.querySelectorAll(".reveal");
+      if ("IntersectionObserver" in window && !reducedMotion) {
+        var observer = new IntersectionObserver(function (entries) {
+          entries.forEach(function (entry) {
+            if (entry.isIntersecting) {
+              entry.target.classList.add("visible");
+              observer.unobserve(entry.target);
+            }
+          });
+        }, { threshold: 0.12 });
+        reveals.forEach(function (el) { observer.observe(el); });
+      } else {
+        reveals.forEach(function (el) { el.classList.add("visible"); });
+      }
+    }());
   </script>
 </body>
 </html>
