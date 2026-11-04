@@ -36,7 +36,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if [[ ! "$RELEASE_TAG" =~ ^(fe-)?v[0-9]+\\.[0-9]+\\.[0-9]+([.+~:-][0-9A-Za-z.+~:-]*)?$ ]]; then
+          if [[ ! "$RELEASE_TAG" =~ ^(fe-)?v[0-9]+\.[0-9]+\.[0-9]+([.+~:-][0-9A-Za-z.+~:-]*)?$ ]]; then
             echo "Invalid release tag: $RELEASE_TAG" >&2
             exit 1
           fi
