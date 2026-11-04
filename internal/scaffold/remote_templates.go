@@ -6,12 +6,13 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/flushwhy/fe/internal/archivepath"
 )
 
 const templateRepoAPI = "https://api.github.com/repos/flushwhy/fe-templates"
@@ -132,8 +133,8 @@ func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 	for _, item := range tree.Tree {
 		if item.Type == "blob" && strings.HasPrefix(item.Path, prefix) {
 			rel := strings.TrimPrefix(item.Path, prefix)
-			if rel == "" || path.IsAbs(rel) || path.Clean(rel) != rel || rel == ".." || strings.HasPrefix(rel, "../") || strings.Contains(rel, "\\") {
-				return "", fmt.Errorf("unsafe path in template repository: %q", item.Path)
+			if err := archivepath.Validate(rel); err != nil {
+				return "", fmt.Errorf("unsafe path in template repository %q: %w", item.Path, err)
 			}
 			files = append(files, rel)
 		}
