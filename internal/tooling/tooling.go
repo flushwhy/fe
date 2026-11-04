@@ -79,7 +79,10 @@ func addClangd(root string) error {
 
 	err = ui.RunSpinner("Ensuring compile_commands.json exists", func() error {
 		ccPath := filepath.Join(compileCommandsDir, "compile_commands.json")
-		if err := rejectSymlink(ccPath); err != nil { return err }; if _, err := os.Stat(ccPath); os.IsNotExist(err) {
+		if err := rejectSymlink(ccPath); err != nil {
+			return err
+		}
+		if _, err := os.Stat(ccPath); os.IsNotExist(err) {
 			if err := os.MkdirAll(compileCommandsDir, 0750); err != nil {
 				return err
 			}
@@ -166,7 +169,9 @@ func printClangdNextSteps(root string) {
 
 func addOLS(root string) error {
 	olsPath := filepath.Join(root, "ols.json")
-	if err := rejectSymlink(olsPath); err != nil { return err }
+	if err := rejectSymlink(olsPath); err != nil {
+		return err
+	}
 
 	if _, err := os.Stat(olsPath); err == nil {
 		return ui.RunSpinner("Patching existing ols.json", func() error {
@@ -199,7 +204,9 @@ func addOLS(root string) error {
 }
 
 func patchOLS(path string) error {
-	if err := rejectSymlink(path); err != nil { return err }
+	if err := rejectSymlink(path); err != nil {
+		return err
+	}
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return err
@@ -231,7 +238,9 @@ func patchOLS(path string) error {
 
 func addZLS(root string) error {
 	zlsPath := filepath.Join(root, "zls.json")
-	if err := rejectSymlink(zlsPath); err != nil { return err }
+	if err := rejectSymlink(zlsPath); err != nil {
+		return err
+	}
 	if _, err := os.Stat(zlsPath); err == nil {
 		ui.OK("zls.json already exists — nothing to change")
 		return nil
@@ -260,7 +269,9 @@ func addZLS(root string) error {
 
 func addGopls(root string) error {
 	goplsPath := filepath.Join(root, ".gopls.yaml")
-	if err := rejectSymlink(goplsPath); err != nil { return err }
+	if err := rejectSymlink(goplsPath); err != nil {
+		return err
+	}
 	if _, err := os.Stat(goplsPath); err == nil {
 		ui.OK(".gopls.yaml already exists — nothing to change")
 		return nil
