@@ -46,10 +46,10 @@ func TestRun(t *testing.T) {
 		}
 	})
 
-	t.Run("supports webm defaults", func(t *testing.T) {
+	t.Run("uses VP9 and Opus for WebM", func(t *testing.T) {
 		got := buildArgs(config.TranscodeConfig{OutputFile: "capture.webm"})
 		want := map[string]interface{}{
-			"c:v": "libvpx-vp9", "preset": "medium", "crf": "30", "pix_fmt": "yuv420p",
+			"c:v": "libvpx-vp9", "crf": "30", "pix_fmt": "yuv420p",
 			"c:a": "libopus", "b:a": "192k", "b:v": "0",
 		}
 		if !reflect.DeepEqual(got, want) {
@@ -70,6 +70,16 @@ func TestRun(t *testing.T) {
 		}
 		if got := buildArgs(cfg); !reflect.DeepEqual(got, want) {
 			t.Fatalf("args mismatch: got %v, want %v", got, want)
+		}
+	})
+
+	t.Run("keeps legacy audio config usable for video output", func(t *testing.T) {
+		got := buildArgs(config.TranscodeConfig{OutputFile: "gameplay.mp4", Codec: "libvorbis", Bitrate: "128k"})
+		if got["c:v"] != "libx264" || got["c:a"] != "libvorbis" || got["b:a"] != "128k" {
+			t.Fatalf("legacy audio config should not replace video codec: got %v", got)
+		}
+		if _, exists := got["b:v"]; exists {
+			t.Fatalf("legacy audio bitrate should not become video bitrate: got %v", got)
 		}
 	})
 
