@@ -33,17 +33,29 @@ func Create(root, output, format string) error {
 	if !info.IsDir() {
 		return fmt.Errorf("package source %q is not a directory", root)
 	}
-
-	file, err := os.Create(output)
-	if err != nil {
-		return fmt.Errorf("create package %q: %w", output, err)
+	if info, err := os.Lstat(output); err == nil {
+		if info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("package output %q is a symlink", output)
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("package output %q is not a regular file", output)
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("inspect package output %q: %w", output, err)
 	}
-	defer file.Close()
 
+	file, err := os.CreateTemp(filepath.Dir(output), ".fe-package-*")
+	if err != nil {
+		return fmt.Errorf("create temporary package in %q: %w", filepath.Dir(output), err)
+	}
+	temp := file.Name()
+	defer os.Remove(temp)
+
+	var writeErr error
 	switch format {
 	case "zip":
 		writer := zip.NewWriter(file)
-		walkErr := walkFiles(root, output, func(path string, info os.FileInfo) error {
+		walkErr := walkFiles(root, output, temp, func(path string, info os.FileInfo) error {
 			header, err := zip.FileInfoHeader(info)
 			if err != nil {
 				return err
@@ -56,11 +68,11 @@ func Create(root, output, format string) error {
 			}
 			return copyFile(target, filepath.Join(root, filepath.FromSlash(path)))
 		})
-		return errors.Join(walkErr, writer.Close())
+		writeErr = errors.Join(walkErr, writer.Close())
 	case "tar.gz":
 		compressed := gzip.NewWriter(file)
 		writer := tar.NewWriter(compressed)
-		walkErr := walkFiles(root, output, func(path string, info os.FileInfo) error {
+		walkErr := walkFiles(root, output, temp, func(path string, info os.FileInfo) error {
 			header, err := tar.FileInfoHeader(info, "")
 			if err != nil {
 				return err
@@ -71,18 +83,45 @@ func Create(root, output, format string) error {
 			}
 			return copyFile(writer, filepath.Join(root, filepath.FromSlash(path)))
 		})
-		return errors.Join(walkErr, writer.Close(), compressed.Close())
+		writeErr = errors.Join(walkErr, writer.Close(), compressed.Close())
+	}
+	if err := file.Close(); err != nil {
+		writeErr = errors.Join(writeErr, err)
+	}
+	if writeErr != nil {
+		return writeErr
+	}
+	if err := os.Chmod(temp, 0644); err != nil {
+		return fmt.Errorf("set package permissions: %w", err)
+	}
+	// Recheck immediately before replacement. Removing the destination unlinks
+	// a symlink itself; it never opens or truncates the symlink target.
+	if info, err := os.Lstat(output); err == nil {
+		if info.Mode()&os.ModeSymlink != 0 {
+			return fmt.Errorf("package output %q became a symlink", output)
+		}
+		if !info.Mode().IsRegular() {
+			return fmt.Errorf("package output %q is not a regular file", output)
+		}
+		if err := os.Remove(output); err != nil {
+			return fmt.Errorf("replace package %q: %w", output, err)
+		}
+	} else if !os.IsNotExist(err) {
+		return fmt.Errorf("inspect package output %q: %w", output, err)
+	}
+	if err := os.Rename(temp, output); err != nil {
+		return fmt.Errorf("publish package %q: %w", output, err)
 	}
 	return nil
 }
 
-func walkFiles(root, output string, visit func(string, os.FileInfo) error) error {
+func walkFiles(root, output, temp string, visit func(string, os.FileInfo) error) error {
 	count := 0
 	err := filepath.Walk(root, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if path == root || path == output {
+		if path == root || path == output || path == temp {
 			return nil
 		}
 		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
