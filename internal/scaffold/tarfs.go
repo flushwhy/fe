@@ -10,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/flushwhy/fe/internal/archivepath"
 )
 
 const maxTemplateArchiveBytes = 50 << 20
@@ -108,9 +110,12 @@ func extractTarGz(data []byte) (fs.FS, error) {
 		if err != nil {
 			return nil, fmt.Errorf("reading tar: %w", err)
 		}
-		name := strings.ReplaceAll(hdr.Name, "\\", "/")
-		if strings.HasPrefix(name, "/") || filepath.IsAbs(name) || filepath.Clean(name) != filepath.FromSlash(name) || name == ".." || strings.HasPrefix(name, "../") {
-			return nil, fmt.Errorf("unsafe path in template archive: %q", hdr.Name)
+		name := hdr.Name
+		if hdr.Typeflag == tar.TypeDir {
+			name = strings.TrimSuffix(name, "/")
+		}
+		if err := archivepath.Validate(name); err != nil {
+			return nil, fmt.Errorf("unsafe path in template archive %q: %w", hdr.Name, err)
 		}
 		if hdr.Typeflag == tar.TypeDir {
 			continue
@@ -138,8 +143,8 @@ func extractTarGz(data []byte) (fs.FS, error) {
 		} else {
 			continue
 		}
-		if name == "" || name == "." || name == ".." || strings.HasPrefix(name, "../") || strings.Contains(name, "\\") {
-			return nil, fmt.Errorf("unsafe path in template archive: %q", hdr.Name)
+		if err := archivepath.Validate(name); err != nil {
+			return nil, fmt.Errorf("unsafe path in template archive %q: %w", hdr.Name, err)
 		}
 		if _, exists := mem[name]; exists {
 			return nil, fmt.Errorf("duplicate path in template archive: %q", name)
