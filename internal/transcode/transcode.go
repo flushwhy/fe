@@ -43,32 +43,35 @@ func Run(cfg config.TranscodeConfig, runner Runner) error {
 
 // buildArgs selects audio-only or game-friendly video defaults from the output
 // extension. Explicit settings always win; legacy codec/bitrate fields remain
-// supported as the codec/bitrate override for the selected media type.
+// supported as media-type-specific overrides.
 func buildArgs(cfg config.TranscodeConfig) map[string]interface{} {
 	args := make(map[string]interface{})
-	video := isVideoOutput(cfg.OutputFile)
-
-	if video {
-		videoCodec := first(cfg.VideoCodec, cfg.Codec, "libx264")
-		args["c:v"] = videoCodec
+	if isVideoOutput(cfg.OutputFile) {
+		legacyAudioCodec := isAudioCodec(cfg.Codec)
+		videoCodec := cfg.Codec
+		if legacyAudioCodec {
+			videoCodec = ""
+		}
+		args["c:v"] = first(cfg.VideoCodec, videoCodec, "libx264")
 		args["preset"] = first(cfg.Preset, "medium")
 		args["crf"] = first(cfg.CRF, "20")
 		args["pix_fmt"] = first(cfg.PixelFormat, "yuv420p")
-		args["c:a"] = first(cfg.AudioCodec, "aac")
-		args["b:a"] = first(cfg.AudioBitrate, "192k")
-		if cfg.Bitrate != "" {
+		args["c:a"] = first(cfg.AudioCodec, legacyCodec(cfg.Codec, legacyAudioCodec), "aac")
+		args["b:a"] = first(cfg.AudioBitrate, legacyBitrate(cfg.Bitrate, legacyAudioCodec), "192k")
+		if cfg.Bitrate != "" && !legacyAudioCodec {
 			args["b:v"] = cfg.Bitrate
 		}
 		switch strings.ToLower(filepath.Ext(cfg.OutputFile)) {
 		case ".mp4", ".m4v", ".mov":
 			args["movflags"] = "+faststart"
 		case ".webm":
-			if cfg.VideoCodec == "" && cfg.Codec == "" {
+			if cfg.VideoCodec == "" && videoCodec == "" {
 				args["c:v"] = "libvpx-vp9"
 				args["crf"] = first(cfg.CRF, "30")
 				args["b:v"] = "0"
+				delete(args, "preset")
 			}
-			if cfg.AudioCodec == "" {
+			if cfg.AudioCodec == "" && !legacyAudioCodec {
 				args["c:a"] = "libopus"
 			}
 		}
@@ -109,6 +112,29 @@ func isVideoOutput(path string) bool {
 	default:
 		return false
 	}
+}
+
+func isAudioCodec(codec string) bool {
+	switch strings.ToLower(codec) {
+	case "aac", "libvorbis", "libopus", "libmp3lame", "flac", "pcm_s16le", "libfdk_aac":
+		return true
+	default:
+		return false
+	}
+}
+
+func legacyCodec(codec string, audio bool) string {
+	if audio {
+		return codec
+	}
+	return ""
+}
+
+func legacyBitrate(bitrate string, audio bool) string {
+	if audio {
+		return bitrate
+	}
+	return ""
 }
 
 func first(values ...string) string {
