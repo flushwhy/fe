@@ -181,6 +181,7 @@ jobs:
             dist/fe-windows-amd64.exe
             dist/fe-macos-amd64
             dist/fe-macos-arm64
+            dist/fe-freebsd-amd64
             dist/*.deb
             dist/*.rpm
             dist/*.tar.gz
