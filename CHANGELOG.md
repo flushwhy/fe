@@ -5,6 +5,35 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.9.0](https://github.com/flushwhy/fe/compare/v0.8.0...v0.9.0) (2026-11-05)
+
+
+### Features
+
+* add Blender add-on validation and packaging ([#108](https://github.com/flushwhy/fe/issues/108)) ([a18c6cf](https://github.com/flushwhy/fe/commit/a18c6cf14de85d7e27c680081449c86f0141abcf))
+* add conservative build suggestions to project inspection ([#83](https://github.com/flushwhy/fe/issues/83)) ([699585f](https://github.com/flushwhy/fe/commit/699585f86191a2f0147178a6ef5813d983e46b7d))
+* add named build target selection ([#106](https://github.com/flushwhy/fe/issues/106)) ([fbeca9a](https://github.com/flushwhy/fe/commit/fbeca9a62bbc994acfbbae2091a6b8992b09649b))
+* add O3DE build configuration and target selection ([#111](https://github.com/flushwhy/fe/issues/111)) ([cb11bda](https://github.com/flushwhy/fe/commit/cb11bda6c156dabe968a7afe8d866177f7249b6a))
+* add package-manager-aware Fe updater ([#92](https://github.com/flushwhy/fe/issues/92)) ([ff422ce](https://github.com/flushwhy/fe/commit/ff422ceb81b846bc117668a746f45d42ffb3ee5c))
+* extend release orchestration ([#104](https://github.com/flushwhy/fe/issues/104)) ([16e9607](https://github.com/flushwhy/fe/commit/16e960752203c8acc807b1bfd26bf86c1c63b1f5))
+* generate changelogs from Git history ([#102](https://github.com/flushwhy/fe/issues/102)) ([01341a1](https://github.com/flushwhy/fe/commit/01341a122893750d2b4f33d0d17df64f12b32f57))
+* improve template metadata and offline discovery ([#109](https://github.com/flushwhy/fe/issues/109)) ([e1b61d4](https://github.com/flushwhy/fe/commit/e1b61d49dcb083b310f8e359e3de56747a525a38))
+* package build artifacts as archives ([#103](https://github.com/flushwhy/fe/issues/103)) ([391eb46](https://github.com/flushwhy/fe/commit/391eb4658be247f613d29405b4f970d861f567f1))
+* **site:** add expandable command help explorer ([#129](https://github.com/flushwhy/fe/issues/129)) ([793895b](https://github.com/flushwhy/fe/commit/793895bb8764bd331e1b126acfdb41156cb7bb08))
+* **site:** redesign Fe website with clay UI and terminal intro ([#128](https://github.com/flushwhy/fe/issues/128)) ([682900a](https://github.com/flushwhy/fe/commit/682900a3580472cf2abc1cd72d5df2fec52b2c04))
+* **transcode:** add game-friendly video defaults ([#127](https://github.com/flushwhy/fe/issues/127)) ([12be118](https://github.com/flushwhy/fe/commit/12be1186d1a586dfe70e591c9c470d18f745043b))
+* validate build target configuration ([#107](https://github.com/flushwhy/fe/issues/107)) ([9973d63](https://github.com/flushwhy/fe/commit/9973d634142226a58e4f7d73607f4f70950660ce))
+
+
+### Bug Fixes
+
+* avoid duplicate RPM checksum entries ([#97](https://github.com/flushwhy/fe/issues/97)) ([667b915](https://github.com/flushwhy/fe/commit/667b91508f620183ca45df87b03fa8fffb00fdcc))
+* **security:** bound archive and image processing ([#113](https://github.com/flushwhy/fe/issues/113)) ([2b717e4](https://github.com/flushwhy/fe/commit/2b717e4f167029748ca1ee149de29b81b1dac8d4))
+* **security:** protect filesystem writes and rolling assets ([#125](https://github.com/flushwhy/fe/issues/125)) ([6912caf](https://github.com/flushwhy/fe/commit/6912cafd83a612c71a641895cf704d0447ae501c))
+* **security:** validate release tags before publishing ([#112](https://github.com/flushwhy/fe/issues/112)) ([3020903](https://github.com/flushwhy/fe/commit/302090330f537e8f5b488ea79fb7eb0e57487f3e))
+* select Godot engines by project compatibility ([#110](https://github.com/flushwhy/fe/issues/110)) ([5160924](https://github.com/flushwhy/fe/commit/5160924634d4b224e546f31b01b9fa4d41e5acf1))
+* unblock Debian and stable release publishing ([#93](https://github.com/flushwhy/fe/issues/93)) ([6ed4bb2](https://github.com/flushwhy/fe/commit/6ed4bb2aedfb71ed3d3b8e65dc4d0dcd3be3e499))
+
 ## [0.8.0](https://github.com/flushwhy/fe/compare/v0.7.1...v0.8.0) (2026-10-31)
 
 
