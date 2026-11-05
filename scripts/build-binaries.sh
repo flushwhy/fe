@@ -27,7 +27,6 @@ elif [ "$#" -eq 0 ]; then
   done <<'TARGETS'
 linux amd64 fe-linux-amd64
 linux arm64 fe-linux-arm64
-linux riscv64 fe-linux-riscv64
 windows amd64 fe-windows-amd64.exe
 darwin amd64 fe-macos-amd64
 darwin arm64 fe-macos-arm64
