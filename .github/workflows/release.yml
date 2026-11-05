@@ -198,9 +198,9 @@ jobs:
       - name: Verify and checksum release assets
         run: |
           ls -lah dist
-          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 12
+          test "$(find dist -maxdepth 1 -type f | wc -l)" -eq 13
           find dist -maxdepth 1 -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > dist/SHA256SUMS
-          test "$(wc -l < dist/SHA256SUMS)" -eq 12
+          test "$(wc -l < dist/SHA256SUMS)" -eq 13
           cat dist/SHA256SUMS
 
       - name: Create release and upload binaries
