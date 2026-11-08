@@ -49,8 +49,43 @@ jobs:
             echo "The pushed tag does not resolve to the event commit." >&2
             exit 1
           fi
+
+          # A release tag must match the manifest version on its own release line.
+          git fetch --force origin \
+            '+refs/heads/master:refs/remotes/origin/master' \
+            '+refs/heads/release/*:refs/remotes/origin/release/*'
+          version="${RELEASE_TAG#fe-v}"
+          version="${version#v}"
+          release_line="$(printf '%s' "$version" | cut -d. -f1-2)"
+          manifest_version="$(git show "$commit:.release-please-manifest.json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["."])')"
+          manifest_line="$(printf '%s' "$manifest_version" | cut -d. -f1-2)"
+          if [[ "$release_line" != "$manifest_line" ]]; then
+            echo "Tag $RELEASE_TAG does not match the version line in its release manifest ($manifest_version)." >&2
+            exit 1
+          fi
+
+          # Only the version line tracked by master may publish to itch.io's stable channels.
+          master_version="$(git show origin/master:.release-please-manifest.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["."])')"
+          master_line="$(printf '%s' "$master_version" | cut -d. -f1-2)"
+          if [[ "$release_line" == "$master_line" ]]; then
+            expected_ref="origin/master"
+            itch_channel_suffix=""
+          else
+            expected_ref="origin/release/$release_line"
+            itch_channel_suffix="${release_line//./-}"
+          fi
+          if ! git show-ref --verify --quiet "refs/remotes/$expected_ref"; then
+            echo "No maintenance branch exists for release line $release_line." >&2
+            exit 1
+          fi
+          if ! git merge-base --is-ancestor "$commit" "$expected_ref"; then
+            echo "Tag $RELEASE_TAG is not on its expected release branch ($expected_ref)." >&2
+            exit 1
+          fi
+
           echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
           echo "commit=$commit" >> "$GITHUB_OUTPUT"
+          echo "itch_channel_suffix=$itch_channel_suffix" >> "$GITHUB_OUTPUT"
 
   binaries:
     needs: validate-release
@@ -303,9 +338,14 @@ jobs:
       - name: Release Fe through Fe
         run: |
           chmod +x dist/fe-linux-amd64
-          ./dist/fe-linux-amd64 release --skip-build --skip-pack --userversion "$RELEASE_TAG"
+          args=(release --skip-build --skip-pack --userversion "$RELEASE_TAG")
+          if [ -n "$ITCH_CHANNEL_SUFFIX" ]; then
+            args+=(--channel-suffix "$ITCH_CHANNEL_SUFFIX")
+          fi
+          ./dist/fe-linux-amd64 "${args[@]}"
         env:
           RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
+          ITCH_CHANNEL_SUFFIX: ${{ needs.validate-release.outputs.itch_channel_suffix }}
           ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
           ITCHIO_GAME: ${{ secrets.ITCHIO_GAME }}
           BUTLER_API_KEY: ${{ secrets.BUTLER_API_KEY }}
