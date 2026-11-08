@@ -53,6 +53,12 @@ var archMap = map[string]string{
 //  2. Legacy two-level layout:
 //     builds/windows/x64/   → channel windowsx64
 func Push(username, game, directory, userversion string, executor CommandExecutor, logger Logger, channelSuffix ...string) error {
+	return PushWithProgress(username, game, directory, userversion, executor, logger, nil, nil, channelSuffix...)
+}
+
+// PushWithProgress skips channels already recorded as complete and persists each
+// successful channel through onSuccess before moving to the next destination.
+func PushWithProgress(username, game, directory, userversion string, executor CommandExecutor, logger Logger, completed map[string]bool, onSuccess func(string) error, channelSuffix ...string) error {
 	logger.Printf("Pushing to %s/%s from %s", username, game, directory)
 
 	if userversion != "" {
@@ -82,7 +88,7 @@ func Push(username, game, directory, userversion string, executor CommandExecuto
 		// Convention layout: single folder named "platform-arch" e.g. "windows-x64"
 		if channel, ok := resolveConventionChannel(nameLower); ok {
 			fullPath := filepath.Join(directory, name)
-			if err := runPush(executor, logger, fullPath, username, game, channel+suffix, userversion); err != nil {
+			if err := pushChannel(executor, logger, fullPath, username, game, channel+suffix, userversion, completed, onSuccess); err != nil {
 				return err
 			}
 			pushed++
@@ -110,7 +116,7 @@ func Push(username, game, directory, userversion string, executor CommandExecuto
 
 				channel := platformMap[nameLower] + "-" + arch
 				fullPath := filepath.Join(directory, name, sub.Name())
-				if err := runPush(executor, logger, fullPath, username, game, channel+suffix, userversion); err != nil {
+				if err := pushChannel(executor, logger, fullPath, username, game, channel+suffix, userversion, completed, onSuccess); err != nil {
 					return err
 				}
 				pushed++
@@ -148,6 +154,22 @@ func resolveConventionChannel(name string) (string, bool) {
 	}
 
 	return platform + "-" + arch, true
+}
+
+func pushChannel(executor CommandExecutor, logger Logger, path, username, game, channel, userversion string, completed map[string]bool, onSuccess func(string) error) error {
+	if completed[channel] {
+		logger.Printf("Skipping already updated channel: %s", channel)
+		return nil
+	}
+	if err := runPush(executor, logger, path, username, game, channel, userversion); err != nil {
+		return err
+	}
+	if onSuccess != nil {
+		if err := onSuccess(channel); err != nil {
+			return fmt.Errorf("record successful channel %s: %w", channel, err)
+		}
+	}
+	return nil
 }
 
 func runPush(executor CommandExecutor, logger Logger, path, username, game, channel, userversion string) error {
