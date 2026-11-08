@@ -161,3 +161,26 @@ func TestVerifyArtifactManifestRejectsAddedArtifactAndWrongIdentity(t *testing.T
 		t.Fatal("expected a different release version to be rejected")
 	}
 }
+
+func TestVerifyArtifactManifestWithSymlinkedArtifactRoot(t *testing.T) {
+	parent := t.TempDir()
+	root := filepath.Join(parent, "artifacts")
+	if err := os.Mkdir(root, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, "game.bin"), []byte("game"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	link := filepath.Join(parent, "artifact-link")
+	if err := os.Symlink(root, link); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	manifestPath := filepath.Join(link, "artifact-manifest.json")
+	if err := writeArtifactManifest(link, manifestPath, "1.2.3", "abc123"); err != nil {
+		t.Fatalf("write manifest through symlinked root: %v", err)
+	}
+	if err := verifyArtifactManifest(link, manifestPath, "1.2.3", "abc123"); err != nil {
+		t.Fatalf("verify manifest through symlinked root: %v", err)
+	}
+}
