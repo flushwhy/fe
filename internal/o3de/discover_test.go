@@ -31,6 +31,21 @@ func TestDiscoverFindsLocalUnregisteredEngine(t *testing.T) {
 	}
 }
 
+func TestDiscoverFindsLocalUnregisteredProject(t *testing.T) {
+	root := t.TempDir()
+	project := filepath.Join(root, "projects", "sample-game")
+	writeMarker(t, project, "project.json", "{\"project_name\":\"Sample Game\"}")
+	t.Setenv("O3DE_MANIFEST_PATH", filepath.Join(root, "missing-manifest.json"))
+
+	got, err := Discover("projects", []string{root}, 4, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(got) != 1 || got[0].Name != "Sample Game" || got[0].Source != "local scan" {
+		t.Fatalf("unexpected project discovery results: %#v", got)
+	}
+}
+
 func TestDiscoverDoesNotClassifyEveryExternalDirectoryAsGem(t *testing.T) {
 	root := t.TempDir()
 	gem := filepath.Join(root, "Gems", "SampleGem")
