@@ -11,6 +11,7 @@ fe transcode      convert audio/video via ffmpeg
 fe bmp            push builds to itch.io via butler
 fe release        build → pack → push in one shot
 fe release --dry-run  preview the release plan without side effects
+fe release --retry last  resume an incomplete release without repeating successful jobs
 fe export --list-presets  inspect Godot export presets and output paths
 fe manifest       write artifact inventory and SHA-256 checksums
 fe changelog      generate Markdown release notes from Git history and tags
@@ -218,6 +219,21 @@ fe transcode --inputFile capture.mp4 --outputFile trailer.mp4 --crf 18 --preset 
 Use `--videoCodec`, `--audioCodec`, `--audioBitrate`, and
 `--pixelFormat` to override the defaults. The older `--codec` and
 `--bitrate` flags remain supported as media-type-specific overrides.
+
+## Release recovery
+
+Fe records local release progress under `.fe/releases/` when a version is supplied.
+If a release fails, rerun it from the same checkout and with the same release options:
+
+```sh
+fe release --retry last --userversion v1.2.3
+```
+
+Retry is pinned to the original commit and release settings. Successful build targets
+and itch.io channels are skipped; unfinished targets and channels are retried. The
+journal is local to the working copy, so it is intended for persistent workspaces
+rather than fresh, disposable CI runners. A completed version cannot be started
+again from the same workspace.
 
 ## CI usage
 
