@@ -12,9 +12,10 @@ import (
 
 // Preset describes the fields fe needs from a Godot export preset.
 type Preset struct {
-	Name       string
-	Platform   string
-	ExportPath string
+	Name            string
+	Platform        string
+	ExportPath      string
+	DedicatedServer  bool
 }
 
 // ReadPresets loads named export presets from export_presets.cfg.
@@ -34,12 +35,39 @@ func ReadPresets(path string) ([]Preset, error) {
 		if name == "" || platform == "" {
 			continue
 		}
-		presets = append(presets, Preset{Name: name, Platform: platform, ExportPath: section.Key("export_path").String()})
+		dedicated, _ := section.Key("dedicated_server").Bool()
+		presets = append(presets, Preset{
+			Name: name, Platform: platform, ExportPath: section.Key("export_path").String(),
+			DedicatedServer: dedicated,
+		})
 	}
 	if len(presets) == 0 {
 		return nil, fmt.Errorf("no valid presets found in %s", path)
 	}
 	return presets, nil
+}
+
+// FindLinuxServerPreset selects the only Linux preset explicitly configured for dedicated-server export.
+func FindLinuxServerPreset(presets []Preset) (Preset, error) {
+	var matches []Preset
+	for _, preset := range presets {
+		platform := strings.ToLower(strings.TrimSpace(preset.Platform))
+		if strings.Contains(platform, "linux") && preset.DedicatedServer {
+			matches = append(matches, preset)
+		}
+	}
+	switch len(matches) {
+	case 0:
+		return Preset{}, fmt.Errorf("no Linux dedicated-server export preset found; create a Linux preset in Godot and enable 'Export as dedicated server'")
+	case 1:
+		return matches[0], nil
+	default:
+		names := make([]string, len(matches))
+		for i, preset := range matches {
+			names[i] = preset.Name
+		}
+		return Preset{}, fmt.Errorf("multiple Linux dedicated-server presets found (%s); choose one with --preset", strings.Join(names, ", "))
+	}
 }
 
 // PlatformDir maps Godot's built-in platform labels to fe/Butler's folder convention.
@@ -106,7 +134,7 @@ func Export(projectDir, executable, outputDir, onlyPreset string, runner func(st
 	return nil
 }
 
- // ExpectedOutputPath returns the path Fe will write for a configured preset.
+// ExpectedOutputPath returns the path Fe will write for a configured preset.
 func ExpectedOutputPath(projectDir, outputDir string, preset Preset) (string, error) {
 	if outputDir == "" {
 		outputDir = "builds"
