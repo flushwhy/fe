@@ -88,6 +88,13 @@ func writeArtifactManifest(root, output, version, commit string) error {
 	} else if statErr != nil && !os.IsNotExist(statErr) {
 		return fmt.Errorf("inspect manifest output %q: %w", output, statErr)
 	}
+	if err := os.MkdirAll(filepath.Dir(output), 0o750); err != nil {
+		return fmt.Errorf("create manifest directory: %w", err)
+	}
+	output, err = canonicalArtifactManifestPath(output)
+	if err != nil {
+		return fmt.Errorf("resolve manifest output directory: %w", err)
+	}
 	info, err := os.Stat(root)
 	if err != nil {
 		return fmt.Errorf("inspect artifact directory %q: %w", root, err)
@@ -114,9 +121,6 @@ func writeArtifactManifest(root, output, version, commit string) error {
 	})
 	if len(manifest.Artifacts) == 0 {
 		return fmt.Errorf("no artifact files found in %q", root)
-	}
-	if err := os.MkdirAll(filepath.Dir(output), 0o750); err != nil {
-		return fmt.Errorf("create manifest directory: %w", err)
 	}
 	data, err := json.MarshalIndent(manifest, "", "  ")
 	if err != nil {
@@ -181,47 +185,83 @@ func addArtifact(root, output, path string, entry os.DirEntry, manifest *artifac
  
  // verifyArtifactManifest confirms that a completed artifact set still matches
  // the manifest before a retry skips the manifest-generation stage.
- func verifyArtifactManifest(root, manifestPath, version, commit string) error {
- 	root, err := filepath.Abs(root)
- 	if err != nil { return fmt.Errorf("resolve artifact directory: %w", err) }
- 	root, err = filepath.EvalSymlinks(root)
- 	if err != nil { return fmt.Errorf("resolve artifact directory symlinks: %w", err) }
- 	manifestPath, err = filepath.Abs(manifestPath)
- 	if err != nil { return fmt.Errorf("resolve manifest path: %w", err) }
- 	info, err := os.Lstat(manifestPath)
- 	if err != nil { return fmt.Errorf("inspect artifact manifest: %w", err) }
- 	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
- 		return fmt.Errorf("artifact manifest %q must be a regular file, not a symlink", manifestPath)
- 	}
- 	data, err := os.ReadFile(manifestPath)
- 	if err != nil { return fmt.Errorf("read artifact manifest: %w", err) }
- 	var expected artifactManifest
- 	if err := json.Unmarshal(data, &expected); err != nil {
- 		return fmt.Errorf("decode artifact manifest: %w", err)
- 	}
- 	if expected.Version != version || expected.Commit != commit {
- 		return fmt.Errorf("artifact manifest identity mismatch: expected version %q at commit %q, found version %q at commit %q", version, commit, expected.Version, expected.Commit)
- 	}
- 	actual := artifactManifest{}
- 	if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
- 		if walkErr != nil { return walkErr }
- 		if entry.IsDir() { return nil }
- 		return addArtifact(root, manifestPath, path, entry, &actual)
- 	}); err != nil {
- 		return fmt.Errorf("verify artifact files: %w", err)
- 	}
- 	sort.Slice(actual.Artifacts, func(i, j int) bool { return actual.Artifacts[i].Path < actual.Artifacts[j].Path })
- 	sort.Slice(expected.Artifacts, func(i, j int) bool { return expected.Artifacts[i].Path < expected.Artifacts[j].Path })
- 	if len(actual.Artifacts) != len(expected.Artifacts) {
- 		return fmt.Errorf("artifact set changed since the previous attempt: manifest has %d file(s), directory has %d", len(expected.Artifacts), len(actual.Artifacts))
- 	}
- 	for i, want := range expected.Artifacts {
- 		if actual.Artifacts[i] != want {
- 			return fmt.Errorf("artifact %q changed since the previous attempt (size or SHA-256 mismatch)", want.Path)
- 		}
- 	}
- 	return nil
- }
+ func canonicalArtifactManifestPath(path string) (string, error) {
+	path, err := filepath.Abs(path)
+	if err != nil {
+		return "", err
+	}
+	directory, err := filepath.EvalSymlinks(filepath.Dir(path))
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(directory, filepath.Base(path)), nil
+}
+
+// verifyArtifactManifest confirms that a completed artifact set still matches
+// the manifest before a retry skips the manifest-generation stage.
+func verifyArtifactManifest(root, manifestPath, version, commit string) error {
+	root, err := filepath.Abs(root)
+	if err != nil {
+		return fmt.Errorf("resolve artifact directory: %w", err)
+	}
+	root, err = filepath.EvalSymlinks(root)
+	if err != nil {
+		return fmt.Errorf("resolve artifact directory symlinks: %w", err)
+	}
+	manifestPath, err = filepath.Abs(manifestPath)
+	if err != nil {
+		return fmt.Errorf("resolve manifest path: %w", err)
+	}
+	info, err := os.Lstat(manifestPath)
+	if err != nil {
+		return fmt.Errorf("inspect artifact manifest: %w", err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return fmt.Errorf("artifact manifest %q must be a regular file, not a symlink", manifestPath)
+	}
+	manifestPath, err = canonicalArtifactManifestPath(manifestPath)
+	if err != nil {
+		return fmt.Errorf("resolve artifact manifest directory: %w", err)
+	}
+	data, err := os.ReadFile(manifestPath)
+	if err != nil {
+		return fmt.Errorf("read artifact manifest: %w", err)
+	}
+	var expected artifactManifest
+	if err := json.Unmarshal(data, &expected); err != nil {
+		return fmt.Errorf("decode artifact manifest: %w", err)
+	}
+	if expected.Version != version || expected.Commit != commit {
+		return fmt.Errorf("artifact manifest identity mismatch: expected version %q at commit %q, found version %q at commit %q", version, commit, expected.Version, expected.Commit)
+	}
+	actual := artifactManifest{}
+	if err := filepath.WalkDir(root, func(path string, entry os.DirEntry, walkErr error) error {
+		if walkErr != nil {
+			return walkErr
+		}
+		if entry.IsDir() {
+			return nil
+		}
+		return addArtifact(root, manifestPath, path, entry, &actual)
+	}); err != nil {
+		return fmt.Errorf("verify artifact files: %w", err)
+	}
+	sort.Slice(actual.Artifacts, func(i, j int) bool {
+		return actual.Artifacts[i].Path < actual.Artifacts[j].Path
+	})
+	sort.Slice(expected.Artifacts, func(i, j int) bool {
+		return expected.Artifacts[i].Path < expected.Artifacts[j].Path
+	})
+	if len(actual.Artifacts) != len(expected.Artifacts) {
+		return fmt.Errorf("artifact set changed since the previous attempt: manifest has %d file(s), directory has %d", len(expected.Artifacts), len(actual.Artifacts))
+	}
+	for i, want := range expected.Artifacts {
+		if actual.Artifacts[i] != want {
+			return fmt.Errorf("artifact %q changed since the previous attempt (size or SHA-256 mismatch)", want.Path)
+		}
+	}
+	return nil
+}
 
 func writeManifestAtomically(output string, data []byte) error {
  	dir := filepath.Dir(output)
