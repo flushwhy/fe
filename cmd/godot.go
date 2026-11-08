@@ -50,12 +50,6 @@ var godotOpenCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		if strings.TrimSpace(output) == "" {
-			if optimize != "server" || selectedPreset == nil || strings.TrimSpace(selectedPreset.ExportPath) == "" {
-				return errors.New("an output path is required; pass --output or configure export_path in the selected server preset")
-			}
-			output = selectedPreset.ExportPath
-		}
 		requested, _ := cmd.Flags().GetString("version")
 		chosen, err := selectGodotEngine(project, requested)
 		if err != nil {
@@ -132,6 +126,12 @@ var godotExportCmd = &cobra.Command{
 			if !found {
 				return fmt.Errorf("Godot export preset %q not found in export_presets.cfg", preset)
 			}
+		}
+		if strings.TrimSpace(output) == "" {
+			if optimize != "server" || selectedPreset == nil || strings.TrimSpace(selectedPreset.ExportPath) == "" {
+				return errors.New("an output path is required; pass --output or configure export_path in the selected server preset")
+			}
+			output = selectedPreset.ExportPath
 		}
 		requested, _ := cmd.Flags().GetString("version")
 		engine, err := selectGodotEngine(project, requested)
