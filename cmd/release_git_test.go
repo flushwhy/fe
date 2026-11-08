@@ -33,15 +33,6 @@ func initReleaseGitRepo(t *testing.T) string {
 	return dir
 }
 
-func runGitAt(t *testing.T, dir string, args ...string) {
-	t.Helper()
-	full := append([]string{"-C", dir}, args...)
-	if output, err := exec.Command("git", full...).CombinedOutput(); err != nil {
-		t.Fatalf("git %v: %v: %s", args, err, output)
-	}
-}
-
-
 func TestValidateReleaseGitAllowsNonRepository(t *testing.T) {
 	state := releaseGitState{}
 	if err := validateReleaseGit(state, false, false); err != nil {
