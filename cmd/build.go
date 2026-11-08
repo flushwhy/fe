@@ -53,24 +53,19 @@ platform-only configurations remain supported.`,
 			}
 			return nil
 		}
-		if target != "" && platform != "" {
-			return fmt.Errorf("--target and --platform cannot be used together")
-		}
 
-		if err := runConfiguredPreflight(cfg, "build"); err != nil {
-			return err
-		}
 		containerBuild, _ := cmd.Flags().GetBool("container")
 		if containerBuild {
 			if target != "" || platform != "" {
 				return fmt.Errorf("--target and --platform cannot be used with --container")
 			}
-			runtimeName, _ := cmd.Flags().GetString("runtime")
-			if err := build.RunContainer(cfg.Build.Container, runtimeName); err != nil {
+			if err := runConfiguredPreflight(cfg, "build"); err != nil {
 				return err
 			}
-			return nil
+			runtimeName, _ := cmd.Flags().GetString("runtime")
+			return build.RunContainer(cfg.Build.Container, runtimeName)
 		}
+
 		if errs := cfg.Validate("build"); len(errs) > 0 {
 			for _, e := range errs {
 				ui.Fail("config: %s", e)
@@ -78,21 +73,13 @@ platform-only configurations remain supported.`,
 			return fmt.Errorf("fix config errors above and try again")
 		}
 
-		targets := cfg.Build.Targets
-		if target != "" {
-			targets = build.FilterByName(targets, target)
-			if len(targets) == 0 {
-				return fmt.Errorf("no build target named %q; use --list-targets to see named targets", target)
-			}
-			if len(targets) > 1 {
-				return fmt.Errorf("build target name %q is not unique", target)
-			}
+		targets, err := selectBuildTargets(cfg.Build.Targets, target, platform)
+		if err != nil {
+			return err
 		}
-		if platform != "" {
-			targets = build.FilterByPlatform(cfg.Build.Targets, platform)
-			if len(targets) == 0 {
-				return fmt.Errorf("no target found for platform %q", platform)
-			}
+		// Validate configuration and selection before running user-configured checks.
+		if err := runConfiguredPreflight(cfg, "build"); err != nil {
+			return err
 		}
 
 		ui.Title("Building targets")
@@ -121,6 +108,30 @@ platform-only configurations remain supported.`,
 		ui.Elapsed(start)
 		return nil
 	},
+}
+
+func selectBuildTargets(configured []config.BuildTarget, target, platform string) ([]config.BuildTarget, error) {
+	if target != "" && platform != "" {
+		return nil, fmt.Errorf("--target and --platform cannot be used together")
+	}
+	if target != "" {
+		selected := build.FilterByName(configured, target)
+		if len(selected) == 0 {
+			return nil, fmt.Errorf("no build target named %q; use --list-targets to see named targets", target)
+		}
+		if len(selected) > 1 {
+			return nil, fmt.Errorf("build target name %q is not unique", target)
+		}
+		return selected, nil
+	}
+	if platform != "" {
+		selected := build.FilterByPlatform(configured, platform)
+		if len(selected) == 0 {
+			return nil, fmt.Errorf("no target found for platform %q", platform)
+		}
+		return selected, nil
+	}
+	return configured, nil
 }
 
 func init() {
