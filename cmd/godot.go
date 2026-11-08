@@ -133,7 +133,7 @@ var godotDoctorCmd = &cobra.Command{
 			fmt.Fprintln(out, "  none on PATH")
 		}
 		for _, e := range engines {
-			fmt.Fprintf(out, "  %s  %s\\n", e.Version, e.Path)
+			fmt.Fprintf(out, "  %s  %s\n", e.Version, e.Path)
 		}
 		return nil
 	},
