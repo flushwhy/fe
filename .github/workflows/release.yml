@@ -256,7 +256,17 @@ jobs:
       - name: Release Fe through Fe
         run: |
           chmod +x dist/fe-linux-amd64
-          ./dist/fe-linux-amd64 release --skip-build --skip-pack --userversion "$RELEASE_TAG"
+          git fetch origin master
+          version="${RELEASE_TAG#fe-v}"
+          version="${version#v}"
+          release_line="$(printf '%s' "$version" | cut -d. -f1-2)"
+          master_version="$(git show FETCH_HEAD:.release-please-manifest.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["."])')"
+          master_line="$(printf '%s' "$master_version" | cut -d. -f1-2)"
+          args=(release --skip-build --skip-pack --userversion "$RELEASE_TAG")
+          if [[ "$release_line" != "$master_line" ]]; then
+            args+=(--channel-suffix "${release_line//./-}")
+          fi
+          ./dist/fe-linux-amd64 "${args[@]}"
         env:
           RELEASE_TAG: ${{ env.RELEASE_TAG }}
           ITCHIO_USERNAME: ${{ secrets.ITCHIO_USERNAME }}
