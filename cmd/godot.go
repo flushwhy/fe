@@ -72,8 +72,9 @@ var godotExportCmd = &cobra.Command{
 			return err
 		}
 		preset, _ := cmd.Flags().GetString("preset")
-		if strings.TrimSpace(preset) == "" {
-			return errors.New("an export preset is required; pass --preset")
+		optimize, _ := cmd.Flags().GetString("optimize")
+		if optimize != "" && optimize != "server" {
+			return fmt.Errorf("unsupported optimization profile %q; currently supported: server", optimize)
 		}
 		output, _ := cmd.Flags().GetString("output")
 		if strings.TrimSpace(output) == "" {
@@ -87,15 +88,43 @@ var godotExportCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		found := false
-		for _, configured := range presets {
-			if configured.Name == preset {
-				found = true
-				break
+		if optimize == "server" {
+			if preset == "" {
+				selected, err := godot.FindLinuxServerPreset(presets)
+				if err != nil {
+					return err
+				}
+				preset = selected.Name
+				fmt.Fprintf(cmd.OutOrStdout(), "Selected Linux dedicated-server preset: %s\\n", preset)
+			} else {
+				var selected *godot.Preset
+				for i := range presets {
+					if presets[i].Name == preset {
+						selected = &presets[i]
+						break
+					}
+				}
+				if selected == nil {
+					return fmt.Errorf("Godot export preset %q not found in export_presets.cfg", preset)
+				}
+				if !strings.Contains(strings.ToLower(selected.Platform), "linux") || !selected.DedicatedServer {
+					return fmt.Errorf("preset %q is not configured for Linux dedicated-server export; choose a preset with 'Export as dedicated server' enabled", preset)
+				}
 			}
-		}
-		if !found {
-			return fmt.Errorf("Godot export preset %q not found in export_presets.cfg", preset)
+		} else {
+			if strings.TrimSpace(preset) == "" {
+				return errors.New("an export preset is required; pass --preset or use --optimize server")
+			}
+			found := false
+			for _, configured := range presets {
+				if configured.Name == preset {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return fmt.Errorf("Godot export preset %q not found in export_presets.cfg", preset)
+			}
 		}
 		requested, _ := cmd.Flags().GetString("version")
 		engine, err := selectGodotEngine(project, requested)
@@ -373,7 +402,8 @@ func init() {
 	rootCmd.AddCommand(godotCmd)
 	godotCmd.AddCommand(godotEnginesCmd, godotOpenCmd, godotExportCmd, godotDoctorCmd, godotExtensionCmd)
 	godotOpenCmd.Flags().String("version", "", "installed Godot version to use (for example 4.3 or 3.5)")
-	godotExportCmd.Flags().String("preset", "", "export preset name from export_presets.cfg")
+	godotExportCmd.Flags().String("preset", "", "export preset name from export_presets.cfg (auto-detected for --optimize server)")
+	godotExportCmd.Flags().String("optimize", "", "apply a target optimization profile (currently: server)")
 	godotExportCmd.Flags().String("output", "", "export output path (relative to the project or absolute)")
 	godotExportCmd.Flags().Bool("debug", false, "create a debug export instead of a release export")
 	godotExportCmd.Flags().String("version", "", "installed Godot version to use (for example 4.3 or 3.5)")
