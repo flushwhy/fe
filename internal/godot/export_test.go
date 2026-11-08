@@ -2,6 +2,7 @@ package godot
 
 import (
 	"os"
+	"os/exec"
 	"path/filepath"
 	"testing"
 )
@@ -64,3 +65,32 @@ func TestExpectedOutputPath(t *testing.T) {
 		t.Fatalf("ExpectedOutputPath() = %q, want %q", got, want)
 	}
 }
+
+
+func TestExportResolvesRelativeOutputFromProjectRoot(t *testing.T) {
+	projectDir := t.TempDir()
+	presetFile := filepath.Join(projectDir, "export_presets.cfg")
+	presets := "[preset.0]\nname=\"Windows Desktop\"\nplatform=\"Windows Desktop\"\nexport_path=\"game.exe\"\n"
+	if err := os.WriteFile(presetFile, []byte(presets), 0o600); err != nil {
+		t.Fatal(err)
+	}
+
+	var gotArgs []string
+	runner := func(_ string, args ...string) *exec.Cmd {
+		gotArgs = append([]string(nil), args...)
+		return exec.Command(os.Args[0], "-test.run=TestExportHelperProcess")
+	}
+	if err := Export(projectDir, "godot", "artifacts", "", runner); err != nil {
+		t.Fatal(err)
+	}
+
+	want := filepath.Join(projectDir, "artifacts", "windows-x64", "game.exe")
+	if got := gotArgs[len(gotArgs)-1]; got != want {
+		t.Fatalf("export destination = %q, want %q", got, want)
+	}
+	if _, err := os.Stat(filepath.Dir(want)); err != nil {
+		t.Fatalf("export directory was not created in project: %v", err)
+	}
+}
+
+func TestExportHelperProcess(t *testing.T) {}
