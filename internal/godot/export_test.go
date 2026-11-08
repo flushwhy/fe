@@ -78,7 +78,7 @@ func TestExportResolvesRelativeOutputFromProjectRoot(t *testing.T) {
 	var gotArgs []string
 	runner := func(_ string, args ...string) *exec.Cmd {
 		gotArgs = append([]string(nil), args...)
-		return exec.Command(os.Args[0], "-test.run=TestExportHelperProcess")
+		return exec.Command("go", "version")
 	}
 	if err := Export(projectDir, "godot", "artifacts", "", runner); err != nil {
 		t.Fatal(err)
@@ -93,4 +93,3 @@ func TestExportResolvesRelativeOutputFromProjectRoot(t *testing.T) {
 	}
 }
 
-func TestExportHelperProcess(t *testing.T) {}
