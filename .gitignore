@@ -25,3 +25,6 @@ export/*
 */testdata/*
 # Added by goreleaser init:
 dist/
+
+# Local release retry state
+.fe/releases/
