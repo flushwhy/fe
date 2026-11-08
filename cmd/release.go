@@ -113,6 +113,7 @@ CI example:
 			if journal.ButlerChannels == nil { journal.ButlerChannels = map[string]bool{} }
 			fmt.Printf("Resuming release %s from commit %s\n", journal.Version, journal.Commit)
 		} else if cfg.Butler.Userversion != "" {
+			if err := ensureNoExistingReleaseJournal(cfg.Butler.Userversion); err != nil { return err }
 			journal = newReleaseJournal(cfg.Butler.Userversion, gitState, channelSuffix, cfg.Butler.Directory, packageFormat, packageOutput)
 			journal.SettingsHash = settingsHash
 			if err := journal.save(); err != nil { return err }
