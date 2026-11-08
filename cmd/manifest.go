@@ -242,6 +242,14 @@ func verifyArtifactManifest(root, manifestPath, version, commit string) error {
 		if entry.IsDir() {
 			return nil
 		}
+		if entry.Type()&os.ModeSymlink != 0 {
+			return fmt.Errorf("artifact %q became a symlink", path)
+		}
+		if info, err := entry.Info(); err != nil {
+			return fmt.Errorf("inspect artifact %q: %w", path, err)
+		} else if !info.Mode().IsRegular() {
+			return fmt.Errorf("artifact %q is not a regular file", path)
+		}
 		return addArtifact(root, manifestPath, path, entry, &actual)
 	}); err != nil {
 		return fmt.Errorf("verify artifact files: %w", err)
