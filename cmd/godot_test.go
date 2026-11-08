@@ -90,7 +90,11 @@ func TestGodotExportRejectsUnknownPreset(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	presets := "[preset.0]\nname=\\"Linux\\"\nplatform=\\"Linux\\"\nexport_path=\\"game.x86_64\\"\n"
+	presets := `[preset.0]
+name="Linux"
+platform="Linux"
+export_path="game.x86_64"
+`
 	if err := os.WriteFile(filepath.Join(project, "export_presets.cfg"), []byte(presets), 0o644); err != nil {
 		t.Fatal(err)
 	}
