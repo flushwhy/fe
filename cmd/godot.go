@@ -107,35 +107,33 @@ var godotDoctorCmd = &cobra.Command{
 	Short: "Check the current Godot project and native extension setup.",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		out := cmd.OutOrStdout()
 		project, err := findGodotProject(".")
 		if err != nil {
-			fmt.Println("Project: not found (no project.godot in this directory or its parents)")
+			fmt.Fprintln(out, "Project: not found (no project.godot in this directory or its parents)")
 		} else {
-			fmt.Println("Project:", project)
-			if _, err := os.Stat(filepath.Join(project, "project.godot")); err == nil {
-				fmt.Println("project.godot: found")
-			}
-			if _, err := os.Stat(filepath.Join(project, "native", "CMakeLists.txt")); err == nil {
-				fmt.Println("Native extension: native/CMakeLists.txt found")
-			}
-			if _, err := os.Stat(filepath.Join(project, "godot-cpp")); err == nil {
-				fmt.Println("godot-cpp: found")
-			} else {
-				fmt.Println("godot-cpp: not found (needed by the included C++ GDExtension scaffold)")
-			}
-			if _, err := os.Stat(filepath.Join(project, "project.godot")); err == nil {
-				if b, readErr := os.ReadFile(filepath.Join(project, "project.godot")); readErr == nil && strings.Contains(string(b), "gdnative") {
-					fmt.Println("Legacy GDNative configuration detected: Godot 3 uses GDNative; Godot 4 uses GDExtension.")
+			fmt.Fprintln(out, "Project:", project)
+			fmt.Fprintln(out, "project.godot: found")
+			nativeScaffold := filepath.Join(project, "native", "CMakeLists.txt")
+			if _, err := os.Stat(nativeScaffold); err == nil {
+				fmt.Fprintln(out, "Native extension: native/CMakeLists.txt found")
+				if _, err := os.Stat(filepath.Join(project, "godot-cpp", "CMakeLists.txt")); err == nil {
+					fmt.Fprintln(out, "godot-cpp: found")
+				} else {
+					fmt.Fprintln(out, "godot-cpp: not found (needed by the included C++ GDExtension scaffold)")
 				}
 			}
+			if b, readErr := os.ReadFile(filepath.Join(project, "project.godot")); readErr == nil && strings.Contains(string(b), "gdnative") {
+				fmt.Fprintln(out, "Legacy GDNative configuration detected: Godot 3 uses GDNative; Godot 4 uses GDExtension.")
+			}
 		}
-		fmt.Println("Detected engines:")
+		fmt.Fprintln(out, "Detected engines:")
 		engines := detectGodotEngines()
 		if len(engines) == 0 {
-			fmt.Println("  none on PATH")
+			fmt.Fprintln(out, "  none on PATH")
 		}
 		for _, e := range engines {
-			fmt.Printf("  %s  %s\n", e.Version, e.Path)
+			fmt.Fprintf(out, "  %s  %s\n", e.Version, e.Path)
 		}
 		return nil
 	},
