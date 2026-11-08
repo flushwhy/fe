@@ -50,6 +50,12 @@ var godotOpenCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		if strings.TrimSpace(output) == "" {
+			if optimize != "server" || selectedPreset == nil || strings.TrimSpace(selectedPreset.ExportPath) == "" {
+				return errors.New("an output path is required; pass --output or configure export_path in the selected server preset")
+			}
+			output = selectedPreset.ExportPath
+		}
 		requested, _ := cmd.Flags().GetString("version")
 		chosen, err := selectGodotEngine(project, requested)
 		if err != nil {
@@ -64,7 +70,7 @@ var godotOpenCmd = &cobra.Command{
 var godotExportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Export the current Godot project using an export preset.",
-	Long:  "Run a headless Godot export. Create export presets in the Godot editor first.",
+	Long:  "Run a headless Godot export. Use --optimize server to discover and export a Linux dedicated-server preset.",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		project, err := findGodotProject(".")
@@ -77,9 +83,6 @@ var godotExportCmd = &cobra.Command{
 			return fmt.Errorf("unsupported optimization profile %q; currently supported: server", optimize)
 		}
 		output, _ := cmd.Flags().GetString("output")
-		if strings.TrimSpace(output) == "" {
-			return errors.New("an output path is required; pass --output")
-		}
 		presetFile := filepath.Join(project, "export_presets.cfg")
 		if _, err := os.Stat(presetFile); err != nil {
 			return errors.New("export presets not found; create one in the Godot editor and save export_presets.cfg")
@@ -88,6 +91,7 @@ var godotExportCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
+		var selectedPreset *godot.Preset
 		if optimize == "server" {
 			if preset == "" {
 				selected, err := godot.FindLinuxServerPreset(presets)
@@ -95,6 +99,7 @@ var godotExportCmd = &cobra.Command{
 					return err
 				}
 				preset = selected.Name
+				selectedPreset = &selected
 				fmt.Fprintf(cmd.OutOrStdout(), "Selected Linux dedicated-server preset: %s\n", preset)
 			} else {
 				var selected *godot.Preset
@@ -110,15 +115,17 @@ var godotExportCmd = &cobra.Command{
 				if !strings.Contains(strings.ToLower(selected.Platform), "linux") || !selected.DedicatedServer {
 					return fmt.Errorf("preset %q is not configured for Linux dedicated-server export; choose a preset with 'Export as dedicated server' enabled", preset)
 				}
+				selectedPreset = selected
 			}
 		} else {
 			if strings.TrimSpace(preset) == "" {
 				return errors.New("an export preset is required; pass --preset or use --optimize server")
 			}
 			found := false
-			for _, configured := range presets {
-				if configured.Name == preset {
+			for i := range presets {
+				if presets[i].Name == preset {
 					found = true
+					selectedPreset = &presets[i]
 					break
 				}
 			}
