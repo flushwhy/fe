@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -76,4 +77,40 @@ func TestReleaseSettingsHashChangesWithBuildConfiguration(t *testing.T) {
 	second, err := releaseSettingsHash(cfg, false, false, false, "", "", "", "")
 	if err != nil { t.Fatal(err) }
 	if first == second { t.Fatal("expected build config change to alter release settings hash") }
+}
+
+
+func TestReleasePackageIntegrityDetectsChangedArchive(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "game.zip")
+	if err := os.WriteFile(path, []byte("original archive"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	size, checksum, err := releasePackageIntegrity(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	journal := &releaseJournal{PackageSize: size, PackageSHA256: checksum}
+	if err := verifyReleasePackage(journal, path); err != nil {
+		t.Fatalf("unchanged archive should verify: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("modified archive"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyReleasePackage(journal, path); err == nil {
+		t.Fatal("expected modified archive to be rejected")
+	}
+}
+
+func TestVerifyReleasePackageRejectsMissingChecksumAndNonRegularFile(t *testing.T) {
+	root := t.TempDir()
+	path := filepath.Join(root, "game.zip")
+	if err := os.WriteFile(path, []byte("archive"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyReleasePackage(&releaseJournal{}, path); err == nil {
+		t.Fatal("expected missing checksum to be rejected")
+	}
+	if err := verifyReleasePackage(&releaseJournal{PackageSHA256: "bad"}, root); err == nil {
+		t.Fatal("expected non-regular package path to be rejected")
+	}
 }
