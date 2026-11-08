@@ -108,6 +108,15 @@
     .split-copy { position: relative; }
     .split-copy .big-number { display: block; color: rgba(49,91,69,.13); font: 700 8rem/.8 "Space Grotesk",sans-serif; letter-spacing: -.1em; margin-bottom: 24px; }
     .steps { display: grid; gap: 14px; }
+    .release-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px; }
+    .release-card { min-width: 0; padding: 25px; }
+    .release-card h3 { margin: 8px 0 5px; font: 600 1.45rem "Space Grotesk",sans-serif; }
+    .release-meta { color: var(--muted); font-size: .82rem; }
+    .release-assets { display: flex; flex-wrap: wrap; gap: 9px; margin-top: 20px; }
+    .release-assets .button { padding: 9px 13px; font-size: .78rem; overflow-wrap: anywhere; }
+    .release-links { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 18px; font-size: .85rem; font-weight: 700; }
+    .release-status { color: var(--muted); font-size: .9rem; }
+    .release-card .mini-label { margin-top: 0; }
     .step { display: grid; grid-template-columns: 44px 1fr; gap: 15px; align-items: start; padding: 18px 20px; border-radius: 19px; background: rgba(255,253,247,.7); border: 1px solid var(--line); box-shadow: 6px 7px 18px rgba(75,78,65,.06), -4px -4px 12px rgba(255,255,255,.65); }
     .step-num { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 13px; background: var(--green); color: white; font: .8rem "DM Mono",monospace; }
     .step h3 { margin: 1px 0 4px; font: 600 1rem "Space Grotesk",sans-serif; }
@@ -178,7 +187,7 @@
       .ecosystem-grid { grid-template-columns: 1fr 1fr; }
       .eco-card:nth-child(2) { transform: none; }
       .eco-card:nth-child(3) { transform: none; grid-column: span 2; }
-      .support-inner { grid-template-columns: 1fr; gap: 28px; }
+      .support-inner { grid-template-columns: 1fr; gap: 28px; }\n      .release-grid { grid-template-columns: 1fr; }
     }
     @media (max-width: 620px) {
       .wrap { width: min(var(--max), calc(100% - 30px)); }
@@ -216,7 +225,7 @@
     <div class="wrap nav">
       <a class="brand" href="#top" aria-label="Fe home"><span class="brand-mark">fe</span><span>Fe</span></a>
       <nav class="navlinks" aria-label="Main navigation">
-        <a href="#workflow">Workflow</a><a href="#features">What it does</a><a href="#commands">Commands</a><a href="#ecosystem">Ecosystem</a>
+        <a href="#workflow">Workflow</a><a href="#features">What it does</a><a href="#commands">Commands</a><a href="#downloads">Downloads</a><a href="#ecosystem">Ecosystem</a>
       </nav>
       <a class="nav-cta" href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">View on GitHub ↗</a>
     </div>
@@ -340,6 +349,19 @@ butler:
       </div>
     </section>
 
+    <section class="section" id="downloads">
+      <div class="wrap">
+        <div class="section-head reveal">
+          <div class="kicker">Get Fe</div>
+          <h2>Pick your build.<br>Get back to work.</h2>
+          <p>Download the latest stable release, or try the rolling build for the newest changes. Links are loaded directly from GitHub Releases.</p>
+        </div>
+        <div class="release-grid" id="release-downloads" aria-live="polite">
+          <article class="release-card clay"><p class="release-status">Loading GitHub Releases…</p></article>
+        </div>
+      </div>
+    </section>
+
     <section class="section command-section" id="commands">
       <div class="wrap">
         <div class="command-top">
@@ -412,6 +434,81 @@ butler:
   <script>
     (function () {
       var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      var downloads = document.getElementById("release-downloads");
+      function renderRelease(release, channel) {
+        var card = document.createElement("article");
+        card.className = "release-card clay reveal visible";
+        var label = document.createElement("span");
+        label.className = "mini-label";
+        label.textContent = channel === "stable" ? "STABLE RELEASE" : "ROLLING RELEASE";
+        card.appendChild(label);
+        var title = document.createElement("h3");
+        title.textContent = release.name || release.tag_name;
+        card.appendChild(title);
+        var meta = document.createElement("p");
+        meta.className = "release-meta";
+        meta.textContent = release.tag_name + (release.published_at ? " · " + new Date(release.published_at).toLocaleDateString() : "");
+        card.appendChild(meta);
+        var assets = document.createElement("div");
+        assets.className = "release-assets";
+        (release.assets || []).forEach(function (asset) {
+          var link = document.createElement("a");
+          link.className = "button";
+          link.href = asset.browser_download_url;
+          link.textContent = asset.name;
+          link.title = asset.name;
+          link.setAttribute("download", "");
+          link.rel = "noopener noreferrer";
+          assets.appendChild(link);
+        });
+        if (assets.childNodes.length) card.appendChild(assets);
+        else {
+          var empty = document.createElement("p");
+          empty.className = "release-status";
+          empty.textContent = "No downloadable assets are attached to this release yet.";
+          card.appendChild(empty);
+        }
+        var footer = document.createElement("div");
+        footer.className = "release-links";
+        var page = document.createElement("a");
+        page.href = release.html_url;
+        page.target = "_blank";
+        page.rel = "noopener noreferrer";
+        page.textContent = "Release notes ↗";
+        footer.appendChild(page);
+        card.appendChild(footer);
+        return card;
+      }
+      Promise.all([
+        fetch("https://api.github.com/repos/flushwhy/fe/releases/latest").then(function (response) {
+          if (!response.ok) throw new Error("Stable release unavailable");
+          return response.json();
+        }),
+        fetch("https://api.github.com/repos/flushwhy/fe/releases/tags/rolling").then(function (response) {
+          if (!response.ok) throw new Error("Rolling release unavailable");
+          return response.json();
+        })
+      ]).then(function (releases) {
+        downloads.replaceChildren(
+          renderRelease(releases[0], "stable"),
+          renderRelease(releases[1], "rolling")
+        );
+      }).catch(function () {
+        downloads.replaceChildren();
+        var fallback = document.createElement("article");
+        fallback.className = "release-card clay";
+        var message = document.createElement("p");
+        message.className = "release-status";
+        message.textContent = "Release downloads could not be loaded right now.";
+        var link = document.createElement("a");
+        link.className = "button primary";
+        link.href = "https://github.com/flushwhy/fe/releases";
+        link.textContent = "Browse all GitHub Releases ↗";
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        fallback.append(message, link);
+        downloads.appendChild(fallback);
+      });
       var command = document.getElementById("term-command");
       var response = document.getElementById("term-response");
       var cursor = document.getElementById("term-cursor");
