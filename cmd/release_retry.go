@@ -70,6 +70,22 @@ func (j *releaseJournal) save() error {
 	return nil
 }
 
+func ensureNoExistingReleaseJournal(version string) error {
+	if version == "" { return nil }
+	path := releaseJournalPath(version)
+	data, err := os.ReadFile(path)
+	if os.IsNotExist(err) { return nil }
+	if err != nil { return fmt.Errorf("inspect existing release journal: %w", err) }
+	var existing releaseJournal
+	if err := json.Unmarshal(data, &existing); err != nil {
+		return fmt.Errorf("existing release journal is invalid; inspect %s before starting another release: %w", path, err)
+	}
+	if existing.Complete {
+		return fmt.Errorf("release version %s already completed in this workspace; choose a new version", version)
+	}
+	return fmt.Errorf("an incomplete release for %s already exists; resume it with --retry last", version)
+}
+
 func loadLastReleaseJournal() (*releaseJournal, error) {
 	entries, err := os.ReadDir(releaseJournalDir())
 	if err != nil {
