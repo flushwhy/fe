@@ -85,6 +85,29 @@ func TestGodotExportRequiresExportPresetsFile(t *testing.T) {
 	}
 }
 
+func TestGodotExportRejectsUnknownPreset(t *testing.T) {
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	presets := "[preset.0]\\nname=\\\"Linux\\\"\\nplatform=\\\"Linux\\\"\\nexport_path=\\\"game.x86_64\\\"\\n"
+	if err := os.WriteFile(filepath.Join(project, "export_presets.cfg"), []byte(presets), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(project)
+	if err := godotExportCmd.Flags().Set("preset", "Windows"); err != nil {
+		t.Fatal(err)
+	}
+	if err := godotExportCmd.Flags().Set("output", "build/game.exe"); err != nil {
+		t.Fatal(err)
+	}
+
+	err := godotExportCmd.RunE(godotExportCmd, nil)
+	if err == nil || !strings.Contains(err.Error(), "Godot export preset \\\"Windows\\\" not found") {
+		t.Fatalf("expected unknown-preset error, got %v", err)
+	}
+}
+
 func TestSelectGodotEngineRejectsSingleIncompatibleEngine(t *testing.T) {
 	project := t.TempDir()
 	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte(`config/features=PackedStringArray("4.3", "GL Compatibility")`), 0600); err != nil {
