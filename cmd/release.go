@@ -51,6 +51,10 @@ CI example:
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		allowDirty, _ := cmd.Flags().GetBool("allow-dirty")
 		allowUnpushed, _ := cmd.Flags().GetBool("allow-unpushed")
+		retryMode, _ := cmd.Flags().GetString("retry")
+		if retryMode != "" && retryMode != "last" {
+			return fmt.Errorf("unsupported retry target %q (use --retry last)", retryMode)
+		}
 		gitState, gitErr := inspectReleaseGit()
 		if gitErr != nil {
 			return gitErr
@@ -86,6 +90,31 @@ CI example:
 			return err
 		}
 
+		var journal *releaseJournal
+		if retryMode == "last" {
+			if cfg.Butler.Userversion == "" {
+				return fmt.Errorf("--retry last requires the original --userversion")
+			}
+			journal, err = loadLastReleaseJournal()
+			if err != nil { return err }
+			if journal.Complete {
+				return fmt.Errorf("the last release already completed; start a new release instead")
+			}
+			if err := validateRetryJournal(journal, cfg.Butler.Userversion, gitState, channelSuffix, cfg.Butler.Directory, packageFormat, packageOutput); err != nil {
+				return err
+			}
+			fmt.Printf("Resuming release %s from commit %s\\n", journal.Version, journal.Commit)
+		} else if cfg.Butler.Userversion != "" {
+			journal = newReleaseJournal(cfg.Butler.Userversion, gitState, channelSuffix, cfg.Butler.Directory, packageFormat, packageOutput)
+			if err := journal.save(); err != nil { return err }
+		}
+		stageDone := func(name string) bool { return journal != nil && journal.Stages[name] }
+		markStageDone := func(name string) error {
+			if journal == nil { return nil }
+			journal.Stages[name] = true
+			return journal.save()
+		}
+
 		ui.Title("Release Pipeline")
 		start := time.Now()
 		totalSteps := 3
@@ -98,22 +127,30 @@ CI example:
 		stepNumber++
 		if !skipBuild {
 			if _, statErr := os.Stat("project.godot"); statErr == nil {
-				if err := godot.Export(".", cfg.Godot.Executable, cfg.Godot.OutputDir, "", exec.Command); err != nil {
-					return fmt.Errorf("Godot export step failed: %w", err)
-				}
+				if !stageDone("build:godot") {
+					if err := godot.Export(".", cfg.Godot.Executable, cfg.Godot.OutputDir, "", exec.Command); err != nil {
+						return fmt.Errorf("Godot export step failed: %w", err)
+					}
+					if err := markStageDone("build:godot"); err != nil { return err }
+				} else { ui.Dim("Godot export already complete") }
 			} else if len(cfg.Build.Targets) == 0 {
 				ui.Warn("No build targets defined — skipping build step")
 			} else {
-				steps := make([]ui.StepTask, len(cfg.Build.Targets))
-				for i, t := range cfg.Build.Targets {
-					t := t
-					steps[i] = ui.StepTask{
-						Label: fmt.Sprintf("Building %s", t.Platform),
-						Run:   func() error { return build.RunTarget(t, build.DefaultRunner) },
+				for _, target := range cfg.Build.Targets {
+					key := releaseBuildTargetKey(target.Name, target.Platform, target.Cmd)
+					if journal != nil && journal.BuildTargets[key] {
+						ui.Dim("already built: %s", target.Platform)
+						continue
 					}
-				}
-				if err := ui.RunSteps(steps); err != nil {
-					return fmt.Errorf("build step failed: %w", err)
+					if err := ui.RunSpinner(fmt.Sprintf("Building %s", target.Platform), func() error {
+						return build.RunTarget(target, build.DefaultRunner)
+					}); err != nil {
+						return fmt.Errorf("build step failed: %w", err)
+					}
+					if journal != nil {
+						journal.BuildTargets[key] = true
+						if err := journal.save(); err != nil { return err }
+					}
 				}
 			}
 		} else {
@@ -137,6 +174,8 @@ CI example:
 			ui.Dim("skipped")
 		} else if !releaseSpriteInputsAvailable(cfg.Pack) {
 			ui.Warn("No configured sprite input directory found — skipping sprite packing (software-only release). Add sprites or configure pack.input / pack.sheets in .fe.yaml if you want a spritesheet.")
+		} else if stageDone("pack") {
+			ui.Dim("sprite packing already complete")
 		} else {
 			err := ui.RunSpinner(fmt.Sprintf("Packing %s → %s", cfg.Pack.Input, cfg.Pack.Output), func() error {
 				return pack.Run(cfg.Pack)
@@ -144,6 +183,7 @@ CI example:
 			if err != nil {
 				return fmt.Errorf("pack step failed; refusing to publish an incomplete release: %w", err)
 			}
+			if err := markStageDone("pack"); err != nil { return err }
 		}
 
 		if !skipBmp || packageFormat != "" {
@@ -151,9 +191,14 @@ CI example:
 			if commit == "" {
 				commit = strings.TrimSpace(os.Getenv("GITHUB_SHA"))
 			}
-			manifestPath := filepath.Join(cfg.Butler.Directory, "artifact-manifest.json")
-			if err := writeArtifactManifest(cfg.Butler.Directory, manifestPath, cfg.Butler.Userversion, commit); err != nil {
-				return fmt.Errorf("create artifact manifest: %w", err)
+			if stageDone("manifest") {
+				ui.Dim("artifact manifest already complete")
+			} else {
+				manifestPath := filepath.Join(cfg.Butler.Directory, "artifact-manifest.json")
+				if err := writeArtifactManifest(cfg.Butler.Directory, manifestPath, cfg.Butler.Userversion, commit); err != nil {
+					return fmt.Errorf("create artifact manifest: %w", err)
+				}
+				if err := markStageDone("manifest"); err != nil { return err }
 			}
 		}
 
@@ -161,8 +206,13 @@ CI example:
 			fmt.Println()
 			ui.Step(stepNumber, totalSteps, "Generate changelog")
 			stepNumber++
-			if err := writeReleaseChangelog(changelogOutput); err != nil {
-				return err
+			if stageDone("changelog") {
+				ui.Dim("changelog already complete")
+			} else {
+				if err := writeReleaseChangelog(changelogOutput); err != nil {
+					return err
+				}
+				if err := markStageDone("changelog"); err != nil { return err }
 			}
 			ui.OK("Wrote changelog to %s", changelogOutput)
 		}
@@ -174,10 +224,15 @@ CI example:
 			if err := os.MkdirAll(filepath.Dir(packageOutput), 0755); err != nil {
 				return fmt.Errorf("create package output directory: %w", err)
 			}
-			if err := archivepkg.Create(cfg.Butler.Directory, packageOutput, packageFormat); err != nil {
-				return fmt.Errorf("package build artifacts: %w", err)
+			if stageDone("package") {
+				ui.Dim("archive already complete")
+			} else {
+				if err := archivepkg.Create(cfg.Butler.Directory, packageOutput, packageFormat); err != nil {
+					return fmt.Errorf("package build artifacts: %w", err)
+				}
+				if err := markStageDone("package"); err != nil { return err }
+				ui.OK("Created %s", packageOutput)
 			}
-			ui.OK("Created %s", packageOutput)
 		}
 
 		// ── Final step: Push ──────────────────────────────────────────────
@@ -194,14 +249,16 @@ CI example:
 			err := ui.RunSpinner(
 				fmt.Sprintf("Pushing to %s/%s", cfg.Itchio.Username, cfg.Itchio.Game),
 				func() error {
-					return butler.Push(
-						cfg.Itchio.Username,
-						cfg.Itchio.Game,
-						cfg.Butler.Directory,
-						cfg.Butler.Userversion,
-						exec.Command,
-						logger,
-						channelSuffix,
+					if journal == nil {
+						return butler.Push(cfg.Itchio.Username, cfg.Itchio.Game, cfg.Butler.Directory, cfg.Butler.Userversion, exec.Command, logger, channelSuffix)
+					}
+					return butler.PushWithProgress(
+						cfg.Itchio.Username, cfg.Itchio.Game, cfg.Butler.Directory, cfg.Butler.Userversion,
+						exec.Command, logger, journal.ButlerChannels,
+						func(channel string) error {
+							journal.ButlerChannels[channel] = true
+							return journal.save()
+						}, channelSuffix,
 					)
 				},
 			)
@@ -214,6 +271,10 @@ CI example:
 
 		fmt.Println()
 		ui.OK("Release complete")
+		if journal != nil {
+			journal.Complete = true
+			if err := journal.save(); err != nil { return err }
+		}
 		ui.Elapsed(start)
 		return nil
 	},
@@ -386,6 +447,7 @@ func init() {
 	releaseCmd.Flags().Bool("dry-run", false, "show the release plan without running commands or publishing")
 	releaseCmd.Flags().Bool("allow-dirty", false, "allow a release from a dirty Git working tree")
 	releaseCmd.Flags().Bool("allow-unpushed", false, "allow a release when the commit is not verified on a remote")
+	releaseCmd.Flags().String("retry", "", "resume the last incomplete release (use: last)")
 	releaseCmd.Flags().Bool("skip-build", false, "skip the build step")
 	releaseCmd.Flags().Bool("skip-pack", false, "skip the sprite pack step")
 	releaseCmd.Flags().Bool("skip-bmp", false, "skip the itch.io push step")
