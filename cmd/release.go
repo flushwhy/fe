@@ -90,6 +90,8 @@ CI example:
 			return err
 		}
 
+		settingsHash, err := releaseSettingsHash(cfg, skipBuild, skipPack, skipBmp, channelSuffix, changelogOutput, packageFormat, packageOutput)
+		if err != nil { return err }
 		var journal *releaseJournal
 		if retryMode == "last" {
 			if cfg.Butler.Userversion == "" {
@@ -103,9 +105,16 @@ CI example:
 			if err := validateRetryJournal(journal, cfg.Butler.Userversion, gitState, channelSuffix, cfg.Butler.Directory, packageFormat, packageOutput); err != nil {
 				return err
 			}
-			fmt.Printf("Resuming release %s from commit %s\\n", journal.Version, journal.Commit)
+			if journal.SettingsHash != settingsHash {
+				return fmt.Errorf("release configuration changed since the previous attempt; restore the original build, pack, publisher, and output settings before retrying")
+			}
+			if journal.BuildTargets == nil { journal.BuildTargets = map[string]bool{} }
+			if journal.Stages == nil { journal.Stages = map[string]bool{} }
+			if journal.ButlerChannels == nil { journal.ButlerChannels = map[string]bool{} }
+			fmt.Printf("Resuming release %s from commit %s\n", journal.Version, journal.Commit)
 		} else if cfg.Butler.Userversion != "" {
 			journal = newReleaseJournal(cfg.Butler.Userversion, gitState, channelSuffix, cfg.Butler.Directory, packageFormat, packageOutput)
+			journal.SettingsHash = settingsHash
 			if err := journal.save(); err != nil { return err }
 		}
 		stageDone := func(name string) bool { return journal != nil && journal.Stages[name] }
