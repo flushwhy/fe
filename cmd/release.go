@@ -71,7 +71,7 @@ CI example:
 			printReleaseGitState(gitState)
 			planErr := printReleasePlan(cfg, skipBuild, skipPack, skipBmp, channelSuffix, changelogOutput, packageFormat, packageOutput)
 			if gitErr := validateReleaseGit(gitState, allowDirty, allowUnpushed); gitErr != nil {
-				fmt.Printf("Git preflight: %v\\n", gitErr)
+				fmt.Printf("Git preflight: %v\n", gitErr)
 				return gitErr
 			}
 			return planErr
@@ -80,7 +80,7 @@ CI example:
 			return err
 		}
 		if gitState.IsRepo {
-			fmt.Printf("Release commit: %s (%s)\\n", gitState.Commit, gitState.Branch)
+			fmt.Printf("Release commit: %s (%s)\n", gitState.Commit, gitState.Branch)
 		}
 		if err := runConfiguredPreflight(cfg, "release"); err != nil {
 			return err
