@@ -11,16 +11,6 @@ import (
 func initReleaseGitRepo(t *testing.T) string {
 	t.Helper()
 	dir := t.TempDir()
-	run := func(args ...string) string {
-		t.Helper()
-		cmd := exec.Command("git", args...)
-		cmd.Dir = dir
-		if output, err := cmd.CombinedOutput(); err != nil {
-			t.Fatalf("git %v: %v\n%s", args, err, output)
-		}
-		return strings.TrimSpace(string(runOutput(cmd)))
-	}
-	_ = run
 	if output, err := exec.Command("git", "-C", dir, "init", "-q").CombinedOutput(); err != nil {
 		t.Fatalf("git init: %v: %s", err, output)
 	}
@@ -51,7 +41,6 @@ func runGitAt(t *testing.T, dir string, args ...string) {
 	}
 }
 
-func runOutput(cmd *exec.Cmd) []byte { return nil }
 
 func TestValidateReleaseGitAllowsNonRepository(t *testing.T) {
 	state := releaseGitState{}
