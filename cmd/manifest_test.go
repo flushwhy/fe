@@ -184,3 +184,25 @@ func TestVerifyArtifactManifestWithSymlinkedArtifactRoot(t *testing.T) {
 		t.Fatalf("verify manifest through symlinked root: %v", err)
 	}
 }
+
+
+func TestVerifyArtifactManifestRejectsAddedSymlink(t *testing.T) {
+	root := t.TempDir()
+	artifact := filepath.Join(root, "linux-x64", "game")
+	if err := os.MkdirAll(filepath.Dir(artifact), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(artifact, []byte("original"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	manifestPath := filepath.Join(root, "artifact-manifest.json")
+	if err := writeArtifactManifest(root, manifestPath, "1.2.3", "abc123"); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(artifact, filepath.Join(root, "linux-x64", "unexpected")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	if err := verifyArtifactManifest(root, manifestPath, "1.2.3", "abc123"); err == nil {
+		t.Fatal("expected an added symlink to be rejected")
+	}
+}
