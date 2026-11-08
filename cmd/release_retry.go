@@ -24,6 +24,8 @@ type releaseJournal struct {
 	PackageOutput   string          `json:"package_output,omitempty"`
 	PackageSize     int64           `json:"package_size,omitempty"`
 	PackageSHA256   string          `json:"package_sha256,omitempty"`
+	ChangelogSize   int64           `json:"changelog_size,omitempty"`
+	ChangelogSHA256 string          `json:"changelog_sha256,omitempty"`
 	BuildTargets    map[string]bool `json:"build_targets,omitempty"`
 	Stages          map[string]bool `json:"stages,omitempty"`
 	ButlerChannels  map[string]bool `json:"butler_channels,omitempty"`
@@ -158,26 +160,44 @@ func validateRetryJournal(j *releaseJournal, version string, git releaseGitState
 	return nil
 }
 
-// releasePackageIntegrity returns the size and SHA-256 of a regular package file.
-func releasePackageIntegrity(path string) (int64, string, error) {
+// releaseFileIntegrity returns the size and SHA-256 of a regular file.
+func releaseFileIntegrity(path string) (int64, string, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
-		return 0, "", fmt.Errorf("inspect package archive %q: %w", path, err)
+		return 0, "", fmt.Errorf("inspect release file %q: %w", path, err)
 	}
 	if !info.Mode().IsRegular() {
-		return 0, "", fmt.Errorf("package archive %q must be a regular file", path)
+		return 0, "", fmt.Errorf("release file %q must be a regular file", path)
 	}
 	file, err := os.Open(path)
 	if err != nil {
-		return 0, "", fmt.Errorf("open package archive %q: %w", path, err)
+		return 0, "", fmt.Errorf("open release file %q: %w", path, err)
 	}
 	defer file.Close()
 	hash := sha256.New()
 	size, err := io.Copy(hash, file)
 	if err != nil {
-		return 0, "", fmt.Errorf("hash package archive %q: %w", path, err)
+		return 0, "", fmt.Errorf("hash release file %q: %w", path, err)
 	}
 	return size, hex.EncodeToString(hash.Sum(nil)), nil
+}
+
+func releasePackageIntegrity(path string) (int64, string, error) {
+	return releaseFileIntegrity(path)
+}
+
+func verifyReleaseChangelog(j *releaseJournal, path string) error {
+	if j == nil || j.ChangelogSHA256 == "" {
+		return fmt.Errorf("completed changelog has no recorded checksum; refusing to skip generation")
+	}
+	size, checksum, err := releaseFileIntegrity(path)
+	if err != nil {
+		return err
+	}
+	if size != j.ChangelogSize || checksum != j.ChangelogSHA256 {
+		return fmt.Errorf("changelog %q changed since the previous attempt; refusing to continue", path)
+	}
+	return nil
 }
 
 func verifyReleasePackage(j *releaseJournal, path string) error {
