@@ -75,6 +75,9 @@ func Export(projectDir, executable, outputDir, onlyPreset string, runner func(st
 	if outputDir == "" {
 		outputDir = "builds"
 	}
+	if !filepath.IsAbs(outputDir) {
+		outputDir = filepath.Join(projectDir, outputDir)
+	}
 
 	found := onlyPreset == ""
 	for _, preset := range presets {
