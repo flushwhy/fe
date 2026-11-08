@@ -95,7 +95,7 @@ var godotExportCmd = &cobra.Command{
 					return err
 				}
 				preset = selected.Name
-				fmt.Fprintf(cmd.OutOrStdout(), "Selected Linux dedicated-server preset: %s\\n", preset)
+				fmt.Fprintf(cmd.OutOrStdout(), "Selected Linux dedicated-server preset: %s\n", preset)
 			} else {
 				var selected *godot.Preset
 				for i := range presets {
