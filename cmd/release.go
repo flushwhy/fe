@@ -49,6 +49,15 @@ CI example:
 		skipBmp, _ := cmd.Flags().GetBool("skip-bmp")
 		channelSuffix, _ := cmd.Flags().GetString("channel-suffix")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
+		allowDirty, _ := cmd.Flags().GetBool("allow-dirty")
+		allowUnpushed, _ := cmd.Flags().GetBool("allow-unpushed")
+		gitState, gitErr := inspectReleaseGit()
+		if gitErr != nil {
+			return gitErr
+		}
+		if err := validateReleaseGit(gitState, allowDirty, allowUnpushed); err != nil {
+			return err
+		}
 		changelogOutput, _ := cmd.Flags().GetString("changelog-output")
 		packageFormat, _ := cmd.Flags().GetString("package-format")
 		packageOutput, _ := cmd.Flags().GetString("package-output")
@@ -62,7 +71,11 @@ CI example:
 			}
 		}
 		if dryRun {
+			printReleaseGitState(gitState)
 			return printReleasePlan(cfg, skipBuild, skipPack, skipBmp, channelSuffix, changelogOutput, packageFormat, packageOutput)
+		}
+		if gitState.IsRepo {
+			fmt.Printf("Release commit: %s (%s)\\n", gitState.Commit, gitState.Branch)
 		}
 		if err := runConfiguredPreflight(cfg, "release"); err != nil {
 			return err
@@ -129,11 +142,9 @@ CI example:
 		}
 
 		if !skipBmp || packageFormat != "" {
-			commit := os.Getenv("GITHUB_SHA")
+			commit := gitState.Commit
 			if commit == "" {
-				if result, err := exec.Command("git", "rev-parse", "HEAD").Output(); err == nil {
-					commit = strings.TrimSpace(string(result))
-				}
+				commit = strings.TrimSpace(os.Getenv("GITHUB_SHA"))
 			}
 			manifestPath := filepath.Join(cfg.Butler.Directory, "artifact-manifest.json")
 			if err := writeArtifactManifest(cfg.Butler.Directory, manifestPath, cfg.Butler.Userversion, commit); err != nil {
@@ -368,6 +379,8 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, cha
 func init() {
 	rootCmd.AddCommand(releaseCmd)
 	releaseCmd.Flags().Bool("dry-run", false, "show the release plan without running commands or publishing")
+	releaseCmd.Flags().Bool("allow-dirty", false, "allow a release from a dirty Git working tree")
+	releaseCmd.Flags().Bool("allow-unpushed", false, "allow a release when the commit is not verified on a remote")
 	releaseCmd.Flags().Bool("skip-build", false, "skip the build step")
 	releaseCmd.Flags().Bool("skip-pack", false, "skip the sprite pack step")
 	releaseCmd.Flags().Bool("skip-bmp", false, "skip the itch.io push step")
