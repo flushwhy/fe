@@ -55,9 +55,6 @@ CI example:
 		if gitErr != nil {
 			return gitErr
 		}
-		if err := validateReleaseGit(gitState, allowDirty, allowUnpushed); err != nil {
-			return err
-		}
 		changelogOutput, _ := cmd.Flags().GetString("changelog-output")
 		packageFormat, _ := cmd.Flags().GetString("package-format")
 		packageOutput, _ := cmd.Flags().GetString("package-output")
@@ -72,7 +69,15 @@ CI example:
 		}
 		if dryRun {
 			printReleaseGitState(gitState)
-			return printReleasePlan(cfg, skipBuild, skipPack, skipBmp, channelSuffix, changelogOutput, packageFormat, packageOutput)
+			planErr := printReleasePlan(cfg, skipBuild, skipPack, skipBmp, channelSuffix, changelogOutput, packageFormat, packageOutput)
+			if gitErr := validateReleaseGit(gitState, allowDirty, allowUnpushed); gitErr != nil {
+				fmt.Printf("Git preflight: %v\\n", gitErr)
+				return gitErr
+			}
+			return planErr
+		}
+		if err := validateReleaseGit(gitState, allowDirty, allowUnpushed); err != nil {
+			return err
 		}
 		if gitState.IsRepo {
 			fmt.Printf("Release commit: %s (%s)\\n", gitState.Commit, gitState.Branch)
