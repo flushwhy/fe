@@ -202,7 +202,11 @@ CI example:
 				commit = strings.TrimSpace(os.Getenv("GITHUB_SHA"))
 			}
 			if stageDone("manifest") {
-				ui.Dim("artifact manifest already complete")
+				manifestPath := filepath.Join(cfg.Butler.Directory, "artifact-manifest.json")
+				if err := verifyArtifactManifest(cfg.Butler.Directory, manifestPath, cfg.Butler.Userversion, commit); err != nil {
+					return fmt.Errorf("completed artifacts are no longer valid; refusing to resume publication: %w", err)
+				}
+				ui.Dim("artifact manifest and completed artifacts verified")
 			} else {
 				manifestPath := filepath.Join(cfg.Butler.Directory, "artifact-manifest.json")
 				if err := writeArtifactManifest(cfg.Butler.Directory, manifestPath, cfg.Butler.Userversion, commit); err != nil {
