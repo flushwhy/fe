@@ -4,6 +4,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -40,6 +41,50 @@ func TestReadPresets(t *testing.T) {
 	}
 	if len(presets) != 1 || presets[0].Name != "Windows Desktop" || presets[0].Platform != "Windows Desktop" || presets[0].ExportPath != "build/game.exe" {
 		t.Fatalf("unexpected presets: %#v", presets)
+	}
+}
+
+func TestReadPresetsDetectsDedicatedServer(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "export_presets.cfg")
+	content := "[preset.0]\nname=\"Linux Server\"\nplatform=\"Linux\"\ndedicated_server=true\n"
+	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	presets, err := ReadPresets(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(presets) != 1 || !presets[0].DedicatedServer {
+		t.Fatalf("expected dedicated-server preset, got %#v", presets)
+	}
+}
+
+func TestFindLinuxServerPreset(t *testing.T) {
+	presets := []Preset{
+		{Name: "Linux Desktop", Platform: "Linux", DedicatedServer: false},
+		{Name: "Windows Server", Platform: "Windows Desktop", DedicatedServer: true},
+		{Name: "Linux Dedicated", Platform: "Linux", DedicatedServer: true},
+	}
+	got, err := FindLinuxServerPreset(presets)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Name != "Linux Dedicated" {
+		t.Fatalf("selected %q, want Linux Dedicated", got.Name)
+	}
+}
+
+func TestFindLinuxServerPresetRejectsMissingAndAmbiguousMatches(t *testing.T) {
+	_, err := FindLinuxServerPreset([]Preset{{Name: "Linux", Platform: "Linux"}})
+	if err == nil || !strings.Contains(err.Error(), "no Linux dedicated-server") {
+		t.Fatalf("expected missing server preset error, got %v", err)
+	}
+	_, err = FindLinuxServerPreset([]Preset{
+		{Name: "Server A", Platform: "Linux", DedicatedServer: true},
+		{Name: "Server B", Platform: "Linux", DedicatedServer: true},
+	})
+	if err == nil || !strings.Contains(err.Error(), "multiple Linux dedicated-server presets") {
+		t.Fatalf("expected ambiguous server preset error, got %v", err)
 	}
 }
 
