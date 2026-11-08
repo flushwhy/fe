@@ -115,7 +115,7 @@ export_path="game.x86_64"
 	}
 }
 
-func TestGodotExportServerOptimizationFindsDedicatedPreset(t *testing.T) {
+func TestGodotExportServerOptimizationRequiresDedicatedPreset(t *testing.T) {
 	project := t.TempDir()
 	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\\n"), 0o644); err != nil {
 		t.Fatal(err)
@@ -124,11 +124,6 @@ func TestGodotExportServerOptimizationFindsDedicatedPreset(t *testing.T) {
 name="Linux Desktop"
 platform="Linux"
 dedicated_server=false
-
-[preset.1]
-name="Linux Dedicated"
-platform="Linux"
-dedicated_server=true
 `
 	if err := os.WriteFile(filepath.Join(project, "export_presets.cfg"), []byte(presets), 0o644); err != nil {
 		t.Fatal(err)
@@ -139,8 +134,8 @@ dedicated_server=true
 	_ = godotExportCmd.Flags().Set("output", "build/server.x86_64")
 
 	err := godotExportCmd.RunE(godotExportCmd, nil)
-	if err == nil || !strings.Contains(err.Error(), "no Godot executable found") {
-		t.Fatalf("expected discovery to pass and engine selection to be next, got %v", err)
+	if err == nil || !strings.Contains(err.Error(), "no Linux dedicated-server export preset found") {
+		t.Fatalf("expected missing dedicated-server preset error, got %v", err)
 	}
 }
 
