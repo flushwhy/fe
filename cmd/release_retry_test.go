@@ -114,3 +114,39 @@ func TestVerifyReleasePackageRejectsMissingChecksumAndNonRegularFile(t *testing.
 		t.Fatal("expected non-regular package path to be rejected")
 	}
 }
+
+
+func TestVerifyReleaseChangelogDetectsChangedFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "CHANGELOG.md")
+	if err := os.WriteFile(path, []byte("release notes"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	size, checksum, err := releaseFileIntegrity(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	journal := &releaseJournal{ChangelogSize: size, ChangelogSHA256: checksum}
+	if err := verifyReleaseChangelog(journal, path); err != nil {
+		t.Fatalf("unchanged changelog should verify: %v", err)
+	}
+	if err := os.WriteFile(path, []byte("changed release notes"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyReleaseChangelog(journal, path); err == nil {
+		t.Fatal("expected changed changelog to be rejected")
+	}
+}
+
+func TestVerifyReleaseChangelogRejectsMissingChecksumAndFile(t *testing.T) {
+	path := filepath.Join(t.TempDir(), "CHANGELOG.md")
+	if err := os.WriteFile(path, []byte("release notes"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := verifyReleaseChangelog(&releaseJournal{}, path); err == nil {
+		t.Fatal("expected missing checksum to be rejected")
+	}
+	journal := &releaseJournal{ChangelogSHA256: "recorded"}
+	if err := verifyReleaseChangelog(journal, filepath.Join(filepath.Dir(path), "missing.md")); err == nil {
+		t.Fatal("expected missing changelog to be rejected")
+	}
+}
