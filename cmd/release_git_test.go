@@ -50,6 +50,7 @@ func TestValidateReleaseGitAllowsNonRepository(t *testing.T) {
 }
 
 func TestInspectReleaseGitDetectsDirtyTree(t *testing.T) {
+	t.Setenv("GITHUB_SHA", "")
 	dir := initReleaseGitRepo(t)
 	old, err := os.Getwd()
 	if err != nil { t.Fatal(err) }
@@ -67,6 +68,7 @@ func TestInspectReleaseGitDetectsDirtyTree(t *testing.T) {
 }
 
 func TestInspectReleaseGitUntrackedFilesAreDirty(t *testing.T) {
+	t.Setenv("GITHUB_SHA", "")
 	dir := initReleaseGitRepo(t)
 	old, err := os.Getwd()
 	if err != nil { t.Fatal(err) }
