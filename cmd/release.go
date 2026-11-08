@@ -221,14 +221,23 @@ CI example:
 			ui.Step(stepNumber, totalSteps, "Generate changelog")
 			stepNumber++
 			if stageDone("changelog") {
-				ui.Dim("changelog already complete")
+				if err := verifyReleaseChangelog(journal, changelogOutput); err != nil {
+					return fmt.Errorf("completed changelog is no longer valid: %w", err)
+				}
+				ui.Dim("changelog verified; skipping completed stage")
 			} else {
 				if err := writeReleaseChangelog(changelogOutput); err != nil {
 					return err
 				}
+				if journal != nil {
+					journal.ChangelogSize, journal.ChangelogSHA256, err = releaseFileIntegrity(changelogOutput)
+					if err != nil {
+						return err
+					}
+				}
 				if err := markStageDone("changelog"); err != nil { return err }
+				ui.OK("Wrote changelog to %s", changelogOutput)
 			}
-			ui.OK("Wrote changelog to %s", changelogOutput)
 		}
 
 		if packageFormat != "" {
