@@ -322,6 +322,8 @@ The directory names are collected until the next flag (starting with `--`), so y
 
 Run `fe release --dry-run` to inspect configured build/export targets, sprite packing, and itch.io publishing requirements without running build commands or uploading anything. The dry run reports missing credentials and unsupported Godot export platforms. It may still inspect local configuration and files, but does not build, pack, or publish.
 
+When the project is a Git repository, `fe release` also checks that the working tree is clean and that the release commit is verifiably present on a remote. Git is optional for non-repository projects. Use `--allow-dirty` or `--allow-unpushed` to bypass only the corresponding check. The dry run reports the checked-out commit and any Git blockers.
+
 `fe manifest` writes `builds/artifact-manifest.json` by default (or use `--dir`, `--output`, and `--version`). The JSON lists each artifact path, platform folder, file size, SHA-256 checksum, version, and commit when available. Symlinks are excluded and an empty artifact directory is treated as an error. `fe release` creates this manifest automatically before publishing. A failed sprite pack now stops the release instead of uploading potentially incomplete output.
 
 `fe doctor` includes checks for Fe build target configuration and, in Godot projects, the configured Godot executable and export presets. Use `fe validate` for configuration validation and `fe doctor` for environment-oriented diagnostics.
