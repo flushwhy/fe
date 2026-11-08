@@ -4,6 +4,8 @@ import (
 	"os"
 	"testing"
 	"time"
+
+	"github.com/flushwhy/fe/internal/config"
 )
 
 func TestReleaseJournalSaveAndLoadLast(t *testing.T) {
@@ -51,4 +53,27 @@ func TestLoadLastReleaseJournalChoosesMostRecentlyUpdated(t *testing.T) {
 	loaded, err := loadLastReleaseJournal()
 	if err != nil { t.Fatal(err) }
 	if loaded.Version != "1.1.0" { t.Fatalf("got %s, want latest 1.1.0", loaded.Version) }
+}
+
+func TestEnsureNoExistingReleaseJournalBlocksDuplicateVersion(t *testing.T) {
+	old, err := os.Getwd()
+	if err != nil { t.Fatal(err) }
+	if err := os.Chdir(t.TempDir()); err != nil { t.Fatal(err) }
+	t.Cleanup(func() { _ = os.Chdir(old) })
+
+	journal := newReleaseJournal("1.2.3", releaseGitState{Commit: "abc123"}, "", "builds", "", "")
+	if err := journal.save(); err != nil { t.Fatal(err) }
+	if err := ensureNoExistingReleaseJournal("1.2.3"); err == nil {
+		t.Fatal("expected an existing incomplete release to block a duplicate attempt")
+	}
+}
+
+func TestReleaseSettingsHashChangesWithBuildConfiguration(t *testing.T) {
+	cfg := &config.Config{}
+	first, err := releaseSettingsHash(cfg, false, false, false, "", "", "", "")
+	if err != nil { t.Fatal(err) }
+	cfg.Build.Targets = []config.BuildTarget{{Name: "linux", Platform: "linux-x64", Cmd: "make"}}
+	second, err := releaseSettingsHash(cfg, false, false, false, "", "", "", "")
+	if err != nil { t.Fatal(err) }
+	if first == second { t.Fatal("expected build config change to alter release settings hash") }
 }
