@@ -129,3 +129,35 @@ func TestWriteArtifactManifestAcceptsSymlinkedRoot(t *testing.T) {
 		t.Fatalf("unexpected artifacts: %#v", got.Artifacts)
 	}
 }
+
+func TestVerifyArtifactManifestRejectsChangedArtifacts(t *testing.T) {
+	root := t.TempDir()
+	artifact := filepath.Join(root, "linux-x64", "game")
+	if err := os.MkdirAll(filepath.Dir(artifact), 0o755); err != nil { t.Fatal(err) }
+	if err := os.WriteFile(artifact, []byte("original"), 0o644); err != nil { t.Fatal(err) }
+	manifestPath := filepath.Join(root, "artifact-manifest.json")
+	if err := writeArtifactManifest(root, manifestPath, "1.2.3", "abc123"); err != nil { t.Fatal(err) }
+	if err := verifyArtifactManifest(root, manifestPath, "1.2.3", "abc123"); err != nil {
+		t.Fatalf("unchanged artifacts should verify: %v", err)
+	}
+	if err := os.WriteFile(artifact, []byte("modified"), 0o644); err != nil { t.Fatal(err) }
+	if err := verifyArtifactManifest(root, manifestPath, "1.2.3", "abc123"); err == nil {
+		t.Fatal("expected modified artifact to be rejected")
+	}
+}
+
+func TestVerifyArtifactManifestRejectsAddedArtifactAndWrongIdentity(t *testing.T) {
+	root := t.TempDir()
+	artifact := filepath.Join(root, "linux-x64", "game")
+	if err := os.MkdirAll(filepath.Dir(artifact), 0o755); err != nil { t.Fatal(err) }
+	if err := os.WriteFile(artifact, []byte("original"), 0o644); err != nil { t.Fatal(err) }
+	manifestPath := filepath.Join(root, "artifact-manifest.json")
+	if err := writeArtifactManifest(root, manifestPath, "1.2.3", "abc123"); err != nil { t.Fatal(err) }
+	if err := os.WriteFile(filepath.Join(root, "linux-x64", "extra"), []byte("extra"), 0o644); err != nil { t.Fatal(err) }
+	if err := verifyArtifactManifest(root, manifestPath, "1.2.3", "abc123"); err == nil {
+		t.Fatal("expected an added artifact to be rejected")
+	}
+	if err := verifyArtifactManifest(root, manifestPath, "9.9.9", "abc123"); err == nil {
+		t.Fatal("expected a different release version to be rejected")
+	}
+}
