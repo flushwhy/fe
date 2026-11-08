@@ -53,7 +53,7 @@ Name: fe
 Version: $version
 Release: $rpm_release
 Summary: Local middleware CLI for game and software development
-License: MIT
+License: GPL-3.0-only
 
 %description
 Glue between your engine/compiler and shipping workflows.
