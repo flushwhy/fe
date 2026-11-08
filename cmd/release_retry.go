@@ -23,6 +23,7 @@ type releaseJournal struct {
 	Stages         map[string]bool `json:"stages,omitempty"`
 	ButlerChannels map[string]bool `json:"butler_channels,omitempty"`
 	UpdatedAt      time.Time       `json:"updated_at"`
+	Complete       bool            `json:"complete,omitempty"`
 }
 
 func releaseJournalDir() string { return filepath.Join(".fe", "releases") }
