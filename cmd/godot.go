@@ -10,7 +10,8 @@ import (
 	"runtime"
 	"strings"
 
-	"github.com/flushwhy/fe/internal/godot"\n\t"github.com/spf13/cobra"
+	"github.com/flushwhy/fe/internal/godot"
+	"github.com/spf13/cobra"
 )
 
 type godotEngine struct {
