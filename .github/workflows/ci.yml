@@ -43,6 +43,7 @@ jobs:
           bash scripts/package-linux.sh 0.0.0
           test "$(rpm -qp --qf '%{ARCH}' dist/packages/fe-0.0.0-x86_64.rpm)" = x86_64
           test "$(rpm -qp --qf '%{ARCH}' dist/packages/fe-0.0.0-aarch64.rpm)" = aarch64
+          test "$(rpm -qp --qf '%{LICENSE}' dist/packages/fe-0.0.0-x86_64.rpm)" = GPL-3.0-only
           package="./dist/packages/fe_0.0.0_amd64.deb"
           test -f "$package"
           dpkg-deb --info "$package" >/dev/null
