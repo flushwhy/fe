@@ -76,6 +76,9 @@ var godotExportCmd = &cobra.Command{
 		if optimize != "" && optimize != "server" {
 			return fmt.Errorf("unsupported optimization profile %q; currently supported: server", optimize)
 		}
+		if optimize == "" && strings.TrimSpace(preset) == "" {
+			return errors.New("an export preset is required; pass --preset")
+		}
 		output, _ := cmd.Flags().GetString("output")
 		presetFile := filepath.Join(project, "export_presets.cfg")
 		if _, err := os.Stat(presetFile); err != nil {
