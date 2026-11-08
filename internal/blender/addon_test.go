@@ -14,7 +14,7 @@ version = "1.2.3"
 name = "Sample Add-on"
 tagline = "A sample Blender add-on"
 maintainer = "Example Developer"
-type = "add-on"
+type = ["add-on"]
 blender_version_min = "4.2.0"
 license = ["SPDX:GPL-3.0-or-later"]
 `
@@ -114,7 +114,7 @@ version = "not-a-version"
 name = ""
 tagline = "A tagline."
 maintainer = ""
-type = "theme"
+type = ["theme"]
 blender_version_min = "4"
 license = []
 `)

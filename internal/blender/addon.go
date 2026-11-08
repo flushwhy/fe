@@ -32,7 +32,7 @@ type Manifest struct {
 	Name             string   `toml:"name"`
 	Tagline          string   `toml:"tagline"`
 	Maintainer       string   `toml:"maintainer"`
-	Type             string   `toml:"type"`
+	Type             []string `toml:"type"`
 	BlenderVersionMin string  `toml:"blender_version_min"`
 	License          []string `toml:"license"`
 }
@@ -144,7 +144,6 @@ func validateManifest(addon Addon) error {
 		"name":                m.Name,
 		"tagline":             m.Tagline,
 		"maintainer":          m.Maintainer,
-		"type":                m.Type,
 		"blender_version_min": m.BlenderVersionMin,
 	}
 	for field, value := range required {
@@ -167,8 +166,10 @@ func validateManifest(addon Addon) error {
 	if len(m.License) == 0 {
 		problems = append(problems, "license must contain at least one SPDX license identifier")
 	}
-	if m.Type != "" && m.Type != "add-on" {
-		problems = append(problems, "only Blender add-on extensions (type = \"add-on\") are supported")
+	if len(m.Type) == 0 {
+		problems = append(problems, "type is required")
+	} else if len(m.Type) != 1 || m.Type[0] != "add-on" {
+		problems = append(problems, "only Blender add-on extensions (type = [\"add-on\"]) are supported")
 	}
 	if len(m.Tagline) > 64 {
 		problems = append(problems, "tagline must be 64 characters or fewer")
