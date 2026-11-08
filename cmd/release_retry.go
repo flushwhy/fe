@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"crypto/sha256"
+	"encoding/json"
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
@@ -9,6 +10,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/flushwhy/fe/internal/config"
 )
 
 type releaseJournal struct {
@@ -24,6 +27,7 @@ type releaseJournal struct {
 	ButlerChannels map[string]bool `json:"butler_channels,omitempty"`
 	UpdatedAt      time.Time       `json:"updated_at"`
 	Complete       bool            `json:"complete,omitempty"`
+	SettingsHash   string          `json:"settings_hash,omitempty"`
 }
 
 func releaseJournalDir() string { return filepath.Join(".fe", "releases") }
@@ -99,6 +103,28 @@ func validateRetryJournal(j *releaseJournal, version string, git releaseGitState
 		return fmt.Errorf("release settings changed since the previous attempt; restore the original channel, output directory, and package settings before retrying")
 	}
 	return nil
+}
+
+func releaseSettingsHash(cfg *config.Config, skipBuild, skipPack, skipBmp bool, channelSuffix, changelogOutput, packageFormat, packageOutput string) (string, error) {
+	settings := struct {
+		Build config.BuildConfig
+		Godot config.GodotConfig
+		Pack config.PackConfig
+		Itchio config.ItchioConfig
+		ButlerDirectory string
+		SkipBuild, SkipPack, SkipBMP bool
+		ChannelSuffix, ChangelogOutput, PackageFormat, PackageOutput string
+	}{
+		Build: cfg.Build, Godot: cfg.Godot, Pack: cfg.Pack, Itchio: cfg.Itchio,
+		ButlerDirectory: cfg.Butler.Directory,
+		SkipBuild: skipBuild, SkipPack: skipPack, SkipBMP: skipBmp,
+		ChannelSuffix: channelSuffix, ChangelogOutput: changelogOutput,
+		PackageFormat: packageFormat, PackageOutput: packageOutput,
+	}
+	data, err := json.Marshal(settings)
+	if err != nil { return "", fmt.Errorf("fingerprint release settings: %w", err) }
+	sum := sha256.Sum256(data)
+	return hex.EncodeToString(sum[:]), nil
 }
 
 func releaseBuildTargetKey(name, platform, command string) string {
