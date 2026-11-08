@@ -108,3 +108,21 @@ func TestPush(t *testing.T) {
 		}
 	})
 }
+
+func TestPushWithProgressSkipsCompletedChannels(t *testing.T) {
+	tmp := t.TempDir()
+	_ = os.MkdirAll(filepath.Join(tmp, "linux-x64"), 0o755)
+	_ = os.MkdirAll(filepath.Join(tmp, "windows-x64"), 0o755)
+
+	completed := map[string]bool{"linux-x64": true}
+	recorded := ""
+	want := []string{"butler", "push", filepath.Join(tmp, "windows-x64"), "u/g:windows-x64"}
+	err := PushWithProgress("u", "g", tmp, "", helperExecutor(t, want), discardLogger, completed, func(channel string) error {
+		recorded = channel
+		completed[channel] = true
+		return nil
+	})
+	if err != nil { t.Fatal(err) }
+	if recorded != "windows-x64" { t.Fatalf("recorded %q, want windows-x64", recorded) }
+	if !completed["linux-x64"] || !completed["windows-x64"] { t.Fatalf("unexpected completed channels: %#v", completed) }
+}
