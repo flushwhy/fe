@@ -239,10 +239,19 @@ CI example:
 				return fmt.Errorf("create package output directory: %w", err)
 			}
 			if stageDone("package") {
-				ui.Dim("archive already complete")
+				if err := verifyReleasePackage(journal, packageOutput); err != nil {
+					return fmt.Errorf("completed package archive is no longer valid: %w", err)
+				}
+				ui.Dim("package archive verified; skipping completed stage")
 			} else {
 				if err := archivepkg.Create(cfg.Butler.Directory, packageOutput, packageFormat); err != nil {
 					return fmt.Errorf("package build artifacts: %w", err)
+				}
+				if journal != nil {
+					journal.PackageSize, journal.PackageSHA256, err = releasePackageIntegrity(packageOutput)
+					if err != nil {
+						return err
+					}
 				}
 				if err := markStageDone("package"); err != nil { return err }
 				ui.OK("Created %s", packageOutput)
