@@ -87,10 +87,10 @@ func TestGodotExportRequiresExportPresetsFile(t *testing.T) {
 
 func TestGodotExportRejectsUnknownPreset(t *testing.T) {
 	project := t.TempDir()
-	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
-	presets := "[preset.0]\\nname=\\\"Linux\\\"\\nplatform=\\\"Linux\\\"\\nexport_path=\\\"game.x86_64\\\"\\n"
+	presets := "[preset.0]\nname=\\"Linux\\"\nplatform=\\"Linux\\"\nexport_path=\\"game.x86_64\\"\n"
 	if err := os.WriteFile(filepath.Join(project, "export_presets.cfg"), []byte(presets), 0o644); err != nil {
 		t.Fatal(err)
 	}
@@ -103,7 +103,7 @@ func TestGodotExportRejectsUnknownPreset(t *testing.T) {
 	}
 
 	err := godotExportCmd.RunE(godotExportCmd, nil)
-	if err == nil || !strings.Contains(err.Error(), "Godot export preset \\\"Windows\\\" not found") {
+	if err == nil || !strings.Contains(err.Error(), "not found in export_presets.cfg") {
 		t.Fatalf("expected unknown-preset error, got %v", err)
 	}
 }
