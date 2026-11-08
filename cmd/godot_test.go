@@ -116,7 +116,7 @@ func TestSelectGodotEngineMatchesProjectVersion(t *testing.T) {
 
 func TestSelectGodotEngineUsesOnlyEngineWhenProjectVersionIsUnknown(t *testing.T) {
 	project := t.TempDir()
-	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\\n"), 0600); err != nil {
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\n"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	got, err := selectGodotEngineFrom(project, "", []godotEngine{{Path: "godot", Version: "4.3.stable.official"}})
@@ -140,7 +140,7 @@ func TestGodotVersionMatchesWholeComponent(t *testing.T) {
 
 func TestGodotDoctorDoesNotRequireNativeExtensionForRegularProject(t *testing.T) {
 	project := t.TempDir()
-	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	t.Chdir(project)
@@ -152,14 +152,14 @@ func TestGodotDoctorDoesNotRequireNativeExtensionForRegularProject(t *testing.T)
 		t.Fatal(err)
 	}
 	if strings.Contains(output.String(), "godot-cpp: not found") {
-		t.Fatalf("regular Godot project should not require godot-cpp; output:\\n%s", output.String())
+		t.Fatalf("regular Godot project should not require godot-cpp; output:\n%s", output.String())
 	}
 }
 
 func TestGodotDoctorReportsMissingGodotCppForNativeScaffold(t *testing.T) {
 	project := t.TempDir()
 	for path, content := range map[string]string{
-		"project.godot": "config_version=5\\n",
+		"project.godot": "config_version=5\n",
 		"native/CMakeLists.txt": "project(test)",
 	} {
 		fullPath := filepath.Join(project, filepath.FromSlash(path))
@@ -179,6 +179,6 @@ func TestGodotDoctorReportsMissingGodotCppForNativeScaffold(t *testing.T) {
 		t.Fatal(err)
 	}
 	if !strings.Contains(output.String(), "godot-cpp: not found") {
-		t.Fatalf("native scaffold should report missing godot-cpp; output:\\n%s", output.String())
+		t.Fatalf("native scaffold should report missing godot-cpp; output:\n%s", output.String())
 	}
 }
