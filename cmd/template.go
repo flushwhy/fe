@@ -16,6 +16,7 @@ var templateCmd = &cobra.Command{
 var templateListCmd = &cobra.Command{
 	Use:   "list",
 	Short: "List templates available from fe-templates.",
+	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		templates, err := scaffold.ListRemoteTemplates()
 		if err != nil {
