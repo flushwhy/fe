@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/flushwhy/fe/internal/projectstate"
 	"github.com/flushwhy/fe/internal/scaffold"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -74,7 +73,8 @@ Refresh a cached template with: fe template update <template-id>`, supportedLang
 		if isCI() {
 			return nil
 		}
-		return projectstate.Sync(name)
+		_, err := syncProject(name)
+		return err
 	},
 }
 
