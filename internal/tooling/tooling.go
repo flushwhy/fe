@@ -184,9 +184,8 @@ func printClangdNextSteps(root string) {
 
 	if hasCMake {
 		ui.Hint(
-			"cmake -B build -DCMAKE_EXPORT_COMPILE_COMMANDS=ON",
-			"cmake --build build",
-			"# clangd will index automatically once compile_commands.json is populated",
+			"fe fix compile-commands",
+			"# Fe detects the active CMake build directory and configures clangd",
 		)
 	} else if hasMakefile {
 		ui.Hint(
