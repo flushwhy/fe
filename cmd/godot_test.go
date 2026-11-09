@@ -7,6 +7,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/flushwhy/fe/internal/projectstate"
 	"github.com/spf13/cobra"
 )
 
@@ -207,5 +208,56 @@ func TestGodotDoctorReportsMissingGodotCppForNativeScaffold(t *testing.T) {
 	}
 	if !strings.Contains(output.String(), "godot-cpp: not found") {
 		t.Fatalf("native scaffold should report missing godot-cpp; output:\n%s", output.String())
+	}
+}
+
+func TestSelectGodotEngineUsesProjectManagedVersion(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("uses a Unix executable fixture")
+	}
+	t.Setenv("FE_HOME", t.TempDir())
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte(`config/features=PackedStringArray("4.3", "GL Compatibility")`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cache, err := projectstate.ToolCacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	toolPath := filepath.Join(cache, "godot", "4.3-stable", "linux-x86_64")
+	if err := os.MkdirAll(toolPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	executable := filepath.Join(toolPath, "Godot_v4.3-stable_linux.x86_64")
+	if err := os.WriteFile(executable, []byte("#!/bin/sh\necho 4.3.stable.official\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(toolPath, ".fe-managed"), []byte("godot:4.3-stable\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := projectstate.Sync(project); err != nil {
+		t.Fatal(err)
+	}
+	if err := projectstate.RegisterTool(project, "godot:4.3-stable", toolPath); err != nil {
+		t.Fatal(err)
+	}
+	got, err := selectGodotEngine(project, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Path != executable || !godotVersionMatches(got.Version, "4.3") {
+		t.Fatalf("selected %#v, want managed engine %s", got, executable)
+	}
+}
+
+func TestGodotInstallIsDisabledInCI(t *testing.T) {
+	t.Setenv("CI", "true")
+	if err := godotInstallCmd.Flags().Set("version", "4.3"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = godotInstallCmd.Flags().Set("version", "") })
+	err := godotInstallCmd.RunE(godotInstallCmd, nil)
+	if err == nil || !strings.Contains(err.Error(), "disabled in CI") {
+		t.Fatalf("expected CI guard, got %v", err)
 	}
 }
