@@ -64,3 +64,27 @@ func TestSyncProjectReusesMatchingGlobalGodot(t *testing.T) {
 		t.Fatalf("sync downloaded a local engine despite a matching global one: ok=%v err=%v", ok, err)
 	}
 }
+
+func TestSyncProjectRootDoesNotClaimParentProject(t *testing.T) {
+	for _, key := range []string{"CI", "GITHUB_ACTIONS", "JENKINS_URL", "BUILDKITE", "BUILD_ID", "TF_BUILD"} {
+		t.Setenv(key, "")
+	}
+	t.Setenv("FE_HOME", t.TempDir())
+	parent := t.TempDir()
+	if err := os.WriteFile(filepath.Join(parent, "project.godot"), []byte(`config/features=PackedStringArray("4.3", "GL Compatibility")`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	child := filepath.Join(parent, "new-project")
+	if err := os.Mkdir(child, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := syncProjectRoot(child); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(filepath.Join(child, "fe-uninstall.sh")); err != nil {
+		t.Fatalf("new project was not synced: %v", err)
+	}
+	if _, err := os.Stat(filepath.Join(parent, "fe-uninstall.sh")); !os.IsNotExist(err) {
+		t.Fatalf("sync claimed the parent project instead: %v", err)
+	}
+}
