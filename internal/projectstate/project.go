@@ -276,7 +276,7 @@ func ensureGitignore(path string) error {
 	if content != "" && !strings.HasSuffix(content, lineBreak) {
 		content += lineBreak
 	}
-	content += ignoreStart + lineBreak + ".fe/" + lineBreak + ignoreEnd + lineBreak
+	content += ignoreStart + lineBreak + ".fe/" + lineBreak + "fe-uninstall.sh" + lineBreak + "fe-uninstall.bat" + lineBreak + ignoreEnd + lineBreak
 	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
 		return fmt.Errorf("update .gitignore: %w", err)
 	}
