@@ -61,13 +61,20 @@ Refresh a cached template with: fe template update <template-id>`, supportedLang
 		// Remote URL from flag or config file.
 		remoteURL := viper.GetString("templates.source")
 
-		return scaffold.Init(scaffold.Options{
+		if err := scaffold.Init(scaffold.Options{
 			Lang:      lang,
 			Name:      name,
 			Module:    module,
 			RemoteURL: remoteURL,
 			TemplateID: templateID,
-		})
+		}); err != nil {
+			return err
+		}
+		if isCI() {
+			return nil
+		}
+		_, err := syncProjectRoot(name)
+		return err
 	},
 }
 

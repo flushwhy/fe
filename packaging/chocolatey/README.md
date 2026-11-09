@@ -6,7 +6,7 @@ repository secret `CHOCOLATEY_API_KEY` is configured, the workflow also pushes t
 package to Chocolatey Community Repository.
 
 To enable publishing:
-1. Create an account at https://community.chocolatey.org/.
+1. Create an account at <https://community.chocolatey.org/>.
 2. Obtain your API key from your Chocolatey account.
 3. Add it to the GitHub repository as Actions secret `CHOCOLATEY_API_KEY`.
 

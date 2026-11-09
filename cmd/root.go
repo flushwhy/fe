@@ -18,6 +18,10 @@ var rootCmd = &cobra.Command{
   Project scaffolding:
     fe init <lang> --name <project>   scaffold a language starter from fe-templates
     fe init --template <id> --name <project>   scaffold from fe-templates
+    fe sync [path]                    sync project files and required local tools (local only)
+    fe clean [path]                   remove Fe-managed files and registrations
+    fe clean --dry-run                preview project cleanup
+    fe clean --all                    clean all registered projects
     fe template list                 list available remote templates
     fe template update <id>          refresh a cached template
     fe add <tool>                     wire up LSP/editor tooling (clangd, ols, zls, gopls)
@@ -32,6 +36,8 @@ var rootCmd = &cobra.Command{
 
   Godot workflow glue:
     fe godot engines                  detect installed Godot versions
+    fe godot install                  install the project version if no global match exists
+    fe godot install --version 4.4    install a specific stable engine version
     fe godot open [--version 4.x]     open the current project with a matching engine
     fe godot extension (ex|ext)       scaffold, build, and diagnose native extensions
     fe godot doctor                   inspect project and native-extension prerequisites

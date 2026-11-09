@@ -11,6 +11,8 @@ import (
 	"strings"
 
 	"github.com/flushwhy/fe/internal/godot"
+	"github.com/flushwhy/fe/internal/godotinstall"
+	"github.com/flushwhy/fe/internal/projectstate"
 	"github.com/spf13/cobra"
 )
 
@@ -31,12 +33,56 @@ var godotEnginesCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		engines := detectGodotEngines()
+		if project, err := findGodotProject("."); err == nil {
+			engines = appendProjectGodotEngine(engines, project)
+		}
 		if len(engines) == 0 {
-			return errors.New("no Godot executable found on PATH; install Godot or add its directory to PATH")
+			return errors.New("no Godot executable found; install one globally or run 'fe godot install'")
 		}
 		for _, e := range engines {
-			fmt.Printf("%-18s %s\n", e.Version, e.Path)
+			fmt.Fprintf(cmd.OutOrStdout(), "%-18s %s\n", e.Version, e.Path)
 		}
+		return nil
+	},
+}
+
+var godotInstallCmd = &cobra.Command{
+	Use:   "install [--version <version>]",
+	Short: "Install a project-managed Godot version when no matching global engine exists.",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if isCI() {
+			return errors.New("Godot tool installation is for developer machines and is disabled in CI")
+		}
+		project, err := findGodotProject(".")
+		if err != nil {
+			return err
+		}
+		version, _ := cmd.Flags().GetString("version")
+		if strings.TrimSpace(version) == "" {
+			version = projectGodotVersion(project)
+		}
+		if strings.TrimSpace(version) == "" {
+			return errors.New("could not detect the project's Godot version; pass --version (for example 4.3)")
+		}
+		for _, engine := range detectGodotEngines() {
+			if godotVersionMatches(engine.Version, version) {
+				fmt.Fprintf(cmd.OutOrStdout(), "Using globally installed Godot %s: %s\n", engine.Version, engine.Path)
+				return nil
+			}
+		}
+		if err := projectstate.Sync(project); err != nil {
+			return fmt.Errorf("prepare project cleanup state: %w", err)
+		}
+		executable, toolPath, err := godotinstall.Install(version)
+		if err != nil {
+			return err
+		}
+		if err := projectstate.RegisterTool(project, godotToolName(version), toolPath); err != nil {
+			return fmt.Errorf("register managed Godot installation: %w", err)
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "Godot %s is ready for this project.\n", version)
+		fmt.Fprintf(cmd.OutOrStdout(), "Executable: %s\n", executable)
 		return nil
 	},
 }
@@ -145,8 +191,11 @@ var godotDoctorCmd = &cobra.Command{
 		}
 		fmt.Fprintln(out, "Detected engines:")
 		engines := detectGodotEngines()
+		if err == nil {
+			engines = appendProjectGodotEngine(engines, project)
+		}
 		if len(engines) == 0 {
-			fmt.Fprintln(out, "  none on PATH")
+			fmt.Fprintln(out, "  none installed; use 'fe godot install --version <version>'")
 		}
 		for _, e := range engines {
 			fmt.Fprintf(out, "  %s  %s\n", e.Version, e.Path)
@@ -371,7 +420,8 @@ var godotExtensionDoctorCmd = &cobra.Command{
 
 func init() {
 	rootCmd.AddCommand(godotCmd)
-	godotCmd.AddCommand(godotEnginesCmd, godotOpenCmd, godotExportCmd, godotDoctorCmd, godotExtensionCmd)
+	godotCmd.AddCommand(godotEnginesCmd, godotInstallCmd, godotOpenCmd, godotExportCmd, godotDoctorCmd, godotExtensionCmd)
+	godotInstallCmd.Flags().String("version", "", "stable Godot version to install (for example 4.3 or 3.5.3)")
 	godotOpenCmd.Flags().String("version", "", "installed Godot version to use (for example 4.3 or 3.5)")
 	godotExportCmd.Flags().String("preset", "", "export preset name from export_presets.cfg")
 	godotExportCmd.Flags().String("output", "", "export output path (relative to the project or absolute)")
@@ -411,8 +461,118 @@ func detectGodotEngines() []godotEngine {
 	return engines
 }
 
+func activateProjectGodotPath(project string) (func(), error) {
+	if isCI() {
+		return func() {}, nil
+	}
+	version := projectGodotVersion(project)
+	if version == "" {
+		return func() {}, nil
+	}
+	toolPath, ok, err := projectstate.ToolPath(project, godotToolName(version))
+	if err != nil || !ok {
+		return func() {}, err
+	}
+	bin := filepath.Join(toolPath, "bin")
+	info, err := os.Lstat(bin)
+	if err != nil {
+		return nil, fmt.Errorf("project Godot launcher is unavailable: %w", err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+		return nil, fmt.Errorf("project Godot launcher path is not a real directory: %s", bin)
+	}
+	launcher := filepath.Join(bin, "godot")
+	if runtime.GOOS == "windows" {
+		launcher += ".exe"
+	}
+	info, err = os.Lstat(launcher)
+	if err != nil {
+		return nil, fmt.Errorf("project Godot launcher is unavailable: %w", err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("project Godot launcher is not a regular file: %s", launcher)
+	}
+	oldPath := os.Getenv("PATH")
+	newPath := bin
+	if oldPath != "" {
+		newPath += string(os.PathListSeparator) + oldPath
+	}
+	if err := os.Setenv("PATH", newPath); err != nil {
+		return nil, fmt.Errorf("activate project Godot: %w", err)
+	}
+	return func() { _ = os.Setenv("PATH", oldPath) }, nil
+}
+
 func selectGodotEngine(project, requested string) (*godotEngine, error) {
-	return selectGodotEngineFrom(project, requested, detectGodotEngines())
+	engines := detectGodotEngines()
+	version := requested
+	if version == "" {
+		version = projectGodotVersion(project)
+	}
+	if version != "" {
+		for i := range engines {
+			if godotVersionMatches(engines[i].Version, version) {
+				return &engines[i], nil
+			}
+		}
+		path, ok, err := projectstate.ToolPath(project, godotToolName(version))
+		if err != nil {
+			return nil, err
+		}
+		if ok {
+			executable, err := godotinstall.Executable(path)
+			if err != nil {
+				return nil, fmt.Errorf("project-managed Godot %s is unavailable: %w", version, err)
+			}
+			engine, err := readGodotEngine(executable)
+			if err != nil {
+				return nil, fmt.Errorf("project-managed Godot %s is unavailable: %w", version, err)
+			}
+			return engine, nil
+		}
+	}
+	return selectGodotEngineFrom(project, requested, engines)
+}
+
+func godotToolName(version string) string {
+	version = strings.TrimSpace(strings.TrimSuffix(version, "-stable"))
+	if version == "" {
+		return ""
+	}
+	return "godot:" + version + "-stable"
+}
+
+func appendProjectGodotEngine(engines []godotEngine, project string) []godotEngine {
+	path, ok, err := projectstate.ToolPath(project, godotToolName(projectGodotVersion(project)))
+	if err != nil || !ok {
+		return engines
+	}
+	executable, err := godotinstall.Executable(path)
+	if err != nil {
+		return engines
+	}
+	engine, err := readGodotEngine(executable)
+	if err != nil {
+		return engines
+	}
+	for _, existing := range engines {
+		if existing.Path == engine.Path {
+			return engines
+		}
+	}
+	return append(engines, *engine)
+}
+
+func readGodotEngine(path string) (*godotEngine, error) {
+	out, err := exec.Command(path, "--version").Output()
+	if err != nil {
+		return nil, fmt.Errorf("run %s --version: %w", path, err)
+	}
+	version := strings.TrimSpace(string(out))
+	if i := strings.IndexByte(version, '\n'); i >= 0 {
+		version = version[:i]
+	}
+	return &godotEngine{Path: path, Version: version}, nil
 }
 
 func selectGodotEngineFrom(project, requested string, engines []godotEngine) (*godotEngine, error) {
@@ -483,6 +643,10 @@ func projectGodotVersion(project string) string {
 }
 
 func godotVersionMatches(installed, requested string) bool {
-	requested = strings.TrimSpace(requested)
+	requested = strings.TrimSpace(strings.TrimSuffix(requested, "-stable"))
+	version := strings.ToLower(installed)
+	if strings.Contains(version, ".rc") || strings.Contains(version, ".beta") || strings.Contains(version, ".dev") {
+		return false
+	}
 	return requested != "" && (installed == requested || strings.HasPrefix(installed, requested+"."))
 }

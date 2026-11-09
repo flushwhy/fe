@@ -1,0 +1,707 @@
+package projectstate
+
+import (
+	"crypto/sha256"
+	"encoding/hex"
+	"encoding/json"
+	"errors"
+	"fmt"
+	"os"
+	"path/filepath"
+	"strings"
+	"time"
+)
+
+const (
+	ignoreStart = "# >>> Fe managed >>>"
+	ignoreEnd   = "# <<< Fe managed <<<"
+	lineBreak   = "\n"
+)
+
+type Record struct {
+	Root             string            `json:"root"`
+	CreatedAt        time.Time         `json:"created_at"`
+	ManagedFiles     map[string]string `json:"managed_files"`
+	Tools            map[string]string `json:"tools,omitempty"`
+	GitignoreCreated bool              `json:"gitignore_created,omitempty"`
+}
+
+type Cleanup struct {
+	Removed   []string
+	Preserved []string
+	Retained  []string
+}
+
+func Sync(root string) error {
+	root, err := canonicalRoot(root)
+	if err != nil {
+		return err
+	}
+	record, err := loadRecord(root)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if errors.Is(err, os.ErrNotExist) {
+		record = Record{Root: root, CreatedAt: time.Now().UTC(), ManagedFiles: map[string]string{}}
+	}
+	if record.ManagedFiles == nil {
+		record.ManagedFiles = map[string]string{}
+	}
+	if record.Tools == nil {
+		record.Tools = map[string]string{}
+	}
+
+	gitignore := filepath.Join(root, ".gitignore")
+	info, statErr := os.Lstat(gitignore)
+	if statErr == nil && info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("refusing to modify symlink %s", gitignore)
+	}
+	if errors.Is(statErr, os.ErrNotExist) {
+		record.GitignoreCreated = true
+	} else if statErr != nil {
+		return fmt.Errorf("inspect .gitignore: %w", statErr)
+	}
+	for name, content := range uninstallers {
+		if err := checkManagedFile(filepath.Join(root, name), content, record.ManagedFiles[name]); err != nil {
+			return err
+		}
+	}
+	if err := ensureGitignore(gitignore); err != nil {
+		return err
+	}
+
+	for name, content := range uninstallers {
+		path := filepath.Join(root, name)
+		if err := writeManagedFile(path, content, record.ManagedFiles[name]); err != nil {
+			return err
+		}
+		hash := sha256.Sum256([]byte(content))
+		record.ManagedFiles[name] = hex.EncodeToString(hash[:])
+	}
+	return saveRecord(record)
+}
+
+func Clean(root string, dryRun, keepUninstallers bool) (Cleanup, error) {
+	root, err := canonicalRoot(root)
+	if err != nil {
+		return Cleanup{}, err
+	}
+	record, err := loadRecord(root)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return Cleanup{}, fmt.Errorf("no Fe project record found for %s; nothing is safe to remove", root)
+		}
+		return Cleanup{}, err
+	}
+	return cleanRecord(record, dryRun, keepUninstallers)
+}
+
+func CleanAll(dryRun bool) ([]Cleanup, error) {
+	dir, err := recordsDir()
+	if err != nil {
+		return nil, err
+	}
+	entries, err := os.ReadDir(dir)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil, nil
+	}
+	if err != nil {
+		return nil, err
+	}
+	var results []Cleanup
+	for _, entry := range entries {
+		if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+			continue
+		}
+		path := filepath.Join(dir, entry.Name())
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return results, err
+		}
+		var record Record
+		if err := json.Unmarshal(data, &record); err != nil {
+			return results, fmt.Errorf("read project record %s: %w", entry.Name(), err)
+		}
+		if err := validateRecord(record); err != nil {
+			return results, fmt.Errorf("invalid project record %s: %w", entry.Name(), err)
+		}
+		expectedPath, err := recordPath(record.Root)
+		if err != nil {
+			return results, err
+		}
+		if filepath.Clean(expectedPath) != filepath.Clean(path) {
+			return results, fmt.Errorf("project record path does not match its project identity: %s", path)
+		}
+		info, err := os.Lstat(record.Root)
+		if errors.Is(err, os.ErrNotExist) {
+			result, cleanupErr := releaseTools(record, path, dryRun)
+			if cleanupErr != nil {
+				return results, cleanupErr
+			}
+			if !dryRun {
+				if err := os.Remove(path); err != nil {
+					return results, err
+				}
+			}
+			result.Removed = append(result.Removed, "stale project record: "+record.Root)
+			results = append(results, result)
+			continue
+		}
+		if err != nil {
+			return results, fmt.Errorf("inspect project %s: %w", record.Root, err)
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return results, fmt.Errorf("registered project path %s is no longer a real directory", record.Root)
+		}
+		result, err := cleanRecord(record, dryRun, false)
+		if err != nil {
+			return results, err
+		}
+		results = append(results, result)
+	}
+	if !dryRun {
+		if err := removeEmptyStateDirs(); err != nil {
+			return results, err
+		}
+	}
+	return results, nil
+}
+
+func cleanRecord(record Record, dryRun, keepUninstallers bool) (Cleanup, error) {
+	result := Cleanup{}
+	gitignore := filepath.Join(record.Root, ".gitignore")
+	info, statErr := os.Lstat(gitignore)
+	if statErr == nil && info.Mode()&os.ModeSymlink != 0 {
+		return result, fmt.Errorf("refusing to modify symlink %s", gitignore)
+	}
+	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		return result, fmt.Errorf("inspect .gitignore: %w", statErr)
+	}
+	data, err := os.ReadFile(gitignore)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return result, fmt.Errorf("read .gitignore: %w", err)
+	}
+	ignoreExists := err == nil
+	cleaned := string(data)
+	changed := false
+	if ignoreExists {
+		cleaned, changed = removeIgnoreBlock(cleaned)
+		if !changed && (strings.Contains(string(data), ignoreStart) || strings.Contains(string(data), ignoreEnd)) {
+			return result, fmt.Errorf("incomplete Fe-managed block in %s; refusing cleanup", gitignore)
+		}
+	}
+
+	for name, expectedHash := range record.ManagedFiles {
+		if keepUninstallers {
+			continue
+		}
+		path := filepath.Join(record.Root, name)
+		data, err := os.ReadFile(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return result, fmt.Errorf("read managed file %s: %w", path, err)
+		}
+		hash := sha256.Sum256(data)
+		if hex.EncodeToString(hash[:]) != expectedHash {
+			result.Preserved = append(result.Preserved, path+" (modified since Fe created it)")
+			continue
+		}
+		result.Removed = append(result.Removed, path)
+		if !dryRun {
+			if err := os.Remove(path); err != nil {
+				return result, fmt.Errorf("remove managed file %s: %w", path, err)
+			}
+		}
+	}
+
+	if ignoreExists && changed {
+		if record.GitignoreCreated && strings.TrimSpace(cleaned) == "" {
+			result.Removed = append(result.Removed, gitignore)
+			if !dryRun {
+				if err := os.Remove(gitignore); err != nil {
+					return result, fmt.Errorf("remove Fe-created .gitignore: %w", err)
+				}
+			}
+		} else {
+			result.Removed = append(result.Removed, "Fe entries from "+gitignore)
+			if !dryRun {
+				if err := os.WriteFile(gitignore, []byte(cleaned), 0o644); err != nil {
+					return result, fmt.Errorf("restore .gitignore: %w", err)
+				}
+			}
+		}
+	}
+
+	if len(result.Preserved) == 0 {
+		path, err := recordPath(record.Root)
+		if err != nil {
+			return result, err
+		}
+		tools, err := releaseTools(record, path, dryRun)
+		if err != nil {
+			return result, err
+		}
+		result.Removed = append(result.Removed, tools.Removed...)
+		result.Retained = append(result.Retained, tools.Retained...)
+		if !dryRun {
+			if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+				return result, fmt.Errorf("remove project record: %w", err)
+			}
+			if err := removeEmptyStateDirs(); err != nil {
+				return result, err
+			}
+		}
+	}
+	return result, nil
+}
+
+func ensureGitignore(path string) error {
+	info, err := os.Lstat(path)
+	if err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("refusing to modify symlink %s", path)
+	}
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("inspect .gitignore: %w", err)
+	}
+	data, err := os.ReadFile(path)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("read .gitignore: %w", err)
+	}
+	content := string(data)
+	if strings.Contains(content, ignoreStart) || strings.Contains(content, ignoreEnd) {
+		if strings.Contains(content, ignoreStart) && strings.Contains(content, ignoreEnd) {
+			return nil
+		}
+		return fmt.Errorf("incomplete Fe-managed block in %s; refusing to modify it", path)
+	}
+	if content != "" && !strings.HasSuffix(content, lineBreak) {
+		content += lineBreak
+	}
+	content += ignoreStart + lineBreak + ".fe/" + lineBreak + "fe-uninstall.sh" + lineBreak + "fe-uninstall.bat" + lineBreak + ignoreEnd + lineBreak
+	if err := os.WriteFile(path, []byte(content), 0o644); err != nil {
+		return fmt.Errorf("update .gitignore: %w", err)
+	}
+	return nil
+}
+
+func removeIgnoreBlock(content string) (string, bool) {
+	start := strings.Index(content, ignoreStart)
+	if start < 0 {
+		return content, false
+	}
+	end := strings.Index(content[start:], ignoreEnd)
+	if end < 0 {
+		return content, false
+	}
+	end += start + len(ignoreEnd)
+	if end < len(content) && content[end] == 10 {
+		end++
+	}
+	return content[:start] + content[end:], true
+}
+
+func checkManagedFile(path, content, expectedHash string) error {
+	info, err := os.Lstat(path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("refusing to replace symlink %s", path)
+	}
+	existing, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	hash := sha256.Sum256(existing)
+	if expectedHash != "" && hex.EncodeToString(hash[:]) == expectedHash && string(existing) == content {
+		return nil
+	}
+	return fmt.Errorf("%s already exists and is not Fe-managed; refusing to overwrite it", path)
+}
+
+func writeManagedFile(path, content, expectedHash string) error {
+	if err := checkManagedFile(path, content, expectedHash); err != nil {
+		return err
+	}
+	if _, err := os.Lstat(path); err == nil {
+		return nil
+	}
+	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
+		return fmt.Errorf("create %s: %w", path, err)
+	}
+	return nil
+}
+
+func canonicalRoot(root string) (string, error) {
+	if root == "" {
+		root = "."
+	}
+	abs, err := filepath.Abs(root)
+	if err != nil {
+		return "", fmt.Errorf("resolve project directory: %w", err)
+	}
+	real, err := filepath.EvalSymlinks(abs)
+	if err != nil {
+		return "", fmt.Errorf("resolve project directory %s: %w", abs, err)
+	}
+	info, err := os.Stat(real)
+	if err != nil {
+		return "", err
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("project path %s is not a directory", real)
+	}
+	return real, nil
+}
+
+func loadRecord(root string) (Record, error) {
+	path, err := recordPath(root)
+	if err != nil {
+		return Record{}, err
+	}
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return Record{}, err
+	}
+	var record Record
+	if err := json.Unmarshal(data, &record); err != nil {
+		return Record{}, fmt.Errorf("decode project record: %w", err)
+	}
+	if record.Root != root {
+		return Record{}, fmt.Errorf("project record path mismatch for %s", root)
+	}
+	if err := validateRecord(record); err != nil {
+		return Record{}, err
+	}
+	return record, nil
+}
+
+func validateRecord(record Record) error {
+	if !filepath.IsAbs(record.Root) || filepath.Clean(record.Root) != record.Root {
+		return fmt.Errorf("invalid project root %q", record.Root)
+	}
+	for name := range record.ManagedFiles {
+		if _, ok := uninstallers[name]; !ok {
+			return fmt.Errorf("unknown Fe-managed file %q", name)
+		}
+	}
+	for name, path := range record.Tools {
+		if name == "" || !filepath.IsAbs(path) || filepath.Clean(path) != path {
+			return fmt.Errorf("invalid managed tool reference %q", name)
+		}
+		if err := validateToolPath(path); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func RegisterTool(root, name, path string) error {
+	root, err := canonicalRoot(root)
+	if err != nil {
+		return err
+	}
+	if name == "" {
+		return errors.New("tool name is required")
+	}
+	path, err = filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	path = filepath.Clean(path)
+	if err := validateToolInstall(path, name); err != nil {
+		return err
+	}
+	record, err := loadRecord(root)
+	if errors.Is(err, os.ErrNotExist) {
+		record = Record{Root: root, CreatedAt: time.Now().UTC(), ManagedFiles: map[string]string{}}
+	} else if err != nil {
+		return err
+	}
+	if record.Tools == nil {
+		record.Tools = map[string]string{}
+	}
+	record.Tools[name] = path
+	return saveRecord(record)
+}
+
+func ToolPath(root, name string) (string, bool, error) {
+	root, err := canonicalRoot(root)
+	if err != nil {
+		return "", false, err
+	}
+	record, err := loadRecord(root)
+	if errors.Is(err, os.ErrNotExist) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	path, ok := record.Tools[name]
+	if ok {
+		if err := validateToolInstall(path, name); err != nil {
+			return "", false, err
+		}
+	}
+	return path, ok, nil
+}
+
+func validateToolInstall(path, name string) error {
+	if err := validateToolPath(path); err != nil {
+		return err
+	}
+	root, err := toolsDir()
+	if err != nil {
+		return err
+	}
+	for current := path; filepath.Clean(current) != filepath.Clean(root); current = filepath.Dir(current) {
+		info, err := os.Lstat(current)
+		if err != nil {
+			return err
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return fmt.Errorf("managed tool path contains a non-directory or symlink: %s", current)
+		}
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+		return fmt.Errorf("managed tool path %s is not a real directory", path)
+	}
+	markerPath := filepath.Join(path, ".fe-managed")
+	info, err = os.Lstat(markerPath)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return fmt.Errorf("managed tool marker %s is not a regular file", markerPath)
+	}
+	marker, err := os.ReadFile(markerPath)
+	if err != nil || strings.TrimSpace(string(marker)) != name {
+		return fmt.Errorf("%s is not a Fe-managed tool installation", path)
+	}
+	return nil
+}
+
+func validateToolPath(path string) error {
+	root, err := toolsDir()
+	if err != nil {
+		return err
+	}
+	rel, err := filepath.Rel(root, path)
+	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
+		return fmt.Errorf("managed tool path %q is outside Fe's tool cache", path)
+	}
+	return nil
+}
+
+func releaseTools(record Record, ownRecord string, dryRun bool) (Cleanup, error) {
+	result := Cleanup{}
+	for name, path := range record.Tools {
+		used := false
+		dir, err := recordsDir()
+		if err != nil {
+			return result, err
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return result, err
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+				continue
+			}
+			otherPath := filepath.Join(dir, entry.Name())
+			if filepath.Clean(otherPath) == filepath.Clean(ownRecord) {
+				continue
+			}
+			data, err := os.ReadFile(otherPath)
+			if err != nil {
+				return result, err
+			}
+			var other Record
+			if err := json.Unmarshal(data, &other); err != nil {
+				return result, fmt.Errorf("read project record %s: %w", entry.Name(), err)
+			}
+			if err := validateRecord(other); err != nil {
+				return result, err
+			}
+			if other.Tools[name] == path {
+				used = true
+				break
+			}
+		}
+		if used {
+			result.Retained = append(result.Retained, path+" (still used by another project)")
+			continue
+		}
+		if err := validateToolPath(path); err != nil {
+			return result, err
+		}
+		info, err := os.Lstat(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return result, err
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return result, fmt.Errorf("refusing to remove unmanaged tool path %s", path)
+		}
+		if err := validateToolInstall(path, name); err != nil {
+			return result, fmt.Errorf("refusing to remove unmanaged tool: %w", err)
+		}
+		result.Removed = append(result.Removed, path)
+		if !dryRun {
+			if err := os.RemoveAll(path); err != nil {
+				return result, fmt.Errorf("remove managed tool %s: %w", path, err)
+			}
+			if err := removeEmptyToolDirs(path); err != nil {
+				return result, err
+			}
+		}
+	}
+	return result, nil
+}
+
+func saveRecord(record Record) error {
+	path, err := recordPath(record.Root)
+	if err != nil {
+		return err
+	}
+	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil {
+		return fmt.Errorf("create Fe state directory: %w", err)
+	}
+	data, err := json.MarshalIndent(record, "", "  ")
+	if err != nil {
+		return err
+	}
+	data = append(data, 10)
+	tmp, err := os.CreateTemp(filepath.Dir(path), ".project-*.tmp")
+	if err != nil {
+		return err
+	}
+	defer os.Remove(tmp.Name())
+	if _, err := tmp.Write(data); err != nil {
+		_ = tmp.Close()
+		return err
+	}
+	if err := tmp.Close(); err != nil {
+		return err
+	}
+	return os.Rename(tmp.Name(), path)
+}
+
+func recordPath(root string) (string, error) {
+	dir, err := recordsDir()
+	if err != nil {
+		return "", err
+	}
+	hash := sha256.Sum256([]byte(root))
+	return filepath.Join(dir, hex.EncodeToString(hash[:])+".json"), nil
+}
+
+func removeEmptyToolDirs(path string) error {
+	root, err := toolsDir()
+	if err != nil {
+		return err
+	}
+	for dir := filepath.Dir(path); ; dir = filepath.Dir(dir) {
+		if filepath.Clean(dir) == filepath.Clean(filepath.Dir(root)) {
+			break
+		}
+		info, err := os.Lstat(dir)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if filepath.Clean(dir) == filepath.Clean(root) && info.Mode()&os.ModeSymlink != 0 {
+			break
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return fmt.Errorf("refusing to remove non-directory tool cache path %s", dir)
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil {
+			return err
+		}
+		if len(entries) > 0 {
+			break
+		}
+		if err := os.Remove(dir); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		if filepath.Clean(dir) == filepath.Clean(root) {
+			break
+		}
+	}
+	return nil
+}
+
+func removeEmptyStateDirs() error {
+	dir, err := recordsDir()
+	if err != nil {
+		return err
+	}
+	for _, path := range []string{dir, filepath.Dir(dir), filepath.Dir(filepath.Dir(dir))} {
+		entries, err := os.ReadDir(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if len(entries) == 0 {
+			if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+				return err
+			}
+		}
+	}
+	return nil
+}
+
+func ToolCacheDir() (string, error) {
+	return toolsDir()
+}
+
+func toolsDir() (string, error) {
+	home, err := feHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, "tools"), nil
+}
+
+func recordsDir() (string, error) {
+	home, err := feHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, "state", "projects"), nil
+}
+
+func feHomeDir() (string, error) {
+	home := os.Getenv("FE_HOME")
+	if home == "" {
+		userHome, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		home = filepath.Join(userHome, ".fe")
+	}
+	return filepath.Abs(home)
+}
+
+var uninstallers = map[string]string{
+	"fe-uninstall.sh": "#!/bin/sh\nset -eu\nproject_dir=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nif ! command -v fe >/dev/null 2>&1; then\n  echo \"Fe must be installed and available on PATH to clean this project.\" >&2\n  exit 127\nfi\nfe clean \"$project_dir\" --keep-uninstallers\nrm -f \"$project_dir/fe-uninstall.sh\" \"$project_dir/fe-uninstall.bat\"\n",
+	"fe-uninstall.bat": "@echo off\nwhere fe >nul 2>nul\nif errorlevel 1 (\n  echo Fe must be installed and available on PATH to clean this project.\n  exit /b 127\n)\nfor %%I in (\"%~dp0.\") do set \"FE_PROJECT=%%~fI\"\nfe clean \"%FE_PROJECT%\" --keep-uninstallers\nif errorlevel 1 exit /b %ERRORLEVEL%\ndel \"%~f0\"\ndel \"%FE_PROJECT%\\fe-uninstall.sh\"\nexit /b 0\n",
+}

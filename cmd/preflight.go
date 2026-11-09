@@ -21,6 +21,13 @@ guidance; Fe never installs software automatically.`,
 		if err != nil {
 			return err
 		}
+		if project, projectErr := findGodotProject("."); projectErr == nil {
+			restorePath, err := activateProjectGodotPath(project)
+			if err != nil {
+				return err
+			}
+			defer restorePath()
+		}
 		return runPreflight(cfg, "all")
 	},
 }

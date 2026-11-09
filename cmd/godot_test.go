@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
+	"github.com/flushwhy/fe/internal/projectstate"
 	"github.com/spf13/cobra"
 )
 
@@ -162,6 +164,11 @@ func TestGodotVersionMatchesWholeComponent(t *testing.T) {
 	if godotVersionMatches("4.30.stable.official", "4.3") {
 		t.Fatal("4.3 must not match 4.30")
 	}
+	for _, prerelease := range []string{"4.3.rc1.official", "4.3.beta2.official", "4.3.dev.custom_build"} {
+		if godotVersionMatches(prerelease, "4.3") {
+			t.Errorf("stable request must not match prerelease %q", prerelease)
+		}
+	}
 }
 
 
@@ -207,5 +214,112 @@ func TestGodotDoctorReportsMissingGodotCppForNativeScaffold(t *testing.T) {
 	}
 	if !strings.Contains(output.String(), "godot-cpp: not found") {
 		t.Fatalf("native scaffold should report missing godot-cpp; output:\n%s", output.String())
+	}
+}
+
+func TestSelectGodotEngineUsesProjectManagedVersion(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("uses a Unix executable fixture")
+	}
+	t.Setenv("FE_HOME", t.TempDir())
+	t.Setenv("PATH", t.TempDir())
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte(`config/features=PackedStringArray("4.3", "GL Compatibility")`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cache, err := projectstate.ToolCacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	platform := "linux-x86_64"
+	executableName := "Godot_v4.3-stable_linux.x86_64"
+	if runtime.GOOS == "darwin" {
+		platform = "macos-universal"
+		executableName = filepath.Join("Godot.app", "Contents", "MacOS", "Godot")
+	}
+	toolPath := filepath.Join(cache, "godot", "4.3-stable", platform)
+	executable := filepath.Join(toolPath, executableName)
+	if err := os.MkdirAll(filepath.Dir(executable), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(executable, []byte("#!/bin/sh\necho 4.3.stable.official\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(toolPath, ".fe-managed"), []byte("godot:4.3-stable\n"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := projectstate.Sync(project); err != nil {
+		t.Fatal(err)
+	}
+	if err := projectstate.RegisterTool(project, "godot:4.3-stable", toolPath); err != nil {
+		t.Fatal(err)
+	}
+	got, err := selectGodotEngine(project, "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got.Path != executable || !godotVersionMatches(got.Version, "4.3") {
+		t.Fatalf("selected %#v, want managed engine %s", got, executable)
+	}
+}
+
+func TestGodotInstallIsDisabledInCI(t *testing.T) {
+	t.Setenv("CI", "true")
+	if err := godotInstallCmd.Flags().Set("version", "4.3"); err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = godotInstallCmd.Flags().Set("version", "") })
+	err := godotInstallCmd.RunE(godotInstallCmd, nil)
+	if err == nil || !strings.Contains(err.Error(), "disabled in CI") {
+		t.Fatalf("expected CI guard, got %v", err)
+	}
+}
+
+func TestActivateProjectGodotPathIsTemporary(t *testing.T) {
+	for _, key := range []string{"CI", "GITHUB_ACTIONS", "JENKINS_URL", "BUILDKITE", "BUILD_ID", "TF_BUILD"} {
+		t.Setenv(key, "")
+	}
+	t.Setenv("FE_HOME", t.TempDir())
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte(`config/features=PackedStringArray("4.3", "GL Compatibility")`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cache, err := projectstate.ToolCacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	toolPath := filepath.Join(cache, "godot", "4.3-stable", "linux-x86_64")
+	bin := filepath.Join(toolPath, "bin")
+	if err := os.MkdirAll(bin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(toolPath, ".fe-managed"), []byte("godot:4.3-stable"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	launcher := "godot"
+	if runtime.GOOS == "windows" {
+		launcher = "godot.exe"
+	}
+	if err := os.WriteFile(filepath.Join(bin, launcher), []byte("launcher"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := projectstate.Sync(project); err != nil {
+		t.Fatal(err)
+	}
+	if err := projectstate.RegisterTool(project, "godot:4.3-stable", toolPath); err != nil {
+		t.Fatal(err)
+	}
+	oldPath := os.Getenv("PATH")
+	restore, err := activateProjectGodotPath(project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(os.Getenv("PATH"), bin+string(os.PathListSeparator)) {
+		restore()
+		t.Fatalf("project bin was not prepended to PATH: %s", os.Getenv("PATH"))
+	}
+	restore()
+	if os.Getenv("PATH") != oldPath {
+		t.Fatal("PATH was not restored after project command")
 	}
 }

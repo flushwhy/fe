@@ -82,6 +82,13 @@ CI example:
 		if gitState.IsRepo {
 			fmt.Printf("Release commit: %s (%s)\n", gitState.Commit, gitState.Branch)
 		}
+		if project, projectErr := findGodotProject("."); projectErr == nil {
+			restorePath, err := activateProjectGodotPath(project)
+			if err != nil {
+				return err
+			}
+			defer restorePath()
+		}
 		if err := runConfiguredPreflight(cfg, "release"); err != nil {
 			return err
 		}

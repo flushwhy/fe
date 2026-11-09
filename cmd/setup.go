@@ -16,6 +16,13 @@ This command is read-only. It does not install software or modify project files.
 Optional tools are shown separately from tools required for the detected workflow.`,
 	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if project, projectErr := findGodotProject("."); projectErr == nil {
+			restorePath, err := activateProjectGodotPath(project)
+			if err != nil {
+				return err
+			}
+			defer restorePath()
+		}
 		root := "."
 		if len(args) == 1 {
 			root = args[0]
