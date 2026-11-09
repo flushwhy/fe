@@ -585,6 +585,10 @@ func removeEmptyStateDirs() error {
 	return nil
 }
 
+func ToolCacheDir() (string, error) {
+	return toolsDir()
+}
+
 func toolsDir() (string, error) {
 	home := os.Getenv("FE_HOME")
 	if home == "" {
