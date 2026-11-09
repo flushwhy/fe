@@ -135,6 +135,11 @@ func CleanAll(dryRun bool) ([]Cleanup, error) {
 		}
 		results = append(results, result)
 	}
+	if !dryRun {
+		if err := removeEmptyStateDirs(); err != nil {
+			return results, err
+		}
+	}
 	return results, nil
 }
 
@@ -208,6 +213,9 @@ func cleanRecord(record Record, dryRun, keepUninstallers bool) (Cleanup, error) 
 		}
 		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
 			return result, fmt.Errorf("remove project record: %w", err)
+		}
+		if err := removeEmptyStateDirs(); err != nil {
+			return result, err
 		}
 	}
 	return result, nil
@@ -359,6 +367,28 @@ func recordPath(root string) (string, error) {
 	}
 	hash := sha256.Sum256([]byte(root))
 	return filepath.Join(dir, hex.EncodeToString(hash[:])+".json"), nil
+}
+
+func removeEmptyStateDirs() error {
+	dir, err := recordsDir()
+	if err != nil {
+		return err
+	}
+	for _, path := range []string{dir, filepath.Dir(dir), filepath.Dir(filepath.Dir(dir))} {
+		entries, err := os.ReadDir(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if len(entries) == 0 {
+			if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 func recordsDir() (string, error) {
