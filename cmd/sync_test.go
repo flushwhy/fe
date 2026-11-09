@@ -4,8 +4,9 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"github.com/flushwhy/fe/internal/projectstate"
 	"testing"
+
+	"github.com/flushwhy/fe/internal/projectstate"
 )
 
 func TestProjectStateCommandsAreDisabledInCI(t *testing.T) {
