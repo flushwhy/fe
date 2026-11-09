@@ -33,8 +33,18 @@ var syncCmd = &cobra.Command{
 }
 
 func syncProject(root string) (string, error) {
-	project := root
-	if detected, err := findGodotProject(root); err == nil {
+	project, err := filepath.Abs(root)
+	if err != nil {
+		return "", err
+	}
+	info, err := os.Stat(project)
+	if err != nil {
+		return "", fmt.Errorf("inspect project directory: %w", err)
+	}
+	if !info.IsDir() {
+		return "", fmt.Errorf("project path %s is not a directory", project)
+	}
+	if detected, err := findGodotProject(project); err == nil {
 		project = detected
 	}
 	if err := projectstate.Sync(project); err != nil {
