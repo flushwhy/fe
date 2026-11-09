@@ -196,3 +196,99 @@ func TestCleanAllRejectsUnknownManagedPaths(t *testing.T) {
 		}
 	}
 }
+
+func TestCleanRetainsSharedToolUntilLastProjectIsRemoved(t *testing.T) {
+	t.Setenv("FE_HOME", t.TempDir())
+	projects := []string{t.TempDir(), t.TempDir()}
+	tools, err := toolsDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	toolPath := filepath.Join(tools, "godot", "4.3", "linux-x86_64")
+	if err := os.MkdirAll(toolPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(toolPath, ".fe-managed"), []byte("godot:4.3"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	for _, project := range projects {
+		if err := Sync(project); err != nil {
+			t.Fatal(err)
+		}
+		if err := RegisterTool(project, "godot:4.3", toolPath); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	first, err := Clean(projects[0], false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(first.Retained) != 1 || len(first.Removed) == 0 {
+		t.Fatalf("expected shared tool retained while cleaning first project, got %#v", first)
+	}
+	if _, err := os.Stat(toolPath); err != nil {
+		t.Fatalf("shared tool was removed too early: %v", err)
+	}
+	if _, ok, err := ToolPath(projects[0], "godot:4.3"); err != nil || ok {
+		t.Fatalf("first project still owns tool: ok=%v err=%v", ok, err)
+	}
+
+	second, err := Clean(projects[1], false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(second.Removed) == 0 {
+		t.Fatal("last project cleanup did not report tool removal")
+	}
+	if _, err := os.Stat(toolPath); !os.IsNotExist(err) {
+		t.Fatalf("shared tool still exists after last owner was removed: %v", err)
+	}
+}
+
+func TestCleanDryRunKeepsSharedTool(t *testing.T) {
+	t.Setenv("FE_HOME", t.TempDir())
+	project := t.TempDir()
+	tools, err := toolsDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	toolPath := filepath.Join(tools, "godot", "4.3", "linux-x86_64")
+	if err := os.MkdirAll(toolPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(toolPath, ".fe-managed"), []byte("godot:4.3"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Sync(project); err != nil {
+		t.Fatal(err)
+	}
+	if err := RegisterTool(project, "godot:4.3", toolPath); err != nil {
+		t.Fatal(err)
+	}
+	result, err := Clean(project, true, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(result.Removed) == 0 {
+		t.Fatal("dry run did not report managed files")
+	}
+	if _, err := os.Stat(toolPath); err != nil {
+		t.Fatalf("dry run removed tool: %v", err)
+	}
+	if _, ok, err := ToolPath(project, "godot:4.3"); err != nil || !ok {
+		t.Fatalf("dry run removed project tool reference: ok=%v err=%v", ok, err)
+	}
+}
+
+func TestRegisterToolRejectsOutsideCache(t *testing.T) {
+	t.Setenv("FE_HOME", t.TempDir())
+	project := t.TempDir()
+	outside := t.TempDir()
+	if err := Sync(project); err != nil {
+		t.Fatal(err)
+	}
+	if err := RegisterTool(project, "godot:4.3", outside); err == nil {
+		t.Fatal("registered tool outside Fe's managed cache")
+	}
+}
