@@ -48,6 +48,10 @@ func Install(version string) (string, string, error) {
 	}
 	toolName := "godot:" + tag
 	target := filepath.Join(cache, "godot", tag, platform)
+	parent := filepath.Dir(target)
+	if err := ensureCacheParent(cache, parent); err != nil {
+		return "", "", fmt.Errorf("prepare Fe tool cache: %w", err)
+	}
 	if executable, err := existingInstall(target, toolName, runtime.GOOS); err == nil {
 		return executable, target, nil
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -95,10 +99,6 @@ func Install(version string) (string, string, error) {
 		return "", "", errors.New("Godot release returned an invalid download URL")
 	}
 
-	parent := filepath.Dir(target)
-	if err := ensureCacheParent(cache, parent); err != nil {
-		return "", "", fmt.Errorf("prepare Fe tool cache: %w", err)
-	}
 	staging, err := os.MkdirTemp(parent, ".install-*")
 	if err != nil {
 		return "", "", err
