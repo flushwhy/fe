@@ -4,7 +4,6 @@ import (
 	"archive/zip"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -101,11 +100,15 @@ func TestWriteLauncher(t *testing.T) {
 	if err := writeLauncher(root, executable, "linux"); err != nil {
 		t.Fatal(err)
 	}
-	launcher, err := os.ReadFile(filepath.Join(root, "bin", "godot"))
+	launcherInfo, err := os.Stat(filepath.Join(root, "bin", "godot"))
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(launcher), "exec") || !strings.Contains(string(launcher), "Godot_v4.3-stable_linux.x86_64") {
-		t.Fatalf("unexpected launcher: %s", launcher)
+	executableInfo, err := os.Stat(executable)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !os.SameFile(launcherInfo, executableInfo) {
+		t.Fatal("Linux launcher should be a hard link to the managed executable")
 	}
 }
