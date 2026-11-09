@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -224,11 +225,17 @@ func TestSelectGodotEngineUsesProjectManagedVersion(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	toolPath := filepath.Join(cache, "godot", "4.3-stable", "linux-x86_64")
-	if err := os.MkdirAll(toolPath, 0o755); err != nil {
+	platform := "linux-x86_64"
+	executableName := "Godot_v4.3-stable_linux.x86_64"
+	if runtime.GOOS == "darwin" {
+		platform = "macos-universal"
+		executableName = filepath.Join("Godot.app", "Contents", "MacOS", "Godot")
+	}
+	toolPath := filepath.Join(cache, "godot", "4.3-stable", platform)
+	executable := filepath.Join(toolPath, executableName)
+	if err := os.MkdirAll(filepath.Dir(executable), 0o755); err != nil {
 		t.Fatal(err)
 	}
-	executable := filepath.Join(toolPath, "Godot_v4.3-stable_linux.x86_64")
 	if err := os.WriteFile(executable, []byte("#!/bin/sh\necho 4.3.stable.official\n"), 0o755); err != nil {
 		t.Fatal(err)
 	}
@@ -283,7 +290,11 @@ func TestActivateProjectGodotPathIsTemporary(t *testing.T) {
 	if err := os.WriteFile(filepath.Join(toolPath, ".fe-managed"), []byte("godot:4.3-stable"), 0o600); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(bin, "godot"), []byte("#!/bin/sh\nexit 0\n"), 0o700); err != nil {
+	launcher := "godot"
+	if runtime.GOOS == "windows" {
+		launcher = "godot.exe"
+	}
+	if err := os.WriteFile(filepath.Join(bin, launcher), []byte("launcher"), 0o700); err != nil {
 		t.Fatal(err)
 	}
 	if err := projectstate.Sync(project); err != nil {
