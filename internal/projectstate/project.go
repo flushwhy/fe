@@ -225,8 +225,7 @@ func saveRecord(record Record) error {
 	if err := os.MkdirAll(filepath.Dir(path), 0o700); err != nil { return fmt.Errorf("create Fe state directory: %w", err) }
 	data, err := json.MarshalIndent(record, "", "  ")
 	if err != nil { return err }
-	data = append(data, '
-')
+	data = append(data, 10)
 	tmp, err := os.CreateTemp(filepath.Dir(path), ".project-*.tmp")
 	if err != nil { return err }
 	defer os.Remove(tmp.Name())
@@ -254,27 +253,6 @@ func recordsDir() (string, error) {
 }
 
 var uninstallers = map[string]string{
-	"fe-uninstall.sh": "#!/bin/sh
-set -eu
-project_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
-if ! command -v fe >/dev/null 2>&1; then
-  echo "Fe must be installed and available on PATH to clean this project." >&2
-  exit 127
-fi
-fe clean "$project_dir" --keep-uninstallers
-rm -f "$project_dir/fe-uninstall.sh" "$project_dir/fe-uninstall.bat"
-",
-	"fe-uninstall.bat": "@echo off
-where fe >nul 2>nul
-if errorlevel 1 (
-  echo Fe must be installed and available on PATH to clean this project.
-  exit /b 127
-)
-for %%I in ("%~dp0.") do set "FE_PROJECT=%%~fI"
-fe clean "%FE_PROJECT%" --keep-uninstallers
-if errorlevel 1 exit /b %ERRORLEVEL%
-del "%~f0"
-del "%FE_PROJECT%\fe-uninstall.sh"
-exit /b 0
-",
+	"fe-uninstall.sh": "#!/bin/sh\nset -eu\nproject_dir=$(CDPATH= cd -- \"$(dirname -- \"$0\")\" && pwd)\nif ! command -v fe >/dev/null 2>&1; then\n  echo \"Fe must be installed and available on PATH to clean this project.\" >&2\n  exit 127\nfi\nfe clean \"$project_dir\" --keep-uninstallers\nrm -f \"$project_dir/fe-uninstall.sh\" \"$project_dir/fe-uninstall.bat\"\n",
+	"fe-uninstall.bat": "@echo off\nwhere fe >nul 2>nul\nif errorlevel 1 (\n  echo Fe must be installed and available on PATH to clean this project.\n  exit /b 127\n)\nfor %%I in (\"%~dp0.\") do set \"FE_PROJECT=%%~fI\"\nfe clean \"%FE_PROJECT%\" --keep-uninstallers\nif errorlevel 1 exit /b %ERRORLEVEL%\ndel \"%~f0\"\ndel \"%FE_PROJECT%\\fe-uninstall.sh\"\nexit /b 0\n",
 }
