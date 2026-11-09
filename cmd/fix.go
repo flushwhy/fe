@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/flushwhy/fe/internal/compdb"
+	"github.com/flushwhy/fe/internal/tooling"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +43,15 @@ normal build command instead.`,
 			rel = buildDir
 		}
 		fmt.Printf("compile_commands.json is ready: %s (%d entries)\n", filepath.Join(rel, "compile_commands.json"), count)
-		fmt.Println("clangd will use this database when its .clangd CompilationDatabase points to that directory.")
+		configured, err := tooling.ConfigureClangd(root, buildDir)
+		if err != nil {
+			return fmt.Errorf("database repaired, but updating .clangd failed: %w", err)
+		}
+		if configured {
+			fmt.Println(".clangd is configured to use this database.")
+		} else {
+			fmt.Println("Your custom .clangd was left unchanged; set CompileFlags.CompilationDatabase to", rel)
+		}
 		return nil
 	},
 }
