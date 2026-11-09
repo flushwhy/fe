@@ -87,7 +87,7 @@ func Repair(root string) (string, int, error) {
 	} else if generator == "" && runtime.GOOS == "windows" {
 		if _, err := exec.LookPath("ninja"); err == nil {
 			buildDir = ninjaBuildDir(root)
-			cmakeArgs = []string{"-S", root, "-B", buildDir, "-G", "Ninja", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"}
+			cmakeArgs = []string{"-S", root, "-B", buildDir, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=" + buildType, "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"}
 		} else {
 			return "", 0, fmt.Errorf("CMake's default Windows generator may be Visual Studio, which cannot generate compile_commands.json; install Ninja and rerun")
 		}
