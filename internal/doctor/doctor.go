@@ -259,14 +259,8 @@ func checkCMakeExportFlag(root string) Result {
 	if strings.Contains(string(content), "CMAKE_EXPORT_COMPILE_COMMANDS") {
 		return Result{Name: name, OK: true, Message: "set in CMakeLists.txt"}
 	}
-	for _, candidate := range []string{
-		filepath.Join(root, "build", "compile_commands.json"),
-		filepath.Join(root, "cmake-build-debug", "compile_commands.json"),
-		filepath.Join(root, "cmake-build-release", "compile_commands.json"),
-	} {
-		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
-			return Result{Name: name, OK: true, Message: "enabled in the active build configuration"}
-		}
+	if checkCompileCommands(root).OK {
+		return Result{Name: name, OK: true, Message: "enabled in the active build configuration"}
 	}
 	return Result{
 		Name:    name,
