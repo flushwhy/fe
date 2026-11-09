@@ -179,7 +179,7 @@ jobs:
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: binaries
           path: dist
@@ -225,7 +225,7 @@ jobs:
     needs: [validate-release, binaries, riscv-binary, deb-packages]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           path: dist
           merge-multiple: true
@@ -260,7 +260,7 @@ jobs:
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: binaries
           path: dist
@@ -312,7 +312,7 @@ jobs:
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
         with:
           name: binaries
           path: dist
