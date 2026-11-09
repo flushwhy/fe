@@ -44,7 +44,7 @@ var rootCmd = &cobra.Command{
     fe o3de doctor                    diagnose engine and build prerequisites
     fe o3de find <kind>               find registered and local engines, projects, Gems, templates
     fe o3de project create --path ... create an O3DE project
-    fe o3de project register --path . register an existing O3DE project
+    fe o3de project register --path . register an existing project
     fe o3de project set-global ...    choose O3DE's default project
     fe o3de engine list               list registered O3DE engines
     fe o3de gem ...                   create, register, enable, or disable Gems
@@ -58,6 +58,7 @@ var rootCmd = &cobra.Command{
     fe transcode                      convert audio/video via ffmpeg
     fe bmp                            push builds to itch.io via butler
     fe changelog                      generate release notes from Git history and tags
+    fe release                        build, pack, optionally package, and publish
     fe release                        build, pack, optionally package, and publish
     fe validate                       pre-flight config and path check
 
@@ -93,6 +94,7 @@ func initConfig() {
 	}
 
 	viper.AutomaticEnv()
+
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "config:", viper.ConfigFileUsed())
 	}
