@@ -16,9 +16,9 @@ so your tooling works correctly from day one.
 
 Supported tools: %s
 
-clangd  — writes .clangd with correct CompilationDatabase path,
-           creates compile_commands.json stub if missing so clangd
-           starts without errors. Detects cmake vs bear/make layout.
+clangd  — writes .clangd with the detected CompilationDatabase path.
+           For CMake projects, run 'fe fix compile-commands' to generate
+           a real database; Fe does not create an empty placeholder.
 
 ols     — writes or patches ols.json for the Odin Language Server.
 
@@ -28,6 +28,7 @@ gopls   — writes .gopls.yaml workspace settings for Go.
 
 Examples:
   cd myproject && fe add clangd
+  cd myproject && fe fix compile-commands
   cd myodingame && fe add ols
   cd myzigapp  && fe add zls
   cd mygoapp   && fe add gopls`, supportedTools()),
