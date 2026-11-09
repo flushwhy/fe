@@ -67,6 +67,7 @@ func Repair(root string) (string, int, error) {
 	if err != nil {
 		return "", 0, err
 	}
+	buildType := vscodeBuildType(root)
 	dbPath := filepath.Join(buildDir, "compile_commands.json")
 	if err := rejectSymlink(dbPath); err != nil {
 		return "", 0, err
@@ -82,7 +83,7 @@ func Repair(root string) (string, int, error) {
 			return "", 0, fmt.Errorf("build directory uses %q, which cannot generate compile_commands.json; install Ninja and rerun", generator)
 		}
 		buildDir = ninjaBuildDir(root)
-		cmakeArgs = []string{"-S", root, "-B", buildDir, "-G", "Ninja", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"}
+		cmakeArgs = []string{"-S", root, "-B", buildDir, "-G", "Ninja", "-DCMAKE_BUILD_TYPE=" + buildType, "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"}
 	} else if generator == "" && runtime.GOOS == "windows" {
 		if _, err := exec.LookPath("ninja"); err == nil {
 			buildDir = ninjaBuildDir(root)
@@ -172,6 +173,19 @@ func findBuildDir(root string) (string, error) {
 		}
 	}
 	return buildDir, nil
+}
+
+func vscodeBuildType(root string) string {
+	data, err := os.ReadFile(filepath.Join(root, ".vscode", "settings.json"))
+	if err != nil {
+		return "Debug"
+	}
+	var settings map[string]json.RawMessage
+	var buildType string
+	if json.Unmarshal(data, &settings) != nil || json.Unmarshal(settings["cmake.buildType"], &buildType) != nil || buildType == "" {
+		return "Debug"
+	}
+	return buildType
 }
 
 func vscodeBuildDir(root string) string {
