@@ -15,9 +15,8 @@ import (
 const (
 	ignoreStart = "# >>> Fe managed >>>"
 	ignoreEnd   = "# <<< Fe managed <<<"
+	lineBreak   = "\n"
 )
-
-var lineBreak = string(rune(10))
 
 type Record struct {
 	Root             string            `json:"root"`
@@ -675,16 +674,7 @@ func ToolCacheDir() (string, error) {
 }
 
 func toolsDir() (string, error) {
-	home := os.Getenv("FE_HOME")
-	if home == "" {
-		var err error
-		home, err = os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		home = filepath.Join(home, ".fe")
-	}
-	home, err := filepath.Abs(home)
+	home, err := feHomeDir()
 	if err != nil {
 		return "", err
 	}
@@ -692,20 +682,23 @@ func toolsDir() (string, error) {
 }
 
 func recordsDir() (string, error) {
-	home := os.Getenv("FE_HOME")
-	if home == "" {
-		var err error
-		home, err = os.UserHomeDir()
-		if err != nil {
-			return "", err
-		}
-		home = filepath.Join(home, ".fe")
-	}
-	home, err := filepath.Abs(home)
+	home, err := feHomeDir()
 	if err != nil {
 		return "", err
 	}
 	return filepath.Join(home, "state", "projects"), nil
+}
+
+func feHomeDir() (string, error) {
+	home := os.Getenv("FE_HOME")
+	if home == "" {
+		userHome, err := os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		home = filepath.Join(userHome, ".fe")
+	}
+	return filepath.Abs(home)
 }
 
 var uninstallers = map[string]string{
