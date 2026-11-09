@@ -244,6 +244,9 @@ func TestCleanRetainsSharedToolUntilLastProjectIsRemoved(t *testing.T) {
 	if _, err := os.Stat(toolPath); !os.IsNotExist(err) {
 		t.Fatalf("shared tool still exists after last owner was removed: %v", err)
 	}
+	if _, err := os.Stat(tools); !os.IsNotExist(err) {
+		t.Fatalf("empty Fe tool cache directories were left behind: %v", err)
+	}
 }
 
 func TestCleanDryRunKeepsSharedTool(t *testing.T) {
