@@ -112,3 +112,21 @@ func TestWriteLauncher(t *testing.T) {
 		t.Fatal("Linux launcher should be a hard link to the managed executable")
 	}
 }
+
+func TestEnsureCacheParentRejectsSymlink(t *testing.T) {
+	root := t.TempDir()
+	outside := t.TempDir()
+	if err := os.Symlink(outside, filepath.Join(root, "godot")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	if err := ensureCacheParent(root, filepath.Join(root, "godot", "4.3-stable")); err == nil {
+		t.Fatal("cache setup followed a symlinked parent")
+	}
+	entries, err := os.ReadDir(outside)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(entries) != 0 {
+		t.Fatalf("cache setup wrote outside the managed root: %v", entries)
+	}
+}
