@@ -118,6 +118,16 @@ func CleanAll(dryRun bool) ([]Cleanup, error) {
 		if err := json.Unmarshal(data, &record); err != nil {
 			return results, fmt.Errorf("read project record %s: %w", entry.Name(), err)
 		}
+		if err := validateRecord(record); err != nil {
+			return results, fmt.Errorf("invalid project record %s: %w", entry.Name(), err)
+		}
+		expectedPath, err := recordPath(record.Root)
+		if err != nil {
+			return results, err
+		}
+		if filepath.Clean(expectedPath) != filepath.Clean(path) {
+			return results, fmt.Errorf("project record path does not match its project identity: %s", path)
+		}
 		info, err := os.Lstat(record.Root)
 		if errors.Is(err, os.ErrNotExist) {
 			if !dryRun {
@@ -344,7 +354,22 @@ func loadRecord(root string) (Record, error) {
 	if record.Root != root {
 		return Record{}, fmt.Errorf("project record path mismatch for %s", root)
 	}
+	if err := validateRecord(record); err != nil {
+		return Record{}, err
+	}
 	return record, nil
+}
+
+func validateRecord(record Record) error {
+	if !filepath.IsAbs(record.Root) || filepath.Clean(record.Root) != record.Root {
+		return fmt.Errorf("invalid project root %q", record.Root)
+	}
+	for name := range record.ManagedFiles {
+		if _, ok := uninstallers[name]; !ok {
+			return fmt.Errorf("unknown Fe-managed file %q", name)
+		}
+	}
+	return nil
 }
 
 func saveRecord(record Record) error {
