@@ -4,6 +4,7 @@ import (
 	"archive/zip"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -84,5 +85,23 @@ func TestFindExecutable(t *testing.T) {
 	got, err := findExecutable(root, "linux")
 	if err != nil || got != path {
 		t.Fatalf("findExecutable = %q, %v; want %q", got, err, path)
+	}
+}
+
+func TestWriteLauncher(t *testing.T) {
+	root := t.TempDir()
+	executable := filepath.Join(root, "Godot_v4.3-stable_linux.x86_64")
+	if err := os.WriteFile(executable, []byte("binary"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeLauncher(root, executable, "linux"); err != nil {
+		t.Fatal(err)
+	}
+	launcher, err := os.ReadFile(filepath.Join(root, "bin", "godot"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(launcher), "exec") || !strings.Contains(string(launcher), "Godot_v4.3-stable_linux.x86_64") {
+		t.Fatalf("unexpected launcher: %s", launcher)
 	}
 }
