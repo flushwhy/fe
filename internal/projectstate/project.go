@@ -411,12 +411,8 @@ func RegisterTool(root, name, path string) error {
 		return err
 	}
 	path = filepath.Clean(path)
-	if err := validateToolPath(path); err != nil {
+	if err := validateToolInstall(path, name); err != nil {
 		return err
-	}
-	marker, err := os.ReadFile(filepath.Join(path, ".fe-managed"))
-	if err != nil || strings.TrimSpace(string(marker)) != name {
-		return fmt.Errorf("%s is not a Fe-managed tool installation", path)
 	}
 	record, err := loadRecord(root)
 	if errors.Is(err, os.ErrNotExist) {
@@ -444,7 +440,38 @@ func ToolPath(root, name string) (string, bool, error) {
 		return "", false, err
 	}
 	path, ok := record.Tools[name]
+	if ok {
+		if err := validateToolInstall(path, name); err != nil {
+			return "", false, err
+		}
+	}
 	return path, ok, nil
+}
+
+func validateToolInstall(path, name string) error {
+	if err := validateToolPath(path); err != nil {
+		return err
+	}
+	info, err := os.Lstat(path)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+		return fmt.Errorf("managed tool path %s is not a real directory", path)
+	}
+	markerPath := filepath.Join(path, ".fe-managed")
+	info, err = os.Lstat(markerPath)
+	if err != nil {
+		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return fmt.Errorf("managed tool marker %s is not a regular file", markerPath)
+	}
+	marker, err := os.ReadFile(markerPath)
+	if err != nil || strings.TrimSpace(string(marker)) != name {
+		return fmt.Errorf("%s is not a Fe-managed tool installation", path)
+	}
+	return nil
 }
 
 func validateToolPath(path string) error {
@@ -512,9 +539,8 @@ func releaseTools(record Record, ownRecord string, dryRun bool) (Cleanup, error)
 		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
 			return result, fmt.Errorf("refusing to remove unmanaged tool path %s", path)
 		}
-		marker, err := os.ReadFile(filepath.Join(path, ".fe-managed"))
-		if err != nil || strings.TrimSpace(string(marker)) != name {
-			return result, fmt.Errorf("refusing to remove tool without matching Fe ownership marker: %s", path)
+		if err := validateToolInstall(path, name); err != nil {
+			return result, fmt.Errorf("refusing to remove unmanaged tool: %w", err)
 		}
 		result.Removed = append(result.Removed, path)
 		if !dryRun {
