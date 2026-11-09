@@ -599,6 +599,10 @@ func toolsDir() (string, error) {
 		}
 		home = filepath.Join(home, ".fe")
 	}
+	home, err := filepath.Abs(home)
+	if err != nil {
+		return "", err
+	}
 	return filepath.Join(home, "tools"), nil
 }
 
@@ -611,6 +615,10 @@ func recordsDir() (string, error) {
 			return "", err
 		}
 		home = filepath.Join(home, ".fe")
+	}
+	home, err := filepath.Abs(home)
+	if err != nil {
+		return "", err
 	}
 	return filepath.Join(home, "state", "projects"), nil
 }
