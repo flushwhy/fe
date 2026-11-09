@@ -10,6 +10,7 @@ import (
 	"runtime"
 	"strings"
 
+	"github.com/flushwhy/fe/internal/godot"
 	"github.com/spf13/cobra"
 )
 
@@ -78,8 +79,23 @@ var godotExportCmd = &cobra.Command{
 		if strings.TrimSpace(output) == "" {
 			return errors.New("an output path is required; pass --output")
 		}
-		if _, err := os.Stat(filepath.Join(project, "export_presets.cfg")); err != nil {
+		presetFile := filepath.Join(project, "export_presets.cfg")
+		if _, err := os.Stat(presetFile); err != nil {
 			return errors.New("export presets not found; create one in the Godot editor and save export_presets.cfg")
+		}
+		presets, err := godot.ReadPresets(presetFile)
+		if err != nil {
+			return err
+		}
+		found := false
+		for _, configured := range presets {
+			if configured.Name == preset {
+				found = true
+				break
+			}
+		}
+		if !found {
+			return fmt.Errorf("Godot export preset %q not found in export_presets.cfg", preset)
 		}
 		requested, _ := cmd.Flags().GetString("version")
 		engine, err := selectGodotEngine(project, requested)
