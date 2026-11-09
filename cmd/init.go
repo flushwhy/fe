@@ -13,7 +13,7 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init [lang] --name <project>",
 	Short: "Scaffold a new project for a given language.",
-	Long: fmt.Sprintf(\`Creates a new project directory with language-appropriate structure,
+	Long: fmt.Sprintf(`Creates a new project directory with language-appropriate structure,
 build files, and editor/LSP config stubs.
 
 Supported languages: %s
@@ -30,7 +30,7 @@ Named templates are downloaded from https://github.com/flushwhy/fe-templates and
 List available templates with: fe template list
 Refresh a cached template with: fe template update <template-id>
 
-Fe also creates local cleanup helpers and registers the project for 'fe clean'.\`, supportedLangs()),
+Fe also creates local cleanup helpers and registers the project for 'fe clean'.`, supportedLangs()),
 	Args: func(cmd *cobra.Command, args []string) error {
 		templateID, _ := cmd.Flags().GetString("template")
 		if templateID != "" && len(args) == 0 {
