@@ -28,6 +28,11 @@ func TestSyncAndCleanPreserveUserGitignore(t *testing.T) {
 	if strings.Count(string(data), ignoreStart) != 1 || !strings.Contains(string(data), original) {
 		t.Fatalf("sync changed existing ignore rules or duplicated its block: %q", data)
 	}
+	for _, ignored := range []string{".fe/", "fe-uninstall.sh", "fe-uninstall.bat"} {
+		if !strings.Contains(string(data), ignored) {
+			t.Errorf("Fe-managed ignore block is missing %q", ignored)
+		}
+	}
 	for name := range uninstallers {
 		if _, err := os.Stat(filepath.Join(root, name)); err != nil {
 			t.Fatalf("missing %s: %v", name, err)
