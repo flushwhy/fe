@@ -292,3 +292,34 @@ func TestRegisterToolRejectsOutsideCache(t *testing.T) {
 		t.Fatal("registered tool outside Fe's managed cache")
 	}
 }
+
+func TestCleanAllRemovesToolOwnedOnlyByDeletedProject(t *testing.T) {
+	t.Setenv("FE_HOME", t.TempDir())
+	project := t.TempDir()
+	cache, err := toolsDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	toolPath := filepath.Join(cache, "godot", "4.3-stable", "linux-x86_64")
+	if err := os.MkdirAll(toolPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(toolPath, ".fe-managed"), []byte("godot:4.3-stable"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := Sync(project); err != nil {
+		t.Fatal(err)
+	}
+	if err := RegisterTool(project, "godot:4.3-stable", toolPath); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.RemoveAll(project); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CleanAll(false); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := os.Stat(toolPath); !os.IsNotExist(err) {
+		t.Fatalf("orphaned tool cache was not removed: %v", err)
+	}
+}
