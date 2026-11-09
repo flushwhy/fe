@@ -27,6 +27,13 @@ Exit code 0 if all checks pass. Non-zero if anything fails (CI-safe).
 
 Run 'fe add <tool>' to fix most issues.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if project, projectErr := findGodotProject("."); projectErr == nil {
+			restorePath, err := activateProjectGodotPath(project)
+			if err != nil {
+				return err
+			}
+			defer restorePath()
+		}
 		results := doctor.Run()
 		results = append(results, feProjectChecks()...)
 		allOK := doctor.Print(results)
