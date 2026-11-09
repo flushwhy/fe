@@ -193,8 +193,22 @@ var godotDoctorCmd = &cobra.Command{
 		}
 		fmt.Fprintln(out, "Detected engines:")
 		engines := detectGodotEngines()
+		if err == nil {
+			if selected, selectErr := selectGodotEngine(project, ""); selectErr == nil {
+				found := false
+				for _, engine := range engines {
+					if engine.Path == selected.Path {
+						found = true
+						break
+					}
+				}
+				if !found {
+					engines = append(engines, *selected)
+				}
+			}
+		}
 		if len(engines) == 0 {
-			fmt.Fprintln(out, "  none on PATH")
+			fmt.Fprintln(out, "  none installed; use 'fe godot install --version <version>'")
 		}
 		for _, e := range engines {
 			fmt.Fprintf(out, "  %s  %s\n", e.Version, e.Path)
