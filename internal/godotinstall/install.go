@@ -418,11 +418,14 @@ func extractArchive(archivePath, destination string) error {
 			source.Close()
 			return err
 		}
-		_, copyErr := io.Copy(output, io.LimitReader(source, int64(entry.UncompressedSize64)+1))
+		written, copyErr := io.Copy(output, io.LimitReader(source, int64(entry.UncompressedSize64)+1))
 		sourceErr := source.Close()
 		outputErr := output.Close()
 		if copyErr != nil {
 			return copyErr
+		}
+		if uint64(written) != entry.UncompressedSize64 {
+			return fmt.Errorf("archive entry %s size mismatch: extracted %d bytes, expected %d", entry.Name, written, entry.UncompressedSize64)
 		}
 		if sourceErr != nil {
 			return sourceErr
