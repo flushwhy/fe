@@ -74,7 +74,8 @@ func init() {
 func isCI() bool {
 	return strings.EqualFold(os.Getenv("CI"), "true") ||
 		strings.EqualFold(os.Getenv("GITHUB_ACTIONS"), "true") ||
-		strings.EqualFold(os.Getenv("JENKINS_URL"), "true") ||
+		os.Getenv("JENKINS_URL") != "" ||
 		os.Getenv("BUILDKITE") != "" ||
+		os.Getenv("BUILD_ID") != "" ||
 		os.Getenv("TF_BUILD") != ""
 }
