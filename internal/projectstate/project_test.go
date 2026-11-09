@@ -326,3 +326,28 @@ func TestCleanAllRemovesToolOwnedOnlyByDeletedProject(t *testing.T) {
 		t.Fatalf("orphaned tool cache was not removed: %v", err)
 	}
 }
+
+func TestRegisterToolRejectsSymlinkedCacheParent(t *testing.T) {
+	t.Setenv("FE_HOME", t.TempDir())
+	project := t.TempDir()
+	cache, err := toolsDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	realPath := filepath.Join(cache, "real", "4.3-stable")
+	if err := os.MkdirAll(realPath, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(realPath, ".fe-managed"), []byte("godot:4.3-stable"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(filepath.Join(cache, "real"), filepath.Join(cache, "godot")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	if err := Sync(project); err != nil {
+		t.Fatal(err)
+	}
+	if err := RegisterTool(project, "godot:4.3-stable", filepath.Join(cache, "godot", "4.3-stable")); err == nil {
+		t.Fatal("registered a tool through a symlinked cache parent")
+	}
+}
