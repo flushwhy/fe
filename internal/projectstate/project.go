@@ -23,12 +23,14 @@ type Record struct {
 	Root             string            `json:"root"`
 	CreatedAt        time.Time         `json:"created_at"`
 	ManagedFiles     map[string]string `json:"managed_files"`
+	Tools            map[string]string `json:"tools,omitempty"`
 	GitignoreCreated bool              `json:"gitignore_created,omitempty"`
 }
 
 type Cleanup struct {
 	Removed   []string
 	Preserved []string
+	Retained  []string
 }
 
 func Sync(root string) error {
@@ -45,6 +47,9 @@ func Sync(root string) error {
 	}
 	if record.ManagedFiles == nil {
 		record.ManagedFiles = map[string]string{}
+	}
+	if record.Tools == nil {
+		record.Tools = map[string]string{}
 	}
 
 	gitignore := filepath.Join(root, ".gitignore")
@@ -130,12 +135,17 @@ func CleanAll(dryRun bool) ([]Cleanup, error) {
 		}
 		info, err := os.Lstat(record.Root)
 		if errors.Is(err, os.ErrNotExist) {
+			result, cleanupErr := releaseTools(record, path, dryRun)
+			if cleanupErr != nil {
+				return results, cleanupErr
+			}
 			if !dryRun {
 				if err := os.Remove(path); err != nil {
 					return results, err
 				}
 			}
-			results = append(results, Cleanup{Removed: []string{"stale project record: " + record.Root}})
+			result.Removed = append(result.Removed, "stale project record: "+record.Root)
+			results = append(results, result)
 			continue
 		}
 		if err != nil {
@@ -221,16 +231,24 @@ func cleanRecord(record Record, dryRun, keepUninstallers bool) (Cleanup, error) 
 		}
 	}
 
-	if len(result.Preserved) == 0 && !dryRun {
+	if len(result.Preserved) == 0 {
 		path, err := recordPath(record.Root)
 		if err != nil {
 			return result, err
 		}
-		if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
-			return result, fmt.Errorf("remove project record: %w", err)
-		}
-		if err := removeEmptyStateDirs(); err != nil {
+		tools, err := releaseTools(record, path, dryRun)
+		if err != nil {
 			return result, err
+		}
+		result.Removed = append(result.Removed, tools.Removed...)
+		result.Retained = append(result.Retained, tools.Retained...)
+		if !dryRun {
+			if err := os.Remove(path); err != nil && !errors.Is(err, os.ErrNotExist) {
+				return result, fmt.Errorf("remove project record: %w", err)
+			}
+			if err := removeEmptyStateDirs(); err != nil {
+				return result, err
+			}
 		}
 	}
 	return result, nil
@@ -369,7 +387,143 @@ func validateRecord(record Record) error {
 			return fmt.Errorf("unknown Fe-managed file %q", name)
 		}
 	}
+	for name, path := range record.Tools {
+		if name == "" || !filepath.IsAbs(path) || filepath.Clean(path) != path {
+			return fmt.Errorf("invalid managed tool reference %q", name)
+		}
+		if err := validateToolPath(path); err != nil {
+			return err
+		}
+	}
 	return nil
+}
+
+func RegisterTool(root, name, path string) error {
+	root, err := canonicalRoot(root)
+	if err != nil {
+		return err
+	}
+	if name == "" {
+		return errors.New("tool name is required")
+	}
+	path, err = filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+	path = filepath.Clean(path)
+	if err := validateToolPath(path); err != nil {
+		return err
+	}
+	marker, err := os.ReadFile(filepath.Join(path, ".fe-managed"))
+	if err != nil || strings.TrimSpace(string(marker)) != name {
+		return fmt.Errorf("%s is not a Fe-managed tool installation", path)
+	}
+	record, err := loadRecord(root)
+	if errors.Is(err, os.ErrNotExist) {
+		record = Record{Root: root, CreatedAt: time.Now().UTC(), ManagedFiles: map[string]string{}}
+	} else if err != nil {
+		return err
+	}
+	if record.Tools == nil {
+		record.Tools = map[string]string{}
+	}
+	record.Tools[name] = path
+	return saveRecord(record)
+}
+
+func ToolPath(root, name string) (string, bool, error) {
+	root, err := canonicalRoot(root)
+	if err != nil {
+		return "", false, err
+	}
+	record, err := loadRecord(root)
+	if errors.Is(err, os.ErrNotExist) {
+		return "", false, nil
+	}
+	if err != nil {
+		return "", false, err
+	}
+	path, ok := record.Tools[name]
+	return path, ok, nil
+}
+
+func validateToolPath(path string) error {
+	root, err := toolsDir()
+	if err != nil {
+		return err
+	}
+	rel, err := filepath.Rel(root, path)
+	if err != nil || rel == "." || rel == ".." || strings.HasPrefix(rel, ".."+string(filepath.Separator)) || filepath.IsAbs(rel) {
+		return fmt.Errorf("managed tool path %q is outside Fe's tool cache", path)
+	}
+	return nil
+}
+
+func releaseTools(record Record, ownRecord string, dryRun bool) (Cleanup, error) {
+	result := Cleanup{}
+	for name, path := range record.Tools {
+		used := false
+		dir, err := recordsDir()
+		if err != nil {
+			return result, err
+		}
+		entries, err := os.ReadDir(dir)
+		if err != nil && !errors.Is(err, os.ErrNotExist) {
+			return result, err
+		}
+		for _, entry := range entries {
+			if entry.IsDir() || filepath.Ext(entry.Name()) != ".json" {
+				continue
+			}
+			otherPath := filepath.Join(dir, entry.Name())
+			if filepath.Clean(otherPath) == filepath.Clean(ownRecord) {
+				continue
+			}
+			data, err := os.ReadFile(otherPath)
+			if err != nil {
+				return result, err
+			}
+			var other Record
+			if err := json.Unmarshal(data, &other); err != nil {
+				return result, fmt.Errorf("read project record %s: %w", entry.Name(), err)
+			}
+			if err := validateRecord(other); err != nil {
+				return result, err
+			}
+			if other.Tools[name] == path {
+				used = true
+				break
+			}
+		}
+		if used {
+			result.Retained = append(result.Retained, path+" (still used by another project)")
+			continue
+		}
+		if err := validateToolPath(path); err != nil {
+			return result, err
+		}
+		info, err := os.Lstat(path)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return result, err
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return result, fmt.Errorf("refusing to remove unmanaged tool path %s", path)
+		}
+		marker, err := os.ReadFile(filepath.Join(path, ".fe-managed"))
+		if err != nil || strings.TrimSpace(string(marker)) != name {
+			return result, fmt.Errorf("refusing to remove tool without matching Fe ownership marker: %s", path)
+		}
+		result.Removed = append(result.Removed, path)
+		if !dryRun {
+			if err := os.RemoveAll(path); err != nil {
+				return result, fmt.Errorf("remove managed tool %s: %w", path, err)
+			}
+		}
+	}
+	return result, nil
 }
 
 func saveRecord(record Record) error {
@@ -429,6 +583,19 @@ func removeEmptyStateDirs() error {
 		}
 	}
 	return nil
+}
+
+func toolsDir() (string, error) {
+	home := os.Getenv("FE_HOME")
+	if home == "" {
+		var err error
+		home, err = os.UserHomeDir()
+		if err != nil {
+			return "", err
+		}
+		home = filepath.Join(home, ".fe")
+	}
+	return filepath.Join(home, "tools"), nil
 }
 
 func recordsDir() (string, error) {
