@@ -121,7 +121,7 @@ jobs:
             bash scripts/build-binaries.sh
           fi
 
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: binaries
           path: dist/*
@@ -161,7 +161,7 @@ jobs:
             bash scripts/build-binaries.sh linux riscv64 fe-linux-riscv64
           fi
 
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: fe-linux-riscv64
           path: dist/fe-linux-riscv64
@@ -211,7 +211,7 @@ jobs:
           fe --help >/dev/null
           fe o3de --help >/dev/null
 
-      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
         with:
           name: deb-packages
           path: dist/packages/*
