@@ -65,3 +65,37 @@ func TestCleanDryRunDoesNotChangeProject(t *testing.T) {
 	if _, err := os.Stat(filepath.Join(root, "fe-uninstall.sh")); err != nil { t.Fatal("dry run removed the uninstall script") }
 	if _, err := loadRecord(root); err != nil { t.Fatalf("dry run removed the record: %v", err) }
 }
+
+func TestSyncRejectsGitignoreSymlink(t *testing.T) {
+	t.Setenv("FE_HOME", t.TempDir())
+	root := t.TempDir()
+	target := filepath.Join(t.TempDir(), "ignore")
+	if err := os.WriteFile(target, []byte("keep/\\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(target, filepath.Join(root, ".gitignore")); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+	if err := Sync(root); err == nil {
+		t.Fatal("sync followed a .gitignore symlink")
+	}
+	data, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(data) != "keep/\\n" {
+		t.Fatalf("symlink target changed: %q", data)
+	}
+}
+
+func TestSyncDoesNotClaimExistingUninstaller(t *testing.T) {
+	t.Setenv("FE_HOME", t.TempDir())
+	root := t.TempDir()
+	path := filepath.Join(root, "fe-uninstall.sh")
+	if err := os.WriteFile(path, []byte(uninstallers["fe-uninstall.sh"]), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := Sync(root); err == nil {
+		t.Fatal("sync claimed an existing uninstaller without an ownership record")
+	}
+}
