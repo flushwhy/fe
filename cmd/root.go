@@ -13,11 +13,15 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "fe",
 	Short: "Fe — dev middleware for the awkward parts of shipping software",
-	Long: `Fe is a local CLI and CI-friendly middleware layer.
+	Long: \`Fe is a local CLI and CI-friendly middleware layer.
 
   Project scaffolding:
     fe init <lang> --name <project>   scaffold a language starter from fe-templates
     fe init --template <id> --name <project>   scaffold from fe-templates
+    fe sync [path]                    sync Fe-managed project files (local only)
+    fe clean [path]                   remove Fe-managed files and registrations
+    fe clean --dry-run                preview project cleanup
+    fe clean --all                    clean all registered projects
     fe template list                 list available remote templates
     fe template update <id>          refresh a cached template
     fe add <tool>                     wire up LSP/editor tooling (clangd, ols, zls, gopls)
@@ -40,7 +44,7 @@ var rootCmd = &cobra.Command{
     fe o3de doctor                    diagnose engine and build prerequisites
     fe o3de find <kind>               find registered and local engines, projects, Gems, templates
     fe o3de project create --path ... create an O3DE project
-    fe o3de project register --path . register an existing project
+    fe o3de project register --path . register an existing O3DE project
     fe o3de project set-global ...    choose O3DE's default project
     fe o3de engine list               list registered O3DE engines
     fe o3de gem ...                   create, register, enable, or disable Gems
@@ -55,13 +59,12 @@ var rootCmd = &cobra.Command{
     fe bmp                            push builds to itch.io via butler
     fe changelog                      generate release notes from Git history and tags
     fe release                        build, pack, optionally package, and publish
-    fe release                        build, pack, optionally package, and publish
     fe validate                       pre-flight config and path check
 
   Interactive:
     fe tui                            Bubble Tea UI (local terminals only)
 
-Config priority: env vars > .fe.yaml > conventions > defaults`,
+Config priority: env vars > .fe.yaml > conventions > defaults\`,
 }
 
 func Execute() {
@@ -90,7 +93,6 @@ func initConfig() {
 	}
 
 	viper.AutomaticEnv()
-
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "config:", viper.ConfigFileUsed())
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/flushwhy/fe/internal/projectstate"
 	"github.com/flushwhy/fe/internal/scaffold"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -12,7 +13,7 @@ import (
 var initCmd = &cobra.Command{
 	Use:   "init [lang] --name <project>",
 	Short: "Scaffold a new project for a given language.",
-	Long: fmt.Sprintf(`Creates a new project directory with language-appropriate structure,
+	Long: fmt.Sprintf(\`Creates a new project directory with language-appropriate structure,
 build files, and editor/LSP config stubs.
 
 Supported languages: %s
@@ -27,7 +28,9 @@ Examples:
 
 Named templates are downloaded from https://github.com/flushwhy/fe-templates and cached locally.
 List available templates with: fe template list
-Refresh a cached template with: fe template update <template-id>`, supportedLangs()),
+Refresh a cached template with: fe template update <template-id>
+
+Fe also creates local cleanup helpers and registers the project for 'fe clean'.\`, supportedLangs()),
 	Args: func(cmd *cobra.Command, args []string) error {
 		templateID, _ := cmd.Flags().GetString("template")
 		if templateID != "" && len(args) == 0 {
@@ -58,26 +61,24 @@ Refresh a cached template with: fe template update <template-id>`, supportedLang
 			}
 		}
 
-		// Remote URL from flag or config file.
 		remoteURL := viper.GetString("templates.source")
-
-		return scaffold.Init(scaffold.Options{
-			Lang:      lang,
-			Name:      name,
-			Module:    module,
-			RemoteURL: remoteURL,
-			TemplateID: templateID,
-		})
+		if err := scaffold.Init(scaffold.Options{
+			Lang: lang, Name: name, Module: module, RemoteURL: remoteURL, TemplateID: templateID,
+		}); err != nil {
+			return err
+		}
+		if isCI() {
+			return nil
+		}
+		return projectstate.Sync(name)
 	},
 }
 
 func init() {
 	rootCmd.AddCommand(initCmd)
-
 	initCmd.Flags().String("name", "", "project name / directory to create")
 	initCmd.Flags().String("module", "", "Go module path (go only, e.g. github.com/you/myapp)")
 	initCmd.Flags().String("template", "", "named template ID from flushwhy/fe-templates")
-
 }
 
 func supportedLangs() string {
@@ -87,4 +88,3 @@ func supportedLangs() string {
 	}
 	return strings.Join(langs, ", ")
 }
-
