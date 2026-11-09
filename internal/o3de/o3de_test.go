@@ -3,6 +3,7 @@ package o3de
 import (
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 )
 
@@ -54,5 +55,30 @@ func TestFindEngineReadsEngineManifest(t *testing.T) {
 	}
 	if entry.Name != "TestEngine" || entry.Version != "24.09" {
 		t.Fatalf("unexpected engine: %#v", entry)
+	}
+}
+
+func TestCLIInvocationUsesCommandInterpreterForWindowsBatchFiles(t *testing.T) {
+	for _, path := range []string{`C:\Program Files\O3DE\scripts\o3de.bat`, `C:\Tools\o3de.cmd`} {
+		executable, args := CLIInvocation("windows", path, []string{"register", "--engine-path", `C:\My Engine`})
+		if executable != "cmd.exe" {
+			t.Fatalf("expected cmd.exe for %q, got %q", path, executable)
+		}
+		want := []string{"/d", "/c", "call", path, "register", "--engine-path", `C:\My Engine`}
+		if !reflect.DeepEqual(args, want) {
+			t.Fatalf("unexpected command args: got %#v, want %#v", args, want)
+		}
+	}
+}
+
+func TestCLIInvocationRunsNonBatchScriptsDirectly(t *testing.T) {
+	for _, goos := range []string{"linux", "darwin", "windows"} {
+		executable, args := CLIInvocation(goos, "/opt/o3de/scripts/o3de.sh", []string{"find", "engines"})
+		if executable != "/opt/o3de/scripts/o3de.sh" {
+			t.Fatalf("unexpected executable for %s: %q", goos, executable)
+		}
+		if !reflect.DeepEqual(args, []string{"find", "engines"}) {
+			t.Fatalf("unexpected args for %s: %#v", goos, args)
+		}
 	}
 }

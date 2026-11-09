@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"runtime"
 	"strings"
 
 	"github.com/flushwhy/fe/internal/o3de"
@@ -133,7 +134,8 @@ func runO3DECLI(cmd *cobra.Command, args ...string) error {
 	if cliPath == "" {
 		return fmt.Errorf("could not find O3DE CLI for engine %q", engine.Path)
 	}
-	child := exec.CommandContext(cmd.Context(), cliPath, args...)
+	executable, cliArgs := o3de.CLIInvocation(runtime.GOOS, cliPath, args)
+	child := exec.CommandContext(cmd.Context(), executable, cliArgs...)
 	child.Stdout = os.Stdout
 	child.Stderr = os.Stderr
 	child.Stdin = os.Stdin
