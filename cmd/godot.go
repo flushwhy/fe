@@ -94,7 +94,7 @@ var godotInstallCmd = &cobra.Command{
 		if err := projectstate.RegisterTool(project, godotToolName(version), toolPath); err != nil {
 			return fmt.Errorf("register managed Godot installation: %w", err)
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "Installed Godot %s for this project.\n", version)
+		fmt.Fprintf(cmd.OutOrStdout(), "Godot %s is ready for this project.\n", version)
 		fmt.Fprintf(cmd.OutOrStdout(), "Executable: %s\n", executable)
 		return nil
 	},
@@ -504,6 +504,17 @@ func activateProjectGodotPath(project string) (func(), error) {
 	}
 	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
 		return nil, fmt.Errorf("project Godot launcher path is not a real directory: %s", bin)
+	}
+	launcher := filepath.Join(bin, "godot")
+	if runtime.GOOS == "windows" {
+		launcher += ".exe"
+	}
+	info, err = os.Lstat(launcher)
+	if err != nil {
+		return nil, fmt.Errorf("project Godot launcher is unavailable: %w", err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return nil, fmt.Errorf("project Godot launcher is not a regular file: %s", launcher)
 	}
 	oldPath := os.Getenv("PATH")
 	newPath := bin
