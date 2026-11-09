@@ -261,3 +261,48 @@ func TestGodotInstallIsDisabledInCI(t *testing.T) {
 		t.Fatalf("expected CI guard, got %v", err)
 	}
 }
+
+func TestActivateProjectGodotPathIsTemporary(t *testing.T) {
+	for _, key := range []string{"CI", "GITHUB_ACTIONS", "JENKINS_URL", "BUILDKITE", "BUILD_ID", "TF_BUILD"} {
+		t.Setenv(key, "")
+	}
+	t.Setenv("FE_HOME", t.TempDir())
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte(`config/features=PackedStringArray("4.3", "GL Compatibility")`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	cache, err := projectstate.ToolCacheDir()
+	if err != nil {
+		t.Fatal(err)
+	}
+	toolPath := filepath.Join(cache, "godot", "4.3-stable", "linux-x86_64")
+	bin := filepath.Join(toolPath, "bin")
+	if err := os.MkdirAll(bin, 0o755); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(toolPath, ".fe-managed"), []byte("godot:4.3-stable"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(bin, "godot"), []byte("#!/bin/sh\nexit 0\n"), 0o700); err != nil {
+		t.Fatal(err)
+	}
+	if err := projectstate.Sync(project); err != nil {
+		t.Fatal(err)
+	}
+	if err := projectstate.RegisterTool(project, "godot:4.3-stable", toolPath); err != nil {
+		t.Fatal(err)
+	}
+	oldPath := os.Getenv("PATH")
+	restore, err := activateProjectGodotPath(project)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.HasPrefix(os.Getenv("PATH"), bin+string(os.PathListSeparator)) {
+		restore()
+		t.Fatalf("project bin was not prepended to PATH: %s", os.Getenv("PATH"))
+	}
+	restore()
+	if os.Getenv("PATH") != oldPath {
+		t.Fatal("PATH was not restored after project command")
+	}
+}
