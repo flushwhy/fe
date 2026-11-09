@@ -52,6 +52,7 @@ func Install(version string) (string, string, error) {
 	if err := ensureCacheParent(cache, parent); err != nil {
 		return "", "", fmt.Errorf("prepare Fe tool cache: %w", err)
 	}
+	defer cleanupEmptyCacheDirs(cache, parent)
 	if executable, err := existingInstall(target, toolName, runtime.GOOS); err == nil {
 		return executable, target, nil
 	} else if !errors.Is(err, os.ErrNotExist) {
@@ -316,6 +317,18 @@ func writeLauncher(root, executable, goos string) error {
 
 func shellQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
+}
+
+func cleanupEmptyCacheDirs(root, parent string) {
+	for dir := parent; filepath.Clean(dir) != filepath.Clean(root); dir = filepath.Dir(dir) {
+		entries, err := os.ReadDir(dir)
+		if err != nil || len(entries) != 0 {
+			return
+		}
+		if err := os.Remove(dir); err != nil {
+			return
+		}
+	}
 }
 
 func ensureCacheParent(root, parent string) error {
