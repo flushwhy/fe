@@ -172,3 +172,27 @@ func TestCleanAllRemovesRecordForDeletedProject(t *testing.T) {
 		t.Fatalf("expected one stale project record to be removed, got %#v", results)
 	}
 }
+
+func TestCleanAllRejectsUnknownManagedPaths(t *testing.T) {
+	t.Setenv("FE_HOME", t.TempDir())
+	root := t.TempDir()
+	if err := Sync(root); err != nil {
+		t.Fatal(err)
+	}
+	record, err := loadRecord(root)
+	if err != nil {
+		t.Fatal(err)
+	}
+	record.ManagedFiles["../../important.txt"] = "not-a-real-hash"
+	if err := saveRecord(record); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := CleanAll(false); err == nil {
+		t.Fatal("cleanup accepted an unrecognized managed path")
+	}
+	for name := range uninstallers {
+		if _, err := os.Stat(filepath.Join(root, name)); err != nil {
+			t.Fatalf("cleanup removed a file before validating the record: %v", err)
+		}
+	}
+}
