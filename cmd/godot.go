@@ -460,6 +460,33 @@ func detectGodotEngines() []godotEngine {
 	return engines
 }
 
+func activateProjectGodotPath(project string) (func(), error) {
+	if isCI() {
+		return func() {}, nil
+	}
+	version := projectGodotVersion(project)
+	if version == "" {
+		return func() {}, nil
+	}
+	toolPath, ok, err := projectstate.ToolPath(project, godotToolName(version))
+	if err != nil || !ok {
+		return func() {}, err
+	}
+	bin := filepath.Join(toolPath, "bin")
+	if _, err := os.Stat(bin); err != nil {
+		return nil, fmt.Errorf("project Godot launcher is unavailable: %w", err)
+	}
+	oldPath := os.Getenv("PATH")
+	newPath := bin
+	if oldPath != "" {
+		newPath += string(os.PathListSeparator) + oldPath
+	}
+	if err := os.Setenv("PATH", newPath); err != nil {
+		return nil, fmt.Errorf("activate project Godot: %w", err)
+	}
+	return func() { _ = os.Setenv("PATH", oldPath) }, nil
+}
+
 func selectGodotEngine(project, requested string) (*godotEngine, error) {
 	engines := detectGodotEngines()
 	version := requested
