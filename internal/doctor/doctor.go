@@ -205,6 +205,19 @@ func checkCompileCommands(root string) Result {
 		filepath.Join(root, "compile_commands.json"),
 		filepath.Join(root, "build", "compile_commands.json"),
 		filepath.Join(root, "cmake-build-debug", "compile_commands.json"),
+		filepath.Join(root, "cmake-build-release", "compile_commands.json"),
+		filepath.Join(root, "out", "build", "compile_commands.json"),
+	}
+	if settingsData, err := os.ReadFile(filepath.Join(root, ".vscode", "settings.json")); err == nil {
+		var settings map[string]string
+		if json.Unmarshal(settingsData, &settings) == nil && settings["cmake.buildDirectory"] != "" {
+			buildDir := strings.ReplaceAll(settings["cmake.buildDirectory"], "${workspaceFolder}", root)
+			buildDir = strings.ReplaceAll(buildDir, "${workspaceRoot}", root)
+			if !filepath.IsAbs(buildDir) {
+				buildDir = filepath.Join(root, buildDir)
+			}
+			candidates = append(candidates, filepath.Join(buildDir, "compile_commands.json"))
+		}
 	}
 	for _, path := range candidates {
 		if _, err := os.Stat(path); err == nil {
@@ -246,11 +259,20 @@ func checkCMakeExportFlag(root string) Result {
 	if strings.Contains(string(content), "CMAKE_EXPORT_COMPILE_COMMANDS") {
 		return Result{Name: name, OK: true, Message: "set in CMakeLists.txt"}
 	}
+	for _, candidate := range []string{
+		filepath.Join(root, "build", "compile_commands.json"),
+		filepath.Join(root, "cmake-build-debug", "compile_commands.json"),
+		filepath.Join(root, "cmake-build-release", "compile_commands.json"),
+	} {
+		if info, err := os.Stat(candidate); err == nil && !info.IsDir() {
+			return Result{Name: name, OK: true, Message: "enabled in the active build configuration"}
+		}
+	}
 	return Result{
 		Name:    name,
 		OK:      false,
-		Message: "not set in CMakeLists.txt",
-		Fix:     "add: set(CMAKE_EXPORT_COMPILE_COMMANDS ON)",
+		Message: "not enabled in the active CMake build",
+		Fix:     "run: fe fix compile-commands",
 	}
 }
 
