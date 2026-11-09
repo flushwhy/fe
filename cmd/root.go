@@ -13,7 +13,7 @@ var cfgFile string
 var rootCmd = &cobra.Command{
 	Use:   "fe",
 	Short: "Fe — dev middleware for the awkward parts of shipping software",
-	Long: \`Fe is a local CLI and CI-friendly middleware layer.
+	Long: `Fe is a local CLI and CI-friendly middleware layer.
 
   Project scaffolding:
     fe init <lang> --name <project>   scaffold a language starter from fe-templates
@@ -64,7 +64,7 @@ var rootCmd = &cobra.Command{
   Interactive:
     fe tui                            Bubble Tea UI (local terminals only)
 
-Config priority: env vars > .fe.yaml > conventions > defaults\`,
+Config priority: env vars > .fe.yaml > conventions > defaults`,
 }
 
 func Execute() {
