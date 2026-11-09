@@ -164,6 +164,11 @@ func TestGodotVersionMatchesWholeComponent(t *testing.T) {
 	if godotVersionMatches("4.30.stable.official", "4.3") {
 		t.Fatal("4.3 must not match 4.30")
 	}
+	for _, prerelease := range []string{"4.3.rc1.official", "4.3.beta2.official", "4.3.dev.custom_build"} {
+		if godotVersionMatches(prerelease, "4.3") {
+			t.Errorf("stable request must not match prerelease %q", prerelease)
+		}
+	}
 }
 
 
