@@ -18,7 +18,7 @@ var rootCmd = &cobra.Command{
   Project scaffolding:
     fe init <lang> --name <project>   scaffold a language starter from fe-templates
     fe init --template <id> --name <project>   scaffold from fe-templates
-    fe sync [path]                    sync Fe-managed project files (local only)
+    fe sync [path]                    sync project files and required local tools (local only)
     fe clean [path]                   remove Fe-managed files and registrations
     fe clean --dry-run                preview project cleanup
     fe clean --all                    clean all registered projects
