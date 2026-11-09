@@ -13,7 +13,7 @@ import (
 
 var syncCmd = &cobra.Command{
 	Use:   "sync [path]",
-	Short: "Sync Fe-managed project files and register local cleanup state.",
+	Short: "Sync project-managed files and required local tools."
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if isCI() {
