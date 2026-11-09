@@ -15,13 +15,21 @@ var syncCmd = &cobra.Command{
 	Short: "Sync Fe-managed project files and register local cleanup state.",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		if isCI() { return fmt.Errorf("fe sync is for developer machines and is disabled in CI") }
+		if isCI() {
+			return fmt.Errorf("fe sync is for developer machines and is disabled in CI")
+		}
 		root := "."
-		if len(args) == 1 { root = args[0] }
-		if err := projectstate.Sync(root); err != nil { return err }
+		if len(args) == 1 {
+			root = args[0]
+		}
+		if err := projectstate.Sync(root); err != nil {
+			return err
+		}
 		abs, err := filepath.Abs(root)
-		if err != nil { return err }
-		fmt.Fprintf(cmd.OutOrStdout(), "Synced Fe project files for %s\n", abs)
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "Synced Fe project files for %s\\n", abs)
 		return nil
 	},
 }
@@ -29,10 +37,14 @@ var syncCmd = &cobra.Command{
 var cleanCmd = &cobra.Command{
 	Use:   "clean [path]",
 	Short: "Remove files and registrations managed by Fe.",
-	Long: "Removes only files recorded as Fe-managed. Modified files are preserved.\nUse --all to clean every registered project, including records for deleted repositories.\nUse --dry-run to preview changes without modifying anything.",
+	Long: "Removes only files recorded as Fe-managed. Modified files are preserved.\\n" +
+		"Use --all to clean every registered project, including records for deleted repositories.\\n" +
+		"Use --dry-run to preview changes without modifying anything.",
 	Args: func(cmd *cobra.Command, args []string) error {
 		all, _ := cmd.Flags().GetBool("all")
-		if all && len(args) > 0 { return fmt.Errorf("provide a project path or --all, not both") }
+		if all && len(args) > 0 {
+			return fmt.Errorf("provide a project path or --all, not both")
+		}
 		return cobra.MaximumNArgs(1)(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -43,23 +55,35 @@ var cleanCmd = &cobra.Command{
 		if all {
 			var err error
 			results, err = projectstate.CleanAll(dryRun)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 		} else {
 			root := "."
-			if len(args) == 1 { root = args[0] }
+			if len(args) == 1 {
+				root = args[0]
+			}
 			result, err := projectstate.Clean(root, dryRun, keepUninstallers)
-			if err != nil { return err }
+			if err != nil {
+				return err
+			}
 			results = append(results, result)
 		}
 		for _, result := range results {
 			for _, path := range result.Removed {
 				action := "Removed"
-				if dryRun { action = "Would remove" }
-				fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\n", action, path)
+				if dryRun {
+					action = "Would remove"
+				}
+				fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\\n", action, path)
 			}
-			for _, path := range result.Preserved { fmt.Fprintf(cmd.OutOrStdout(), "Preserved: %s\n", path) }
+			for _, path := range result.Preserved {
+				fmt.Fprintf(cmd.OutOrStdout(), "Preserved: %s\\n", path)
+			}
 		}
-		if len(results) == 0 { fmt.Fprintln(cmd.OutOrStdout(), "No Fe-managed project records found.") }
+		if len(results) == 0 {
+			fmt.Fprintln(cmd.OutOrStdout(), "No Fe-managed project records found.")
+		}
 		return nil
 	},
 }
