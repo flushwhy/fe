@@ -621,6 +621,9 @@ func removeEmptyToolDirs(path string) error {
 		if err != nil {
 			return err
 		}
+		if filepath.Clean(dir) == filepath.Clean(root) && info.Mode()&os.ModeSymlink != 0 {
+			break
+		}
 		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
 			return fmt.Errorf("refusing to remove non-directory tool cache path %s", dir)
 		}
