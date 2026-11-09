@@ -33,7 +33,7 @@ func SummarizeBuildFailure(output string) []string {
 		}
 	}
 	if len(summaries) == 0 {
-		summaries = append(summaries, "CMake build failed; review the final build output and rerun with --verbose for more detail.")
+		summaries = append(summaries, "CMake build failed; review the captured build output for the first CMake or compiler error.")
 	}
 	if strings.Contains(lower, "cmake --build") || strings.Contains(lower, "could not load cache") {
 		summaries = append(summaries, "If this directory has not been configured yet, configure it with the project's documented O3DE workflow first.")
