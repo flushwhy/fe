@@ -80,6 +80,9 @@ var cleanCmd = &cobra.Command{
 			for _, path := range result.Preserved {
 				fmt.Fprintf(cmd.OutOrStdout(), "Preserved: %s\n", path)
 			}
+			for _, path := range result.Retained {
+				fmt.Fprintf(cmd.OutOrStdout(), "Retained: %s\n", path)
+			}
 		}
 		if len(results) == 0 {
 			fmt.Fprintln(cmd.OutOrStdout(), "No Fe-managed project records found.")
