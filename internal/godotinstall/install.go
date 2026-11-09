@@ -261,22 +261,38 @@ func writeLauncher(root, executable, goos string) error {
 	} else {
 		return err
 	}
+	name := "godot"
+	if goos == "windows" {
+		name = "godot.exe"
+	}
+	launcher := filepath.Join(bin, name)
+	if goos != "darwin" {
+		if info, err := os.Lstat(launcher); err == nil {
+			if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+				return fmt.Errorf("refusing to replace non-regular launcher %s", launcher)
+			}
+			executableInfo, err := os.Stat(executable)
+			if err != nil {
+				return err
+			}
+			if os.SameFile(info, executableInfo) {
+				return nil
+			}
+			return fmt.Errorf("project launcher %s was modified; refusing to overwrite it", launcher)
+		} else if !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		if err := os.Link(executable, launcher); err != nil {
+			return fmt.Errorf("create project Godot launcher: %w", err)
+		}
+		return nil
+	}
+
 	relative, err := filepath.Rel(bin, executable)
 	if err != nil {
 		return err
 	}
-	var name, content string
-	var mode os.FileMode = 0o700
-	if goos == "windows" {
-		name = "godot.cmd"
-		relative = strings.ReplaceAll(relative, "/", "\\")
-		content = "@echo off\r\n\"%~dp0" + relative + "\" %*\r\n"
-		mode = 0o600
-	} else {
-		name = "godot"
-		content = "#!/bin/sh\nexec \"$(dirname \"$0\")\"/" + shellQuote(filepath.ToSlash(relative)) + " \"$@\"\n"
-	}
-	launcher := filepath.Join(bin, name)
+	content := "#!/bin/sh\nexec \"$(dirname \"$0\")\"/" + shellQuote(filepath.ToSlash(relative)) + " \"$@\"\n"
 	if info, err := os.Lstat(launcher); err == nil {
 		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
 			return fmt.Errorf("refusing to replace non-regular launcher %s", launcher)
@@ -292,7 +308,7 @@ func writeLauncher(root, executable, goos string) error {
 	} else if !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
-	if err := os.WriteFile(launcher, []byte(content), mode); err != nil {
+	if err := os.WriteFile(launcher, []byte(content), 0o700); err != nil {
 		return fmt.Errorf("create project Godot launcher: %w", err)
 	}
 	return nil
