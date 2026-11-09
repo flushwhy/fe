@@ -213,7 +213,22 @@ func assetFor(tag string, major int, goos, goarch string) (string, string, error
 }
 
 func existingInstall(path, name, goos string) (string, error) {
-	marker, err := os.ReadFile(filepath.Join(path, ".fe-managed"))
+	info, err := os.Lstat(path)
+	if err != nil {
+		return "", err
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+		return "", fmt.Errorf("tool cache path %s is not a real directory", path)
+	}
+	markerPath := filepath.Join(path, ".fe-managed")
+	info, err = os.Lstat(markerPath)
+	if err != nil {
+		return "", err
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+		return "", fmt.Errorf("tool ownership marker %s is not a regular file", markerPath)
+	}
+	marker, err := os.ReadFile(markerPath)
 	if err != nil {
 		return "", err
 	}
@@ -250,7 +265,23 @@ func writeLauncher(root, executable, goos string) error {
 		name = "godot"
 		content = "#!/bin/sh\nexec \"$(dirname \"$0\")\"/" + shellQuote(filepath.ToSlash(relative)) + " \"$@\"\n"
 	}
-	if err := os.WriteFile(filepath.Join(bin, name), []byte(content), mode); err != nil {
+	launcher := filepath.Join(bin, name)
+	if info, err := os.Lstat(launcher); err == nil {
+		if info.Mode()&os.ModeSymlink != 0 || !info.Mode().IsRegular() {
+			return fmt.Errorf("refusing to replace non-regular launcher %s", launcher)
+		}
+		existing, err := os.ReadFile(launcher)
+		if err != nil {
+			return err
+		}
+		if string(existing) != content {
+			return fmt.Errorf("project launcher %s was modified; refusing to overwrite it", launcher)
+		}
+		return nil
+	} else if !errors.Is(err, os.ErrNotExist) {
+		return err
+	}
+	if err := os.WriteFile(launcher, []byte(content), mode); err != nil {
 		return fmt.Errorf("create project Godot launcher: %w", err)
 	}
 	return nil
@@ -327,7 +358,7 @@ func findExecutable(root, goos string) (string, error) {
 		if err != nil {
 			return err
 		}
-		if entry.IsDir() {
+		if entry.IsDir() || entry.Type()&os.ModeSymlink != 0 {
 			return nil
 		}
 		name := entry.Name()
