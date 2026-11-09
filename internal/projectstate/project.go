@@ -40,7 +40,9 @@ func Sync(root string) error {
 	if record.ManagedFiles == nil { record.ManagedFiles = map[string]string{} }
 
 	gitignore := filepath.Join(root, ".gitignore")
-	if _, err := os.Lstat(gitignore); errors.Is(err, os.ErrNotExist) {
+	if info, err := os.Lstat(gitignore); err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("refusing to modify symlink %s", gitignore)
+	} else if errors.Is(err, os.ErrNotExist) {
 		record.GitignoreCreated = true
 	} else if err != nil {
 		return fmt.Errorf("inspect .gitignore: %w", err)
@@ -49,7 +51,7 @@ func Sync(root string) error {
 
 	for name, content := range uninstallers {
 		path := filepath.Join(root, name)
-		if err := writeManagedFile(path, content); err != nil { return err }
+		if err := writeManagedFile(path, content, record.ManagedFiles[name]); err != nil { return err }
 		hash := sha256.Sum256([]byte(content))
 		record.ManagedFiles[name] = hex.EncodeToString(hash[:])
 	}
@@ -121,6 +123,11 @@ func cleanRecord(record Record, dryRun, keepUninstallers bool) (Cleanup, error) 
 	}
 
 	gitignore := filepath.Join(record.Root, ".gitignore")
+	if info, err := os.Lstat(gitignore); err == nil && info.Mode()&os.ModeSymlink != 0 {
+		return result, fmt.Errorf("refusing to modify symlink %s", gitignore)
+	} else if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return result, fmt.Errorf("inspect .gitignore: %w", err)
+	}
 	data, err := os.ReadFile(gitignore)
 	if err != nil && !errors.Is(err, os.ErrNotExist) { return result, fmt.Errorf("read .gitignore: %w", err) }
 	if err == nil {
@@ -182,12 +189,13 @@ func removeIgnoreBlock(content string) (string, bool) {
 	return content[:start] + content[end:], true
 }
 
-func writeManagedFile(path, content string) error {
+func writeManagedFile(path, content, expectedHash string) error {
 	if info, err := os.Lstat(path); err == nil {
 		if info.Mode()&os.ModeSymlink != 0 { return fmt.Errorf("refusing to replace symlink %s", path) }
 		existing, err := os.ReadFile(path)
 		if err != nil { return err }
-		if string(existing) == content { return nil }
+		hash := sha256.Sum256(existing)
+		if expectedHash != "" && hex.EncodeToString(hash[:]) == expectedHash && string(existing) == content { return nil }
 		return fmt.Errorf("%s already exists and is not Fe-managed; refusing to overwrite it", path)
 	} else if !errors.Is(err, os.ErrNotExist) { return err }
 	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
