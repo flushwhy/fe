@@ -384,15 +384,23 @@ func extractArchive(archivePath, destination string) error {
 	}
 	var total uint64
 	for _, entry := range reader.File {
-		name := filepath.Clean(filepath.FromSlash(entry.Name))
-		if filepath.IsAbs(name) || name == "." || name == ".." || strings.HasPrefix(name, ".."+string(filepath.Separator)) {
+		rawName := filepath.FromSlash(entry.Name)
+		if !filepath.IsLocal(rawName) {
 			return fmt.Errorf("archive contains unsafe path %q", entry.Name)
+		}
+		name := filepath.Clean(rawName)
+		if name == "." {
+			return fmt.Errorf("archive contains an empty path %q", entry.Name)
 		}
 		mode := entry.Mode()
 		if mode&os.ModeSymlink != 0 || (mode.Type() != 0 && !mode.IsRegular() && !mode.IsDir()) {
 			return fmt.Errorf("archive contains unsupported file type: %s", entry.Name)
 		}
 		target := filepath.Join(destination, name)
+		relative, err := filepath.Rel(destination, target)
+		if err != nil || !filepath.IsLocal(relative) {
+			return fmt.Errorf("archive path escapes extraction directory: %q", entry.Name)
+		}
 		if entry.FileInfo().IsDir() {
 			if err := os.MkdirAll(target, 0o700); err != nil {
 				return err
