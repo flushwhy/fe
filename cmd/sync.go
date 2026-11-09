@@ -29,7 +29,7 @@ var syncCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(cmd.OutOrStdout(), "Synced Fe project files for %s\\n", abs)
+		fmt.Fprintf(cmd.OutOrStdout(), "Synced Fe project files for %s\n", abs)
 		return nil
 	},
 }
@@ -37,8 +37,8 @@ var syncCmd = &cobra.Command{
 var cleanCmd = &cobra.Command{
 	Use:   "clean [path]",
 	Short: "Remove files and registrations managed by Fe.",
-	Long: "Removes only files recorded as Fe-managed. Modified files are preserved.\\n" +
-		"Use --all to clean every registered project, including records for deleted repositories.\\n" +
+	Long: "Removes only files recorded as Fe-managed. Modified files are preserved.\n" +
+		"Use --all to clean every registered project, including records for deleted repositories.\n" +
 		"Use --dry-run to preview changes without modifying anything.",
 	Args: func(cmd *cobra.Command, args []string) error {
 		all, _ := cmd.Flags().GetBool("all")
@@ -75,10 +75,10 @@ var cleanCmd = &cobra.Command{
 				if dryRun {
 					action = "Would remove"
 				}
-				fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\\n", action, path)
+				fmt.Fprintf(cmd.OutOrStdout(), "%s: %s\n", action, path)
 			}
 			for _, path := range result.Preserved {
-				fmt.Fprintf(cmd.OutOrStdout(), "Preserved: %s\\n", path)
+				fmt.Fprintf(cmd.OutOrStdout(), "Preserved: %s\n", path)
 			}
 		}
 		if len(results) == 0 {
