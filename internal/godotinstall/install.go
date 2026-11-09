@@ -160,6 +160,7 @@ func Install(version string) (string, string, error) {
 		return "", "", err
 	}
 	if err := writeLauncher(target, executable, runtime.GOOS); err != nil {
+		_ = os.RemoveAll(target)
 		return "", "", err
 	}
 	return executable, target, nil
