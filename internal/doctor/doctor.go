@@ -209,10 +209,17 @@ func checkCompileCommands(root string) Result {
 		filepath.Join(root, "out", "build", "compile_commands.json"),
 	}
 	if settingsData, err := os.ReadFile(filepath.Join(root, ".vscode", "settings.json")); err == nil {
-		var settings map[string]string
-		if json.Unmarshal(settingsData, &settings) == nil && settings["cmake.buildDirectory"] != "" {
-			buildDir := strings.ReplaceAll(settings["cmake.buildDirectory"], "${workspaceFolder}", root)
+		var settings map[string]json.RawMessage
+		var configuredDir string
+		if json.Unmarshal(settingsData, &settings) == nil && json.Unmarshal(settings["cmake.buildDirectory"], &configuredDir) == nil && configuredDir != "" {
+			buildDir := strings.ReplaceAll(configuredDir, "${workspaceFolder}", root)
 			buildDir = strings.ReplaceAll(buildDir, "${workspaceRoot}", root)
+			var buildType string
+			_ = json.Unmarshal(settings["cmake.buildType"], &buildType)
+			if buildType == "" {
+				buildType = "Debug"
+			}
+			buildDir = strings.ReplaceAll(buildDir, "${buildType}", buildType)
 			if !filepath.IsAbs(buildDir) {
 				buildDir = filepath.Join(root, buildDir)
 			}
