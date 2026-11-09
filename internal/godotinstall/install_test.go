@@ -130,3 +130,18 @@ func TestEnsureCacheParentRejectsSymlink(t *testing.T) {
 		t.Fatalf("cache setup wrote outside the managed root: %v", entries)
 	}
 }
+
+func TestCleanupEmptyCacheDirsRemovesOnlyEmptyChildren(t *testing.T) {
+	root := t.TempDir()
+	parent := filepath.Join(root, "godot", "4.3-stable")
+	if err := os.MkdirAll(parent, 0o700); err != nil {
+		t.Fatal(err)
+	}
+	cleanupEmptyCacheDirs(root, parent)
+	if _, err := os.Stat(parent); !os.IsNotExist(err) {
+		t.Fatalf("empty cache directories remain: %v", err)
+	}
+	if _, err := os.Stat(root); err != nil {
+		t.Fatalf("shared cache root should remain: %v", err)
+	}
+}
