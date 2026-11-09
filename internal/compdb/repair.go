@@ -204,8 +204,15 @@ func ninjaBuildDir(root string) string {
 	base := filepath.Join(root, "build", "fe-clangd-ninja")
 	candidate := base
 	for i := 2; ; i++ {
-		generator := cacheGenerator(candidate)
-		if generator == "" || (cacheMatches(candidate, root) && supportsCompileCommands(generator)) {
+		_, cacheErr := os.Stat(filepath.Join(candidate, "CMakeCache.txt"))
+		if os.IsNotExist(cacheErr) {
+			if info, err := os.Stat(candidate); err != nil || !info.IsDir() {
+				return candidate
+			}
+			if empty, err := isEmptyDir(candidate); err == nil && empty {
+				return candidate
+			}
+		} else if cacheErr == nil && cacheMatches(candidate, root) && supportsCompileCommands(cacheGenerator(candidate)) {
 			return candidate
 		}
 		candidate = fmt.Sprintf("%s-%d", base, i)
