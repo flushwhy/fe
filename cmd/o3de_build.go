@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/flushwhy/fe/internal/o3de"
 	"github.com/flushwhy/fe/internal/tty"
 	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
