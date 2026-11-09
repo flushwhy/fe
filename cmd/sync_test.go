@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"github.com/flushwhy/fe/internal/projectstate"
 	"testing"
 )
 
@@ -34,5 +35,31 @@ func TestSyncProjectRegistersOrdinaryProjectWithoutInstallingTools(t *testing.T)
 		if _, err := os.Stat(filepath.Join(project, name)); err != nil {
 			t.Fatalf("sync did not create %s: %v", name, err)
 		}
+	}
+}
+
+func TestSyncProjectReusesMatchingGlobalGodot(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("uses a Unix executable fixture")
+	}
+	for _, key := range []string{"CI", "GITHUB_ACTIONS", "JENKINS_URL", "BUILDKITE", "BUILD_ID", "TF_BUILD"} {
+		t.Setenv(key, "")
+	}
+	t.Setenv("FE_HOME", t.TempDir())
+	bin := t.TempDir()
+	godot := filepath.Join(bin, "godot")
+	if err := os.WriteFile(godot, []byte("#!/bin/sh\necho 4.3.stable.official\n"), 0o755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", bin+string(os.PathListSeparator)+os.Getenv("PATH"))
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte(`config/features=PackedStringArray("4.3", "GL Compatibility")`), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := syncProject(project); err != nil {
+		t.Fatal(err)
+	}
+	if _, ok, err := projectstate.ToolPath(project, "godot:4.3-stable"); err != nil || ok {
+		t.Fatalf("sync downloaded a local engine despite a matching global one: ok=%v err=%v", ok, err)
 	}
 }
