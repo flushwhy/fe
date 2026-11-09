@@ -48,6 +48,9 @@ var cleanCmd = &cobra.Command{
 		return cobra.MaximumNArgs(1)(cmd, args)
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if isCI() {
+			return fmt.Errorf("fe clean is for developer machines and is disabled in CI")
+		}
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		all, _ := cmd.Flags().GetBool("all")
 		keepUninstallers, _ := cmd.Flags().GetBool("keep-uninstallers")
