@@ -25,7 +25,7 @@ func TestValidate(t *testing.T) {
 		"not json",
 		"[]",
 		`[{"file":"main.cpp","command":"clang++"}]`,
-		`[{"directory":"` + root + `","file":"missing.cpp","command":"clang++"}]`,
+		`[{"directory":"` + filepath.ToSlash(root) + `","file":"missing.cpp","command":"clang++"}]`,
 	} {
 		if err := os.WriteFile(db, []byte(data), 0644); err != nil {
 			t.Fatal(err)
