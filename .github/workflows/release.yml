@@ -25,7 +25,7 @@ jobs:
       tag: ${{ steps.validate.outputs.tag }}
       commit: ${{ steps.validate.outputs.commit }}
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           fetch-depth: 0
 
@@ -92,12 +92,12 @@ jobs:
     name: Build portable release binaries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
       # Manual rebuilds of older tags may predate the shared build script.
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         if: ${{ inputs.tag_name != '' }}
         with:
           ref: master
@@ -133,11 +133,11 @@ jobs:
     name: Build Linux RISC-V 64-bit binary on native hardware
     runs-on: ubuntu-24.04-riscv
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         if: ${{ inputs.tag_name != '' }}
         with:
           ref: master
@@ -175,7 +175,7 @@ jobs:
     name: Build Debian packages
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
@@ -256,7 +256,7 @@ jobs:
     name: Package Fe for Chocolatey
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
@@ -308,7 +308,7 @@ jobs:
     name: Release Fe to itch.io using Fe
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           ref: ${{ needs.validate-release.outputs.commit }}
 
