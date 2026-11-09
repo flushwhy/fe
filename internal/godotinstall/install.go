@@ -190,9 +190,6 @@ func assetFor(tag string, major int, goos, goarch string) (string, string, error
 	prefix := "Godot_v" + version + "-stable_"
 	switch {
 	case goos == "windows" && goarch == "amd64":
-		if major == 3 {
-			return prefix + "win64.exe.zip", "windows-x86_64", nil
-		}
 		return prefix + "win64.exe.zip", "windows-x86_64", nil
 	case goos == "windows" && goarch == "arm64" && major == 4:
 		return prefix + "windows_arm64.exe.zip", "windows-arm64", nil
