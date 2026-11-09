@@ -217,6 +217,7 @@ func TestSelectGodotEngineUsesProjectManagedVersion(t *testing.T) {
 		t.Skip("uses a Unix executable fixture")
 	}
 	t.Setenv("FE_HOME", t.TempDir())
+	t.Setenv("PATH", t.TempDir())
 	project := t.TempDir()
 	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte(`config/features=PackedStringArray("4.3", "GL Compatibility")`), 0o644); err != nil {
 		t.Fatal(err)
