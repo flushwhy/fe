@@ -77,22 +77,6 @@ func addClangd(root string) error {
 		return err
 	}
 
-	err = ui.RunSpinner("Ensuring compile_commands.json exists", func() error {
-		ccPath := filepath.Join(compileCommandsDir, "compile_commands.json")
-		if err := rejectSymlink(ccPath); err != nil {
-			return err
-		}
-		if _, err := os.Stat(ccPath); os.IsNotExist(err) {
-			if err := os.MkdirAll(compileCommandsDir, 0750); err != nil {
-				return err
-			}
-			return os.WriteFile(ccPath, []byte("[]\n"), 0640)
-		}
-		return nil
-	})
-	if err != nil {
-		return err
-	}
 
 	fmt.Println()
 	printClangdNextSteps(root)
