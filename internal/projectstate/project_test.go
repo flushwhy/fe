@@ -356,3 +356,24 @@ func TestRegisterToolRejectsSymlinkedCacheParent(t *testing.T) {
 		t.Fatal("registered a tool through a symlinked cache parent")
 	}
 }
+
+
+func TestCleanRejectsIncompleteGitignoreBeforeRemovingManagedFiles(t *testing.T) {
+	t.Setenv("FE_HOME", t.TempDir())
+	root := t.TempDir()
+	if err := Sync(root); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte(ignoreStart+"\\nuser-rule/\\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := Clean(root, false, false); err == nil {
+		t.Fatal("cleanup accepted an incomplete Fe-managed block")
+	}
+	if _, err := os.Stat(filepath.Join(root, "fe-uninstall.sh")); err != nil {
+		t.Fatalf("cleanup removed managed files before validating .gitignore: %v", err)
+	}
+	if _, err := loadRecord(root); err != nil {
+		t.Fatalf("cleanup removed the project record: %v", err)
+	}
+}
