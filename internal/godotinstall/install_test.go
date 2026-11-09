@@ -82,6 +82,10 @@ func TestFindExecutable(t *testing.T) {
 	if err := os.WriteFile(path, []byte("binary"), 0o755); err != nil {
 		t.Fatal(err)
 	}
+	console := filepath.Join(root, "Godot_v4.3-stable_linux.x86_64_console")
+	if err := os.WriteFile(console, []byte("console"), 0o755); err != nil {
+		t.Fatal(err)
+	}
 	got, err := findExecutable(root, "linux")
 	if err != nil || got != path {
 		t.Fatalf("findExecutable = %q, %v; want %q", got, err, path)
