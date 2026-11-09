@@ -143,8 +143,7 @@ func Install(version string) (string, string, error) {
 			return "", "", fmt.Errorf("make Godot executable: %w", err)
 		}
 	}
-	if err := os.WriteFile(filepath.Join(extractDir, ".fe-managed"), []byte(toolName+"
-"), 0o600); err != nil {
+	if err := os.WriteFile(filepath.Join(extractDir, ".fe-managed"), []byte(toolName + string(rune(10))), 0o600); err != nil {
 		return "", "", err
 	}
 	if _, err := os.Lstat(target); err == nil {
