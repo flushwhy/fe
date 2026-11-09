@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/flushwhy/fe/internal/o3de"
+	"github.com/flushwhy/fe/internal/tty"
 	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 )
@@ -37,7 +38,10 @@ Example:
 		ui.Title("Building O3DE project")
 		ui.Dim("CMake build directory: %s", buildDir)
 		var output bytes.Buffer
-		writer := io.MultiWriter(os.Stdout, &output)
+		var writer io.Writer = &output
+		if !tty.IsInteractive() {
+			writer = io.MultiWriter(os.Stdout, &output)
+		}
 		config, _ := cmd.Flags().GetString("config")
 		targets, _ := cmd.Flags().GetStringArray("target")
 		for _, target := range targets {
@@ -48,14 +52,16 @@ Example:
 		build := exec.CommandContext(cmd.Context(), "cmake", o3deBuildArgs(buildDir, config, targets)...)
 		build.Stdout = writer
 		build.Stderr = writer
-		if err := build.Run(); err != nil {
-			ui.Fail("CMake build failed")
-			fmt.Println()
-			fmt.Println(ui.StyleBold.Render("What to check"))
-			for _, hint := range o3de.SummarizeBuildFailure(output.String()) {
-				fmt.Printf("  %s %s\n", ui.StyleWarn.Render(ui.IconArrow), hint)
-			}
-			return fmt.Errorf("cmake --build %q: %w", buildDir, err)
+
+		var buildErr error
+		if tty.IsInteractive() {
+			buildErr = ui.RunSpinner("Building O3DE project", build.Run)
+		} else {
+			buildErr = build.Run()
+		}
+		if buildErr != nil {
+			showO3DEBuildFailure(buildDir, buildErr, output.String())
+			return fmt.Errorf("cmake --build %q: %w", buildDir, buildErr)
 		}
 		ui.OK("O3DE build completed")
 		return nil
