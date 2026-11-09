@@ -67,6 +67,21 @@ func Repair(root string) (string, int, error) {
 	if err != nil {
 		return "", 0, err
 	}
+	generator := cacheGenerator(buildDir)
+	cmakeArgs := []string{"-S", root, "-B", buildDir, "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"}
+	if generator != "" && !supportsCompileCommands(generator) {
+		if _, err := exec.LookPath("ninja"); err != nil {
+			return "", 0, fmt.Errorf("build directory uses %q, which cannot generate compile_commands.json; install Ninja and rerun, or configure a separate Ninja build directory", generator)
+		}
+		buildDir = filepath.Join(root, "build", "fe-clangd")
+		cmakeArgs = []string{"-S", root, "-B", buildDir, "-G", "Ninja", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"}
+	} else if generator == "" && runtime.GOOS == "windows" {
+		if _, err := exec.LookPath("ninja"); err == nil {
+			cmakeArgs = []string{"-S", root, "-B", buildDir, "-G", "Ninja", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"}
+		} else {
+			return "", 0, fmt.Errorf("CMake's default Windows generator may be Visual Studio, which cannot generate compile_commands.json; install Ninja and rerun")
+		}
+	}
 	dbPath := filepath.Join(buildDir, "compile_commands.json")
 	if err := rejectSymlink(dbPath); err != nil {
 		return "", 0, err
@@ -84,7 +99,7 @@ func Repair(root string) (string, int, error) {
 		}
 	}
 
-	cmd := exec.Command("cmake", "-S", root, "-B", buildDir, "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
+	cmd := exec.Command("cmake", cmakeArgs...)
 	output, runErr := cmd.CombinedOutput()
 	if runErr != nil {
 		if backup != "" {
@@ -109,15 +124,10 @@ func mustCount(path string) int {
 
 func findBuildDir(root string) (string, error) {
 	if configured := vscodeBuildDir(root); configured != "" {
-		if cacheMatches(configured, root) {
+		if _, err := os.Stat(filepath.Join(configured, "CMakeCache.txt")); os.IsNotExist(err) || cacheMatches(configured, root) {
 			return configured, nil
 		}
-		if _, err := os.Stat(configured); os.IsNotExist(err) {
-			return configured, nil
-		}
-		if empty, _ := isEmptyDir(configured); empty {
-			return configured, nil
-		}
+		return "", fmt.Errorf("VS Code's configured CMake build directory %q belongs to a different project; update cmake.buildDirectory before repairing", configured)
 	}
 
 	var matches []string
@@ -184,6 +194,23 @@ func vscodeBuildDir(root string) string {
 		value = filepath.Join(root, value)
 	}
 	return filepath.Clean(value)
+}
+
+func cacheGenerator(buildDir string) string {
+	data, err := os.ReadFile(filepath.Join(buildDir, "CMakeCache.txt"))
+	if err != nil {
+		return ""
+	}
+	for _, line := range strings.Split(string(data), "\n") {
+		if strings.HasPrefix(line, "CMAKE_GENERATOR:INTERNAL=") {
+			return strings.TrimPrefix(line, "CMAKE_GENERATOR:INTERNAL=")
+		}
+	}
+	return ""
+}
+
+func supportsCompileCommands(generator string) bool {
+	return strings.Contains(generator, "Ninja") || strings.Contains(generator, "Makefiles")
 }
 
 func cacheMatches(buildDir, root string) bool {
