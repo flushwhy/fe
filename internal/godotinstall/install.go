@@ -159,6 +159,9 @@ func Install(version string) (string, string, error) {
 	if err != nil {
 		return "", "", err
 	}
+	if err := writeLauncher(target, executable, runtime.GOOS); err != nil {
+		return "", "", err
+	}
 	return executable, target, nil
 }
 
@@ -217,7 +220,44 @@ func existingInstall(path, name, goos string) (string, error) {
 	if strings.TrimSpace(string(marker)) != name {
 		return "", fmt.Errorf("tool cache path %s has an invalid ownership marker", path)
 	}
-	return findExecutable(path, goos)
+	executable, err := findExecutable(path, goos)
+	if err != nil {
+		return "", err
+	}
+	if err := writeLauncher(path, executable, goos); err != nil {
+		return "", err
+	}
+	return executable, nil
+}
+
+func writeLauncher(root, executable, goos string) error {
+	bin := filepath.Join(root, "bin")
+	if err := os.MkdirAll(bin, 0o700); err != nil {
+		return err
+	}
+	relative, err := filepath.Rel(bin, executable)
+	if err != nil {
+		return err
+	}
+	var name, content string
+	var mode os.FileMode = 0o700
+	if goos == "windows" {
+		name = "godot.cmd"
+		relative = strings.ReplaceAll(relative, "/", "\\")
+		content = "@echo off\r\n\"%~dp0" + relative + "\" %*\r\n"
+		mode = 0o600
+	} else {
+		name = "godot"
+		content = "#!/bin/sh\nexec \"$(dirname \"$0\")\"/" + shellQuote(filepath.ToSlash(relative)) + " \"$@\"\n"
+	}
+	if err := os.WriteFile(filepath.Join(bin, name), []byte(content), mode); err != nil {
+		return fmt.Errorf("create project Godot launcher: %w", err)
+	}
+	return nil
+}
+
+func shellQuote(value string) string {
+	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
 }
 
 func extractArchive(archivePath, destination string) error {
