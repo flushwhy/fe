@@ -36,7 +36,8 @@ var rootCmd = &cobra.Command{
 
   Godot workflow glue:
     fe godot engines                  detect installed Godot versions
-    fe godot install --version 4.3    install a project-managed engine if no global match exists
+    fe godot install                  install the project version if no global match exists
+    fe godot install --version 4.4    install a specific stable engine version
     fe godot open [--version 4.x]     open the current project with a matching engine
     fe godot extension (ex|ext)       scaffold, build, and diagnose native extensions
     fe godot doctor                   inspect project and native-extension prerequisites
