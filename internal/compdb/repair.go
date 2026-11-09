@@ -67,30 +67,34 @@ func Repair(root string) (string, int, error) {
 	if err != nil {
 		return "", 0, err
 	}
+	dbPath := filepath.Join(buildDir, "compile_commands.json")
+	if err := rejectSymlink(dbPath); err != nil {
+		return "", 0, err
+	}
+	if count, err := Validate(dbPath); err == nil {
+		return buildDir, count, nil
+	}
+
 	generator := cacheGenerator(buildDir)
 	cmakeArgs := []string{"-S", root, "-B", buildDir, "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"}
 	if generator != "" && !supportsCompileCommands(generator) {
 		if _, err := exec.LookPath("ninja"); err != nil {
-			return "", 0, fmt.Errorf("build directory uses %q, which cannot generate compile_commands.json; install Ninja and rerun, or configure a separate Ninja build directory", generator)
+			return "", 0, fmt.Errorf("build directory uses %q, which cannot generate compile_commands.json; install Ninja and rerun", generator)
 		}
-		buildDir = filepath.Join(root, "build", "fe-clangd")
+		buildDir = ninjaBuildDir(root)
 		cmakeArgs = []string{"-S", root, "-B", buildDir, "-G", "Ninja", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"}
 	} else if generator == "" && runtime.GOOS == "windows" {
 		if _, err := exec.LookPath("ninja"); err == nil {
+			buildDir = ninjaBuildDir(root)
 			cmakeArgs = []string{"-S", root, "-B", buildDir, "-G", "Ninja", "-DCMAKE_EXPORT_COMPILE_COMMANDS=ON"}
 		} else {
 			return "", 0, fmt.Errorf("CMake's default Windows generator may be Visual Studio, which cannot generate compile_commands.json; install Ninja and rerun")
 		}
 	}
-	dbPath := filepath.Join(buildDir, "compile_commands.json")
+	dbPath = filepath.Join(buildDir, "compile_commands.json")
 	if err := rejectSymlink(dbPath); err != nil {
 		return "", 0, err
 	}
-
-	if _, err := Validate(dbPath); err == nil {
-		return buildDir, mustCount(dbPath), nil
-	}
-
 	backup := ""
 	if _, err := os.Lstat(dbPath); err == nil {
 		backup = dbPath + ".bak"
@@ -194,6 +198,18 @@ func vscodeBuildDir(root string) string {
 		value = filepath.Join(root, value)
 	}
 	return filepath.Clean(value)
+}
+
+func ninjaBuildDir(root string) string {
+	base := filepath.Join(root, "build", "fe-clangd-ninja")
+	candidate := base
+	for i := 2; ; i++ {
+		generator := cacheGenerator(candidate)
+		if generator == "" || (cacheMatches(candidate, root) && supportsCompileCommands(generator)) {
+			return candidate
+		}
+		candidate = fmt.Sprintf("%s-%d", base, i)
+	}
 }
 
 func cacheGenerator(buildDir string) string {
