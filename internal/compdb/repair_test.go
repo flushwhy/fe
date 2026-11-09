@@ -13,7 +13,7 @@ func TestValidate(t *testing.T) {
 		t.Fatal(err)
 	}
 	db := filepath.Join(root, "compile_commands.json")
-	valid := `[{"directory":"` + root + `","file":"main.cpp","arguments":["clang++","-c","main.cpp"]}]`
+	valid := `[{"directory":"` + filepath.ToSlash(root) + `","file":"main.cpp","arguments":["clang++","-c","main.cpp"]}]`
 	if err := os.WriteFile(db, []byte(valid), 0644); err != nil {
 		t.Fatal(err)
 	}
