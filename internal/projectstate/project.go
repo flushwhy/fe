@@ -547,6 +547,9 @@ func releaseTools(record Record, ownRecord string, dryRun bool) (Cleanup, error)
 			if err := os.RemoveAll(path); err != nil {
 				return result, fmt.Errorf("remove managed tool %s: %w", path, err)
 			}
+			if err := removeEmptyToolDirs(path); err != nil {
+				return result, err
+			}
 		}
 	}
 	return result, nil
@@ -587,6 +590,35 @@ func recordPath(root string) (string, error) {
 	}
 	hash := sha256.Sum256([]byte(root))
 	return filepath.Join(dir, hex.EncodeToString(hash[:])+".json"), nil
+}
+
+func removeEmptyToolDirs(path string) error {
+	root, err := toolsDir()
+	if err != nil {
+		return err
+	}
+	for dir := filepath.Dir(path); ; dir = filepath.Dir(dir) {
+		if filepath.Clean(dir) == filepath.Clean(filepath.Dir(root)) {
+			break
+		}
+		entries, err := os.ReadDir(dir)
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if len(entries) > 0 {
+			break
+		}
+		if err := os.Remove(dir); err != nil && !errors.Is(err, os.ErrNotExist) {
+			return err
+		}
+		if filepath.Clean(dir) == filepath.Clean(root) {
+			break
+		}
+	}
+	return nil
 }
 
 func removeEmptyStateDirs() error {
