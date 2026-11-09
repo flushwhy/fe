@@ -57,6 +57,11 @@ func Sync(root string) error {
 	} else if statErr != nil {
 		return fmt.Errorf("inspect .gitignore: %w", statErr)
 	}
+	for name, content := range uninstallers {
+		if err := checkManagedFile(filepath.Join(root, name), content, record.ManagedFiles[name]); err != nil {
+			return err
+		}
+	}
 	if err := ensureGitignore(gitignore); err != nil {
 		return err
 	}
@@ -266,24 +271,34 @@ func removeIgnoreBlock(content string) (string, bool) {
 	return content[:start] + content[end:], true
 }
 
-func writeManagedFile(path, content, expectedHash string) error {
+func checkManagedFile(path, content, expectedHash string) error {
 	info, err := os.Lstat(path)
-	if err == nil {
-		if info.Mode()&os.ModeSymlink != 0 {
-			return fmt.Errorf("refusing to replace symlink %s", path)
-		}
-		existing, err := os.ReadFile(path)
-		if err != nil {
-			return err
-		}
-		hash := sha256.Sum256(existing)
-		if expectedHash != "" && hex.EncodeToString(hash[:]) == expectedHash && string(existing) == content {
-			return nil
-		}
-		return fmt.Errorf("%s already exists and is not Fe-managed; refusing to overwrite it", path)
+	if errors.Is(err, os.ErrNotExist) {
+		return nil
 	}
-	if !errors.Is(err, os.ErrNotExist) {
+	if err != nil {
 		return err
+	}
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("refusing to replace symlink %s", path)
+	}
+	existing, err := os.ReadFile(path)
+	if err != nil {
+		return err
+	}
+	hash := sha256.Sum256(existing)
+	if expectedHash != "" && hex.EncodeToString(hash[:]) == expectedHash && string(existing) == content {
+		return nil
+	}
+	return fmt.Errorf("%s already exists and is not Fe-managed; refusing to overwrite it", path)
+}
+
+func writeManagedFile(path, content, expectedHash string) error {
+	if err := checkManagedFile(path, content, expectedHash); err != nil {
+		return err
+	}
+	if _, err := os.Lstat(path); err == nil {
+		return nil
 	}
 	if err := os.WriteFile(path, []byte(content), 0o755); err != nil {
 		return fmt.Errorf("create %s: %w", path, err)
