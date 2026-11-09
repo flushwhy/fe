@@ -247,7 +247,15 @@ func existingInstall(path, name, goos string) (string, error) {
 
 func writeLauncher(root, executable, goos string) error {
 	bin := filepath.Join(root, "bin")
-	if err := os.MkdirAll(bin, 0o700); err != nil {
+	if info, err := os.Lstat(bin); err == nil {
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return fmt.Errorf("refusing to use non-directory launcher path %s", bin)
+		}
+	} else if errors.Is(err, os.ErrNotExist) {
+		if err := os.MkdirAll(bin, 0o700); err != nil {
+			return err
+		}
+	} else {
 		return err
 	}
 	relative, err := filepath.Rel(bin, executable)
