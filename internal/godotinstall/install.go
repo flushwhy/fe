@@ -96,8 +96,8 @@ func Install(version string) (string, string, error) {
 	}
 
 	parent := filepath.Dir(target)
-	if err := os.MkdirAll(parent, 0o700); err != nil {
-		return "", "", fmt.Errorf("create Fe tool cache: %w", err)
+	if err := ensureCacheParent(cache, parent); err != nil {
+		return "", "", fmt.Errorf("prepare Fe tool cache: %w", err)
 	}
 	staging, err := os.MkdirTemp(parent, ".install-*")
 	if err != nil {
@@ -316,6 +316,44 @@ func writeLauncher(root, executable, goos string) error {
 
 func shellQuote(value string) string {
 	return "'" + strings.ReplaceAll(value, "'", "'\\''") + "'"
+}
+
+func ensureCacheParent(root, parent string) error {
+	relative, err := filepath.Rel(root, parent)
+	if err != nil || relative == "." || relative == ".." || strings.HasPrefix(relative, ".."+string(filepath.Separator)) || filepath.IsAbs(relative) {
+		return fmt.Errorf("tool cache path %s is outside %s", parent, root)
+	}
+	info, err := os.Stat(root)
+	if errors.Is(err, os.ErrNotExist) {
+		if err := os.MkdirAll(root, 0o700); err != nil {
+			return err
+		}
+		info, err = os.Stat(root)
+	}
+	if err != nil {
+		return err
+	}
+	if !info.IsDir() {
+		return fmt.Errorf("tool cache root %s is not a directory", root)
+	}
+	current := root
+	for _, part := range strings.Split(relative, string(filepath.Separator)) {
+		current = filepath.Join(current, part)
+		info, err := os.Lstat(current)
+		if errors.Is(err, os.ErrNotExist) {
+			if err := os.Mkdir(current, 0o700); err != nil {
+				return err
+			}
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return fmt.Errorf("tool cache path contains a non-directory or symlink: %s", current)
+		}
+	}
+	return nil
 }
 
 func extractArchive(archivePath, destination string) error {
