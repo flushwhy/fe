@@ -73,7 +73,7 @@ Refresh a cached template with: fe template update <template-id>`, supportedLang
 		if isCI() {
 			return nil
 		}
-		_, err := syncProject(name)
+		_, err := syncProjectRoot(name)
 		return err
 	},
 }
