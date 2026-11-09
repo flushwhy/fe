@@ -239,7 +239,7 @@ jobs:
           cat dist/SHA256SUMS
 
       - name: Create release and upload binaries
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3
         with:
           tag_name: ${{ needs.validate-release.outputs.tag }}
           name: Fe ${{ needs.validate-release.outputs.tag }}
@@ -289,7 +289,7 @@ jobs:
           if (!(Test-Path "fe.$version.nupkg")) { throw "Chocolatey package was not created" }
 
       - name: Attach Chocolatey package to GitHub Release
-        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
+        uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3
         with:
           tag_name: ${{ needs.validate-release.outputs.tag }}
           files: fe.*.nupkg
