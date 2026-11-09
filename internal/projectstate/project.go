@@ -452,6 +452,19 @@ func validateToolInstall(path, name string) error {
 	if err := validateToolPath(path); err != nil {
 		return err
 	}
+	root, err := toolsDir()
+	if err != nil {
+		return err
+	}
+	for current := path; filepath.Clean(current) != filepath.Clean(root); current = filepath.Dir(current) {
+		info, err := os.Lstat(current)
+		if err != nil {
+			return err
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return fmt.Errorf("managed tool path contains a non-directory or symlink: %s", current)
+		}
+	}
 	info, err := os.Lstat(path)
 	if err != nil {
 		return err
@@ -601,10 +614,17 @@ func removeEmptyToolDirs(path string) error {
 		if filepath.Clean(dir) == filepath.Clean(filepath.Dir(root)) {
 			break
 		}
-		entries, err := os.ReadDir(dir)
+		info, err := os.Lstat(dir)
 		if errors.Is(err, os.ErrNotExist) {
 			continue
 		}
+		if err != nil {
+			return err
+		}
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return fmt.Errorf("refusing to remove non-directory tool cache path %s", dir)
+		}
+		entries, err := os.ReadDir(dir)
 		if err != nil {
 			return err
 		}
