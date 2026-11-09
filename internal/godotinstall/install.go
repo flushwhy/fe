@@ -334,7 +334,7 @@ func findExecutable(root, goos string) (string, error) {
 		match := false
 		switch goos {
 		case "windows":
-			match = strings.HasPrefix(name, "Godot") && strings.HasSuffix(strings.ToLower(name), ".exe")
+			match = strings.HasPrefix(name, "Godot") && strings.HasSuffix(strings.ToLower(name), ".exe") && !strings.Contains(strings.ToLower(name), "console")
 		case "darwin":
 			match = name == "Godot" && strings.Contains(path, ".app"+string(filepath.Separator)+"Contents"+string(filepath.Separator)+"MacOS")
 		default:
