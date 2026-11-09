@@ -650,5 +650,9 @@ func projectGodotVersion(project string) string {
 
 func godotVersionMatches(installed, requested string) bool {
 	requested = strings.TrimSpace(strings.TrimSuffix(requested, "-stable"))
+	version := strings.ToLower(installed)
+	if strings.Contains(version, ".rc") || strings.Contains(version, ".beta") || strings.Contains(version, ".dev") {
+		return false
+	}
 	return requested != "" && (installed == requested || strings.HasPrefix(installed, requested+"."))
 }
