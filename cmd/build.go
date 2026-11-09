@@ -66,6 +66,14 @@ platform-only configurations remain supported.`,
 			return build.RunContainer(cfg.Build.Container, runtimeName)
 		}
 
+		if project, projectErr := findGodotProject("."); projectErr == nil {
+			restorePath, err := activateProjectGodotPath(project)
+			if err != nil {
+				return err
+			}
+			defer restorePath()
+		}
+
 		if errs := cfg.Validate("build"); len(errs) > 0 {
 			for _, e := range errs {
 				ui.Fail("config: %s", e)
