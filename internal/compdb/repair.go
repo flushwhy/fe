@@ -121,11 +121,6 @@ func Repair(root string) (string, int, error) {
 	return buildDir, count, nil
 }
 
-func mustCount(path string) int {
-	count, _ := Validate(path)
-	return count
-}
-
 func findBuildDir(root string) (string, error) {
 	if configured := vscodeBuildDir(root); configured != "" {
 		if _, err := os.Stat(filepath.Join(configured, "CMakeCache.txt")); os.IsNotExist(err) || cacheMatches(configured, root) {
@@ -192,8 +187,14 @@ func vscodeBuildDir(root string) string {
 	if json.Unmarshal(settings["cmake.buildDirectory"], &value) != nil || value == "" {
 		return ""
 	}
+	var buildType string
+	_ = json.Unmarshal(settings["cmake.buildType"], &buildType)
+	if buildType == "" {
+		buildType = "Debug"
+	}
 	value = strings.ReplaceAll(value, "${workspaceFolder}", root)
 	value = strings.ReplaceAll(value, "${workspaceRoot}", root)
+	value = strings.ReplaceAll(value, "${buildType}", buildType)
 	if !filepath.IsAbs(value) {
 		value = filepath.Join(root, value)
 	}
