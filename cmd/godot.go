@@ -36,8 +36,10 @@ var godotEnginesCmd = &cobra.Command{
 		project, projectErr := findGodotProject(".")
 		if projectErr == nil {
 			if path, ok, err := projectstate.ToolPath(project, godotToolName(projectGodotVersion(project))); err == nil && ok {
-				if engine, err := readGodotEngine(path); err == nil {
-					engines = append(engines, *engine)
+				if executable, err := godotinstall.Executable(path); err == nil {
+					if engine, err := readGodotEngine(executable); err == nil {
+						engines = append(engines, *engine)
+					}
 				}
 			}
 		}
@@ -518,7 +520,11 @@ func selectGodotEngine(project, requested string) (*godotEngine, error) {
 			return nil, err
 		}
 		if ok {
-			engine, err := readGodotEngine(path)
+			executable, err := godotinstall.Executable(path)
+			if err != nil {
+				return nil, fmt.Errorf("project-managed Godot %s is unavailable: %w", version, err)
+			}
+			engine, err := readGodotEngine(executable)
 			if err != nil {
 				return nil, fmt.Errorf("project-managed Godot %s is unavailable: %w", version, err)
 			}
