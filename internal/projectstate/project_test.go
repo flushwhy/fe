@@ -357,14 +357,13 @@ func TestRegisterToolRejectsSymlinkedCacheParent(t *testing.T) {
 	}
 }
 
-
 func TestCleanRejectsIncompleteGitignoreBeforeRemovingManagedFiles(t *testing.T) {
 	t.Setenv("FE_HOME", t.TempDir())
 	root := t.TempDir()
 	if err := Sync(root); err != nil {
 		t.Fatal(err)
 	}
-	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte(ignoreStart+"\\nuser-rule/\\n"), 0o644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".gitignore"), []byte(ignoreStart+"\nuser-rule/\n"), 0o644); err != nil {
 		t.Fatal(err)
 	}
 	if _, err := Clean(root, false, false); err == nil {
