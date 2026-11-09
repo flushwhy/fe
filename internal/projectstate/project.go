@@ -170,6 +170,28 @@ func CleanAll(dryRun bool) ([]Cleanup, error) {
 
 func cleanRecord(record Record, dryRun, keepUninstallers bool) (Cleanup, error) {
 	result := Cleanup{}
+	gitignore := filepath.Join(record.Root, ".gitignore")
+	info, statErr := os.Lstat(gitignore)
+	if statErr == nil && info.Mode()&os.ModeSymlink != 0 {
+		return result, fmt.Errorf("refusing to modify symlink %s", gitignore)
+	}
+	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
+		return result, fmt.Errorf("inspect .gitignore: %w", statErr)
+	}
+	data, err := os.ReadFile(gitignore)
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
+		return result, fmt.Errorf("read .gitignore: %w", err)
+	}
+	ignoreExists := err == nil
+	cleaned := string(data)
+	changed := false
+	if ignoreExists {
+		cleaned, changed = removeIgnoreBlock(cleaned)
+		if !changed && (strings.Contains(string(data), ignoreStart) || strings.Contains(string(data), ignoreEnd)) {
+			return result, fmt.Errorf("incomplete Fe-managed block in %s; refusing cleanup", gitignore)
+		}
+	}
+
 	for name, expectedHash := range record.ManagedFiles {
 		if keepUninstallers {
 			continue
@@ -195,37 +217,19 @@ func cleanRecord(record Record, dryRun, keepUninstallers bool) (Cleanup, error) 
 		}
 	}
 
-	gitignore := filepath.Join(record.Root, ".gitignore")
-	info, statErr := os.Lstat(gitignore)
-	if statErr == nil && info.Mode()&os.ModeSymlink != 0 {
-		return result, fmt.Errorf("refusing to modify symlink %s", gitignore)
-	}
-	if statErr != nil && !errors.Is(statErr, os.ErrNotExist) {
-		return result, fmt.Errorf("inspect .gitignore: %w", statErr)
-	}
-	data, err := os.ReadFile(gitignore)
-	if err != nil && !errors.Is(err, os.ErrNotExist) {
-		return result, fmt.Errorf("read .gitignore: %w", err)
-	}
-	if err == nil {
-		cleaned, changed := removeIgnoreBlock(string(data))
-		if !changed && (strings.Contains(string(data), ignoreStart) || strings.Contains(string(data), ignoreEnd)) {
-			return result, fmt.Errorf("incomplete Fe-managed block in %s; refusing cleanup", gitignore)
-		}
-		if changed {
-			if record.GitignoreCreated && strings.TrimSpace(cleaned) == "" {
-				result.Removed = append(result.Removed, gitignore)
-				if !dryRun {
-					if err := os.Remove(gitignore); err != nil {
-						return result, fmt.Errorf("remove Fe-created .gitignore: %w", err)
-					}
+	if ignoreExists && changed {
+		if record.GitignoreCreated && strings.TrimSpace(cleaned) == "" {
+			result.Removed = append(result.Removed, gitignore)
+			if !dryRun {
+				if err := os.Remove(gitignore); err != nil {
+					return result, fmt.Errorf("remove Fe-created .gitignore: %w", err)
 				}
-			} else {
-				result.Removed = append(result.Removed, "Fe entries from "+gitignore)
-				if !dryRun {
-					if err := os.WriteFile(gitignore, []byte(cleaned), 0o644); err != nil {
-						return result, fmt.Errorf("restore .gitignore: %w", err)
-					}
+			}
+		} else {
+			result.Removed = append(result.Removed, "Fe entries from "+gitignore)
+			if !dryRun {
+				if err := os.WriteFile(gitignore, []byte(cleaned), 0o644); err != nil {
+					return result, fmt.Errorf("restore .gitignore: %w", err)
 				}
 			}
 		}
