@@ -24,12 +24,14 @@ const (
 	maxExtract = 500 << 20
 )
 
+type releaseAsset struct {
+	Name string `json:"name"`
+	Size int64  `json:"size"`
+	URL  string `json:"browser_download_url"`
+}
+
 type release struct {
-	Assets []struct {
-		Name string `json:"name"`
-		Size int64  `json:"size"`
-		URL  string `json:"browser_download_url"`
-	} `json:"assets"`
+	Assets []releaseAsset `json:"assets"`
 }
 
 func Install(version string) (string, string, error) {
@@ -78,11 +80,7 @@ func Install(version string) (string, string, error) {
 	if err := json.NewDecoder(io.LimitReader(resp.Body, 4<<20)).Decode(&metadata); err != nil {
 		return "", "", fmt.Errorf("decode Godot release metadata: %w", err)
 	}
-	var asset *struct {
-		Name string `json:"name"`
-		Size int64  `json:"size"`
-		URL  string `json:"browser_download_url"`
-	}
+	var asset *releaseAsset
 	for i := range metadata.Assets {
 		if metadata.Assets[i].Name == assetName {
 			asset = &metadata.Assets[i]
