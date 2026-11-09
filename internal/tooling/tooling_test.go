@@ -251,3 +251,36 @@ func TestConfigWritersRejectDanglingSymlinks(t *testing.T) {
 		t.Fatal("writer accepted a dangling symlink destination")
 	}
 }
+
+func TestConfigureClangd(t *testing.T) {
+	root := t.TempDir()
+	buildDir := filepath.Join(root, "out", "build", "debug")
+	if err := os.MkdirAll(buildDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	managed, err := ConfigureClangd(root, buildDir)
+	if err != nil || !managed {
+		t.Fatalf("ConfigureClangd() = %v, %v; want true, nil", managed, err)
+	}
+	data, err := os.ReadFile(filepath.Join(root, ".clangd"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "CompilationDatabase: out/build/debug") {
+		t.Fatalf("generated .clangd does not point to build directory: %s", data)
+	}
+
+	customRoot := t.TempDir()
+	custom := "CompileFlags:\n  Add: [-DUSER_SETTING]\n"
+	if err := os.WriteFile(filepath.Join(customRoot, ".clangd"), []byte(custom), 0644); err != nil {
+		t.Fatal(err)
+	}
+	managed, err = ConfigureClangd(customRoot, filepath.Join(customRoot, "build"))
+	if err != nil || managed {
+		t.Fatalf("custom .clangd should be left untouched: %v, %v", managed, err)
+	}
+	got, err := os.ReadFile(filepath.Join(customRoot, ".clangd"))
+	if err != nil || string(got) != custom {
+		t.Fatalf("custom .clangd changed: %q, %v", got, err)
+	}
+}
