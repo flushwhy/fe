@@ -212,6 +212,10 @@ func assetFor(tag string, major int, goos, goarch string) (string, string, error
 	}
 }
 
+func Executable(path string) (string, error) {
+	return findExecutable(path, runtime.GOOS)
+}
+
 func existingInstall(path, name, goos string) (string, error) {
 	info, err := os.Lstat(path)
 	if err != nil {
