@@ -150,6 +150,9 @@ func TestSyncDoesNotClaimExistingUninstaller(t *testing.T) {
 	if err := Sync(root); err == nil {
 		t.Fatal("sync claimed an existing uninstaller without an ownership record")
 	}
+	if _, err := os.Stat(filepath.Join(root, ".gitignore")); !os.IsNotExist(err) {
+		t.Fatalf("sync changed .gitignore before rejecting the existing script: %v", err)
+	}
 }
 
 func TestCleanAllRemovesRecordForDeletedProject(t *testing.T) {
