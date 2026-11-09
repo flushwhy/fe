@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/flushwhy/fe/internal/godotinstall"
 	"github.com/flushwhy/fe/internal/projectstate"
 	"github.com/spf13/cobra"
 )
@@ -22,16 +23,43 @@ var syncCmd = &cobra.Command{
 		if len(args) == 1 {
 			root = args[0]
 		}
-		if err := projectstate.Sync(root); err != nil {
-			return err
-		}
-		abs, err := filepath.Abs(root)
+		abs, err := syncProject(root)
 		if err != nil {
 			return err
 		}
 		fmt.Fprintf(cmd.OutOrStdout(), "Synced Fe project files for %s\n", abs)
 		return nil
 	},
+}
+
+func syncProject(root string) (string, error) {
+	project := root
+	if detected, err := findGodotProject(root); err == nil {
+		project = detected
+	}
+	if err := projectstate.Sync(project); err != nil {
+		return "", err
+	}
+	version := projectGodotVersion(project)
+	if version == "" {
+		abs, err := filepath.Abs(project)
+		return abs, err
+	}
+	for _, engine := range detectGodotEngines() {
+		if godotVersionMatches(engine.Version, version) {
+			abs, err := filepath.Abs(project)
+			return abs, err
+		}
+	}
+	_, toolPath, err := godotinstall.Install(version)
+	if err != nil {
+		return "", fmt.Errorf("sync project Godot %s: %w", version, err)
+	}
+	if err := projectstate.RegisterTool(project, godotToolName(version), toolPath); err != nil {
+		return "", fmt.Errorf("register project Godot %s: %w", version, err)
+	}
+	abs, err := filepath.Abs(project)
+	return abs, err
 }
 
 var cleanCmd = &cobra.Command{
