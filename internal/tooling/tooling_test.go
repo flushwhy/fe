@@ -17,7 +17,7 @@ func inTempDir(t *testing.T) (string, func()) {
 }
 
 func TestAddClangd(t *testing.T) {
-	t.Run("writes .clangd and stub compile_commands.json", func(t *testing.T) {
+	t.Run("writes .clangd without creating an empty compilation database", func(t *testing.T) {
 		dir, cleanup := inTempDir(t)
 		defer cleanup()
 
@@ -25,28 +25,17 @@ func TestAddClangd(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		// .clangd must exist.
-		clangdPath := filepath.Join(dir, ".clangd")
-		content, err := os.ReadFile(clangdPath)
+		content, err := os.ReadFile(filepath.Join(dir, ".clangd"))
 		if err != nil {
 			t.Fatalf(".clangd not written: %v", err)
 		}
 		if !strings.Contains(string(content), "CompileFlags") {
 			t.Error(".clangd missing CompileFlags section")
 		}
-
-		// compile_commands.json must exist and be valid JSON.
-		ccPath := filepath.Join(dir, "compile_commands.json")
-		ccContent, err := os.ReadFile(ccPath)
-		if err != nil {
-			t.Fatalf("compile_commands.json not written: %v", err)
-		}
-		var arr []interface{}
-		if err := json.Unmarshal(ccContent, &arr); err != nil {
-			t.Errorf("compile_commands.json is not valid JSON: %v", err)
+		if _, err := os.Stat(filepath.Join(dir, "compile_commands.json")); !os.IsNotExist(err) {
+			t.Error("add clangd should not create an empty compilation database")
 		}
 	})
-
 	t.Run("detects cmake build dir and sets CompilationDatabase", func(t *testing.T) {
 		dir, cleanup := inTempDir(t)
 		defer cleanup()
