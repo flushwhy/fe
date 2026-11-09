@@ -171,6 +171,15 @@ func looksLikePath(value string) bool {
 	return filepath.IsAbs(value) || strings.ContainsAny(value, `/\\`) || strings.HasPrefix(value, ".")
 }
 
+var o3deEngineListCmd = &cobra.Command{
+	Use:   "list",
+	Short: "List engines registered with O3DE.",
+	Args:  cobra.NoArgs,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		return runO3DECLI(cmd, "register-show", "--engines")
+	},
+}
+
 func init() {
 	o3deCmd.AddCommand(o3deProjectCmd, o3deEngineCmd)
 	o3deProjectCmd.PersistentFlags().String("engine", "", "O3DE engine root (auto-detected when omitted)")
