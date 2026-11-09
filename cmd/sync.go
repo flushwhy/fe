@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -17,7 +18,7 @@ var syncCmd = &cobra.Command{
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if isCI() {
-			return fmt.Errorf("fe sync is for developer machines and is disabled in CI")
+			return errors.New("fe sync is for developer machines and is disabled in CI")
 		}
 		root := "."
 		if len(args) == 1 {
@@ -62,14 +63,12 @@ func syncProjectAt(root string, findParent bool) (string, error) {
 	}
 	version := projectGodotVersion(project)
 	if version == "" {
-		abs, err := filepath.Abs(project)
-		return abs, err
+		return project, nil
 	}
 	for _, engine := range detectGodotEngines() {
 		if godotVersionMatches(engine.Version, version) {
 			fmt.Printf("Using global Godot %s (%s)\n", engine.Version, engine.Path)
-			abs, err := filepath.Abs(project)
-			return abs, err
+			return project, nil
 		}
 	}
 	executable, toolPath, err := godotinstall.Install(version)
@@ -80,8 +79,7 @@ func syncProjectAt(root string, findParent bool) (string, error) {
 		return "", fmt.Errorf("register project Godot %s: %w", version, err)
 	}
 	fmt.Printf("Prepared project-managed Godot %s (%s)\n", version, executable)
-	abs, err := filepath.Abs(project)
-	return abs, err
+	return project, nil
 }
 
 var cleanCmd = &cobra.Command{
@@ -99,7 +97,7 @@ var cleanCmd = &cobra.Command{
 	},
 	RunE: func(cmd *cobra.Command, args []string) error {
 		if isCI() {
-			return fmt.Errorf("fe clean is for developer machines and is disabled in CI")
+			return errors.New("fe clean is for developer machines and is disabled in CI")
 		}
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		all, _ := cmd.Flags().GetBool("all")
