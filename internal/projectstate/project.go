@@ -87,14 +87,17 @@ func CleanAll(dryRun bool) ([]Cleanup, error) {
 		if err := json.Unmarshal(data, &record); err != nil {
 			return results, fmt.Errorf("read project record %s: %w", entry.Name(), err)
 		}
-		if _, err := os.Stat(record.Root); errors.Is(err, os.ErrNotExist) {
+		info, statErr := os.Lstat(record.Root)
+		if errors.Is(statErr, os.ErrNotExist) {
 			if !dryRun {
 				if err := os.Remove(path); err != nil { return results, err }
 			}
 			results = append(results, Cleanup{Removed: []string{"stale project record: " + record.Root}})
 			continue
-		} else if err != nil {
-			return results, fmt.Errorf("inspect project %s: %w", record.Root, err)
+		}
+		if statErr != nil { return results, fmt.Errorf("inspect project %s: %w", record.Root, statErr) }
+		if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+			return results, fmt.Errorf("registered project path %s is no longer a real directory", record.Root)
 		}
 		result, err := cleanRecord(record, dryRun, false)
 		if err != nil { return results, err }
@@ -132,6 +135,9 @@ func cleanRecord(record Record, dryRun, keepUninstallers bool) (Cleanup, error) 
 	if err != nil && !errors.Is(err, os.ErrNotExist) { return result, fmt.Errorf("read .gitignore: %w", err) }
 	if err == nil {
 		cleaned, changed := removeIgnoreBlock(string(data))
+		if !changed && (strings.Contains(string(data), ignoreStart) || strings.Contains(string(data), ignoreEnd)) {
+			return result, fmt.Errorf("incomplete Fe-managed block in %s; refusing cleanup", gitignore)
+		}
 		if changed {
 			if record.GitignoreCreated && strings.TrimSpace(cleaned) == "" {
 				result.Removed = append(result.Removed, gitignore)
