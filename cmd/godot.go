@@ -38,7 +38,16 @@ var godotEnginesCmd = &cobra.Command{
 			if path, ok, err := projectstate.ToolPath(project, godotToolName(projectGodotVersion(project))); err == nil && ok {
 				if executable, err := godotinstall.Executable(path); err == nil {
 					if engine, err := readGodotEngine(executable); err == nil {
-						engines = append(engines, *engine)
+						found := false
+						for _, existing := range engines {
+							if existing.Path == engine.Path {
+								found = true
+								break
+							}
+						}
+						if !found {
+							engines = append(engines, *engine)
+						}
 					}
 				}
 			}
@@ -489,8 +498,12 @@ func activateProjectGodotPath(project string) (func(), error) {
 		return func() {}, err
 	}
 	bin := filepath.Join(toolPath, "bin")
-	if _, err := os.Stat(bin); err != nil {
+	info, err := os.Lstat(bin)
+	if err != nil {
 		return nil, fmt.Errorf("project Godot launcher is unavailable: %w", err)
+	}
+	if info.Mode()&os.ModeSymlink != 0 || !info.IsDir() {
+		return nil, fmt.Errorf("project Godot launcher path is not a real directory: %s", bin)
 	}
 	oldPath := os.Getenv("PATH")
 	newPath := bin
