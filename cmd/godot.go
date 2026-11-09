@@ -575,6 +575,6 @@ func projectGodotVersion(project string) string {
 }
 
 func godotVersionMatches(installed, requested string) bool {
-	requested = strings.TrimSpace(requested)
+	requested = strings.TrimSpace(strings.TrimSuffix(requested, "-stable"))
 	return requested != "" && (installed == requested || strings.HasPrefix(installed, requested+"."))
 }
