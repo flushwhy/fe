@@ -53,7 +53,7 @@ var godotEnginesCmd = &cobra.Command{
 			}
 		}
 		if len(engines) == 0 {
-			return errors.New("no Godot executable found; install one globally or run 'fe godot install --version <version>'")
+			return errors.New("no Godot executable found; install one globally or run 'fe godot install'")
 		}
 		for _, e := range engines {
 			fmt.Fprintf(cmd.OutOrStdout(), "%-18s %s\n", e.Version, e.Path)
@@ -63,7 +63,7 @@ var godotEnginesCmd = &cobra.Command{
 }
 
 var godotInstallCmd = &cobra.Command{
-	Use:   "install --version <version>",
+	Use:   "install [--version <version>]",
 	Short: "Install a project-managed Godot version when no matching global engine exists.",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
@@ -76,7 +76,10 @@ var godotInstallCmd = &cobra.Command{
 		}
 		version, _ := cmd.Flags().GetString("version")
 		if strings.TrimSpace(version) == "" {
-			return errors.New("a stable Godot version is required; pass --version (for example 4.3)")
+			version = projectGodotVersion(project)
+		}
+		if strings.TrimSpace(version) == "" {
+			return errors.New("could not detect the project's Godot version; pass --version (for example 4.3)")
 		}
 		for _, engine := range detectGodotEngines() {
 			if godotVersionMatches(engine.Version, version) {
