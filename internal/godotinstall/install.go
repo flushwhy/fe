@@ -382,6 +382,11 @@ func extractArchive(archivePath, destination string) error {
 	if err := os.MkdirAll(destination, 0o700); err != nil {
 		return err
 	}
+	root, err := os.OpenRoot(destination)
+	if err != nil {
+		return err
+	}
+	defer root.Close()
 	var total uint64
 	for _, entry := range reader.File {
 		rawName := filepath.FromSlash(entry.Name)
@@ -396,13 +401,8 @@ func extractArchive(archivePath, destination string) error {
 		if mode&os.ModeSymlink != 0 || (mode.Type() != 0 && !mode.IsRegular() && !mode.IsDir()) {
 			return fmt.Errorf("archive contains unsupported file type: %s", entry.Name)
 		}
-		target := filepath.Join(destination, name)
-		relative, err := filepath.Rel(destination, target)
-		if err != nil || !filepath.IsLocal(relative) {
-			return fmt.Errorf("archive path escapes extraction directory: %q", entry.Name)
-		}
 		if entry.FileInfo().IsDir() {
-			if err := os.MkdirAll(target, 0o700); err != nil {
+			if err := root.MkdirAll(name, 0o700); err != nil {
 				return err
 			}
 			continue
@@ -411,14 +411,14 @@ func extractArchive(archivePath, destination string) error {
 		if entry.UncompressedSize64 > maxExtract || total > maxExtract {
 			return errors.New("archive expands beyond the allowed size")
 		}
-		if err := os.MkdirAll(filepath.Dir(target), 0o700); err != nil {
+		if err := root.MkdirAll(filepath.Dir(name), 0o700); err != nil {
 			return err
 		}
 		source, err := entry.Open()
 		if err != nil {
 			return err
 		}
-		output, err := os.OpenFile(target, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
+		output, err := root.OpenFile(name, os.O_CREATE|os.O_EXCL|os.O_WRONLY, 0o600)
 		if err != nil {
 			source.Close()
 			return err
