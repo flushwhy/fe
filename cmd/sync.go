@@ -47,17 +47,19 @@ func syncProject(root string) (string, error) {
 	}
 	for _, engine := range detectGodotEngines() {
 		if godotVersionMatches(engine.Version, version) {
+			fmt.Printf("Using global Godot %s (%s)\\n", engine.Version, engine.Path)
 			abs, err := filepath.Abs(project)
 			return abs, err
 		}
 	}
-	_, toolPath, err := godotinstall.Install(version)
+	executable, toolPath, err := godotinstall.Install(version)
 	if err != nil {
 		return "", fmt.Errorf("sync project Godot %s: %w", version, err)
 	}
 	if err := projectstate.RegisterTool(project, godotToolName(version), toolPath); err != nil {
 		return "", fmt.Errorf("register project Godot %s: %w", version, err)
 	}
+	fmt.Printf("Prepared project-managed Godot %s (%s)\\n", version, executable)
 	abs, err := filepath.Abs(project)
 	return abs, err
 }
