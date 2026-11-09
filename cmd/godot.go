@@ -33,24 +33,8 @@ var godotEnginesCmd = &cobra.Command{
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		engines := detectGodotEngines()
-		project, projectErr := findGodotProject(".")
-		if projectErr == nil {
-			if path, ok, err := projectstate.ToolPath(project, godotToolName(projectGodotVersion(project))); err == nil && ok {
-				if executable, err := godotinstall.Executable(path); err == nil {
-					if engine, err := readGodotEngine(executable); err == nil {
-						found := false
-						for _, existing := range engines {
-							if existing.Path == engine.Path {
-								found = true
-								break
-							}
-						}
-						if !found {
-							engines = append(engines, *engine)
-						}
-					}
-				}
-			}
+		if project, err := findGodotProject("."); err == nil {
+			engines = appendProjectGodotEngine(engines, project)
 		}
 		if len(engines) == 0 {
 			return errors.New("no Godot executable found; install one globally or run 'fe godot install'")
@@ -208,18 +192,7 @@ var godotDoctorCmd = &cobra.Command{
 		fmt.Fprintln(out, "Detected engines:")
 		engines := detectGodotEngines()
 		if err == nil {
-			if selected, selectErr := selectGodotEngine(project, ""); selectErr == nil {
-				found := false
-				for _, engine := range engines {
-					if engine.Path == selected.Path {
-						found = true
-						break
-					}
-				}
-				if !found {
-					engines = append(engines, *selected)
-				}
-			}
+			engines = appendProjectGodotEngine(engines, project)
 		}
 		if len(engines) == 0 {
 			fmt.Fprintln(out, "  none installed; use 'fe godot install --version <version>'")
@@ -567,6 +540,27 @@ func godotToolName(version string) string {
 		return ""
 	}
 	return "godot:" + version + "-stable"
+}
+
+func appendProjectGodotEngine(engines []godotEngine, project string) []godotEngine {
+	path, ok, err := projectstate.ToolPath(project, godotToolName(projectGodotVersion(project)))
+	if err != nil || !ok {
+		return engines
+	}
+	executable, err := godotinstall.Executable(path)
+	if err != nil {
+		return engines
+	}
+	engine, err := readGodotEngine(executable)
+	if err != nil {
+		return engines
+	}
+	for _, existing := range engines {
+		if existing.Path == engine.Path {
+			return engines
+		}
+	}
+	return append(engines, *engine)
 }
 
 func readGodotEngine(path string) (*godotEngine, error) {
