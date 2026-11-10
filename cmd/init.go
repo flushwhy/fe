@@ -27,6 +27,8 @@ Examples:
   fe init go --name myapp --module github.com/you/myapp
   fe init --template cpp-raylib-xmake --name mygame
 
+Run 'fe init' without a language in an interactive terminal to choose one from a menu.
+
 Named templates are downloaded from https://github.com/flushwhy/fe-templates and cached locally.
 List available templates with: fe template list
 Refresh a cached template with: fe template update <template-id>`, supportedLangs()),
