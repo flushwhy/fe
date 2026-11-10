@@ -1,12 +1,20 @@
 package ui
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
 	"github.com/charmbracelet/lipgloss"
 	"github.com/flushwhy/fe/internal/tty"
 )
+
+var ErrCancelled = errors.New("prompt cancelled")
+
+// PrintCancelled reports a user-cancelled prompt without treating it as a failure.
+func PrintCancelled() {
+	fmt.Fprintln(os.Stderr, StyleDim.Render("Cancelled."))
+}
 
 // PrintError renders a consistent command failure with a useful help path.
 func PrintError(command string, err error) {
