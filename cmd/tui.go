@@ -21,19 +21,14 @@ import (
 // ── Palette ───────────────────────────────────────────────────────────────────
 
 var (
-	purple    = lipgloss.Color("#7C5FD6")
-	green     = lipgloss.Color("#3DDC84")
-	red       = lipgloss.Color("#FF5F57")
-	yellow    = lipgloss.Color("#FFBE2E")
 	gray      = lipgloss.Color("#6B7280")
 	lightGray = lipgloss.Color("#9CA3AF")
 	white     = lipgloss.Color("#F9FAFB")
-	dark      = lipgloss.Color("#1F2937")
 
 	styleBanner = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(white).
-			Background(purple).
+			Background(ui.ColorPurple).
 			Padding(0, 2).
 			MarginBottom(1)
 
@@ -61,12 +56,6 @@ var (
 	styleCmd = lipgloss.NewStyle().
 			Foreground(lightGray).
 			Italic(true)
-
-	styleDim = lipgloss.NewStyle().Foreground(gray)
-
-	styleSuccess = lipgloss.NewStyle().Foreground(green).Bold(true)
-	styleError   = lipgloss.NewStyle().Foreground(red).Bold(true)
-	styleWarn    = lipgloss.NewStyle().Foreground(yellow)
 
 	styleInput = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder()).
@@ -156,8 +145,6 @@ type cmdDoneMsg struct {
 	err    error
 	dur    time.Duration
 }
-
-type tickMsg time.Time
 
 // ── Model ─────────────────────────────────────────────────────────────────────
 
@@ -480,16 +467,16 @@ func (m tuiModel) viewCompact() string {
 	switch m.state {
 	case stateRunning:
 		b.WriteString(m.spinner.View() + " Running…\n")
-		b.WriteString(styleDim.Render("Ctrl+C cancels the command."))
+		b.WriteString(ui.StyleDim.Render("Ctrl+C cancels the command."))
 	case stateInput:
 		b.WriteString(styleSelected.Render(m.inputLabel) + "\n")
 		b.WriteString(styleInput.Width(width).Render(m.input.View()) + "\n")
 		b.WriteString(styleDim.Render("Enter confirms · Esc cancels"))
 	case stateResult:
 		if m.lastErr != nil {
-			b.WriteString(styleError.Render("✗ Command failed"))
+			b.WriteString(ui.StyleError.Render("✗ Command failed"))
 		} else {
-			b.WriteString(styleSuccess.Render("✓ Done"))
+			b.WriteString(ui.StyleSuccess.Render("✓ Done"))
 		}
 		b.WriteString(styleDim.Render("  " + m.lastDur.Round(time.Millisecond).String()) + "\n\n")
 		output := strings.TrimSpace(m.lastOutput)
@@ -792,5 +779,3 @@ func init() {
 	rootCmd.AddCommand(tuiCmd)
 }
 
-// Ensure ui import is used (it provides shared styles referenced from doctor/scaffold)
-var _ = ui.StyleSuccess
