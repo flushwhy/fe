@@ -67,6 +67,7 @@ var rootCmd = &cobra.Command{
     fe validate                       pre-flight config and path check
 
   Interactive:
+    fe init / fe add                   prompt for missing choices in a terminal
     fe tui                            Bubble Tea UI (local terminals only)
 
 Config priority: env vars > .fe.yaml > conventions > defaults`,
