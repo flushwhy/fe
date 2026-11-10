@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/transcode"
 	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
@@ -22,7 +21,7 @@ Examples:
   fe transcode --inputFile capture.mov --outputFile trailer.mp4
   fe transcode --inputFile capture.mp4 --outputFile web-preview.webm --crf 30`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		cfg, err := loadProjectConfig()
 		if err != nil {
 			return err
 		}
