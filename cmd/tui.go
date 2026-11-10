@@ -21,20 +21,18 @@ import (
 // ── Palette ───────────────────────────────────────────────────────────────────
 
 var (
-	gray      = lipgloss.Color("#6B7280")
 	lightGray = lipgloss.Color("#9CA3AF")
-	white     = lipgloss.Color("#F9FAFB")
 
 	styleBanner = lipgloss.NewStyle().
 			Bold(true).
-			Foreground(white).
+			Foreground(ui.ColorWhite).
 			Background(ui.ColorPurple).
 			Padding(0, 2).
 			MarginBottom(1)
 
 	styleTab = lipgloss.NewStyle().
 			Padding(0, 2).
-			Foreground(gray)
+			Foreground(ui.ColorGray)
 
 	styleTabActive = lipgloss.NewStyle().
 			Padding(0, 2).
@@ -64,7 +62,7 @@ var (
 
 	styleLog = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(gray).
+			BorderForeground(ui.ColorGray).
 			Padding(0, 1).
 			Foreground(lightGray)
 
@@ -547,7 +545,7 @@ func (m tuiModel) renderCompactTabs() string {
 		if t.id == m.activeTab {
 			parts = append(parts, lipgloss.NewStyle().Padding(0, 1).Foreground(ui.ColorPurple).Bold(true).Render(label))
 		} else {
-			parts = append(parts, lipgloss.NewStyle().Padding(0, 1).Foreground(gray).Render(label))
+			parts = append(parts, lipgloss.NewStyle().Padding(0, 1).Foreground(ui.ColorGray).Render(label))
 		}
 	}
 	return lipgloss.JoinHorizontal(lipgloss.Top, parts...)
@@ -570,7 +568,7 @@ func (m tuiModel) renderMenu(menuW, detailW int) string {
 	var menu strings.Builder
 	for i, item := range m.items {
 		prefix := "  "
-		style := lipgloss.NewStyle().Foreground(white)
+		style := lipgloss.NewStyle().Foreground(ui.ColorWhite)
 		descStyle := ui.StyleDim
 
 		if i == m.cursor {
