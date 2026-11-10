@@ -9,12 +9,12 @@ import (
 func TestValidate(t *testing.T) {
 	root := t.TempDir()
 	source := filepath.Join(root, "main.cpp")
-	if err := os.WriteFile(source, []byte("int main() {}"), 0644); err != nil {
+	if err := os.WriteFile(source, []byte("int main() {}"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	db := filepath.Join(root, "compile_commands.json")
 	valid := `[{"directory":"` + filepath.ToSlash(root) + `","file":"main.cpp","arguments":["clang++","-c","main.cpp"]}]`
-	if err := os.WriteFile(db, []byte(valid), 0644); err != nil {
+	if err := os.WriteFile(db, []byte(valid), 0600); err != nil {
 		t.Fatal(err)
 	}
 	if count, err := Validate(db); err != nil || count != 1 {
@@ -27,7 +27,7 @@ func TestValidate(t *testing.T) {
 		`[{"file":"main.cpp","command":"clang++"}]`,
 		`[{"directory":"` + filepath.ToSlash(root) + `","file":"missing.cpp","command":"clang++"}]`,
 	} {
-		if err := os.WriteFile(db, []byte(data), 0644); err != nil {
+		if err := os.WriteFile(db, []byte(data), 0600); err != nil {
 			t.Fatal(err)
 		}
 		if _, err := Validate(db); err == nil {
@@ -38,11 +38,11 @@ func TestValidate(t *testing.T) {
 
 func TestVSCodeBuildDirectory(t *testing.T) {
 	root := t.TempDir()
-	if err := os.MkdirAll(filepath.Join(root, ".vscode"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, ".vscode"), 0700); err != nil {
 		t.Fatal(err)
 	}
 	settings := `{"cmake.buildDirectory":"${workspaceFolder}/out/build/debug"}`
-	if err := os.WriteFile(filepath.Join(root, ".vscode", "settings.json"), []byte(settings), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".vscode", "settings.json"), []byte(settings), 0600); err != nil {
 		t.Fatal(err)
 	}
 	want := filepath.Join(root, "out", "build", "debug")
@@ -53,15 +53,15 @@ func TestVSCodeBuildDirectory(t *testing.T) {
 
 func TestFindBuildDirUsesVSCodeConfiguration(t *testing.T) {
 	root := t.TempDir()
-	if err := os.WriteFile(filepath.Join(root, "CMakeLists.txt"), []byte("cmake_minimum_required(VERSION 3.16)"), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, "CMakeLists.txt"), []byte("cmake_minimum_required(VERSION 3.16)"), 0600); err != nil {
 		t.Fatal(err)
 	}
 	configured := filepath.Join(root, "out", "build", "debug")
-	if err := os.MkdirAll(filepath.Join(root, ".vscode"), 0755); err != nil {
+	if err := os.MkdirAll(filepath.Join(root, ".vscode"), 0700); err != nil {
 		t.Fatal(err)
 	}
 	settings := `{"cmake.buildDirectory":"${workspaceFolder}/out/build/debug"}`
-	if err := os.WriteFile(filepath.Join(root, ".vscode", "settings.json"), []byte(settings), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(root, ".vscode", "settings.json"), []byte(settings), 0600); err != nil {
 		t.Fatal(err)
 	}
 	got, err := findBuildDir(root)
