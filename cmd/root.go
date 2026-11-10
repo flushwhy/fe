@@ -1,8 +1,9 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
+
+	"github.com/flushwhy/fe/internal/ui"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -71,12 +72,20 @@ Config priority: env vars > .fe.yaml > conventions > defaults`,
 }
 
 func Execute() {
-	if err := rootCmd.Execute(); err != nil {
+	cmd, err := rootCmd.ExecuteC()
+	if err != nil {
+		path := "fe"
+		if cmd != nil {
+			path = cmd.CommandPath()
+		}
+		ui.PrintError(path, err)
 		os.Exit(1)
 	}
 }
 
 func init() {
+	rootCmd.SilenceErrors = true
+	rootCmd.SilenceUsage = true
 	cobra.OnInitialize(initConfig)
 	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default: .fe.yaml in cwd or $HOME)")
 }
