@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/flushwhy/fe/internal/butler"
-	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -28,7 +27,7 @@ CI usage:
   export ITCHIO_USERNAME=myuser ITCHIO_GAME=mygame
   fe bmp`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		cfg, err := loadProjectConfig()
 		if err != nil {
 			return err
 		}
