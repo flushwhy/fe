@@ -16,6 +16,8 @@ var addCmd = &cobra.Command{
 	Long: fmt.Sprintf(`Adds editor/LSP configuration files to the current project directory
 so your tooling works correctly from day one.
 
+Run 'fe add' without a tool in an interactive terminal to choose one.
+
 Supported tools: %s
 
 clangd  — writes .clangd with the detected CompilationDatabase path.
