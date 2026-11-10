@@ -88,3 +88,27 @@ func TestSyncProjectRootDoesNotClaimParentProject(t *testing.T) {
 		t.Fatalf("sync claimed the parent project instead: %v", err)
 	}
 }
+
+func TestConfirmClean(t *testing.T) {
+	for _, tc := range []struct {
+		answer string
+		want   bool
+	}{
+		{"y\n", true},
+		{"YES\n", true},
+		{"n\n", false},
+		{"\n", false},
+	} {
+		var output bytes.Buffer
+		got, err := confirmClean(bufio.NewReader(strings.NewReader(tc.answer)), &output, "project")
+		if err != nil {
+			t.Fatalf("confirmClean(%q): %v", tc.answer, err)
+		}
+		if got != tc.want {
+			t.Errorf("confirmClean(%q) = %v, want %v", tc.answer, got, tc.want)
+		}
+		if !strings.Contains(output.String(), "Remove Fe-managed files from project?") {
+			t.Errorf("confirmation prompt missing from %q", output.String())
+		}
+	}
+}
