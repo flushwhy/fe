@@ -42,7 +42,7 @@ func TestAddClangd(t *testing.T) {
 
 		// Simulate cmake output.
 		buildDir := filepath.Join(dir, "build")
-		os.MkdirAll(buildDir, 0755)
+		os.MkdirAll(buildDir, 0700)
 		os.WriteFile(filepath.Join(buildDir, "compile_commands.json"), []byte("[]\n"), 0644)
 		os.WriteFile(filepath.Join(dir, "CMakeLists.txt"), []byte(""), 0644)
 
@@ -272,7 +272,7 @@ func TestConfigureClangd(t *testing.T) {
 
 	customRoot := t.TempDir()
 	custom := "CompileFlags:\n  Add: [-DUSER_SETTING]\n"
-	if err := os.WriteFile(filepath.Join(customRoot, ".clangd"), []byte(custom), 0644); err != nil {
+	if err := os.WriteFile(filepath.Join(customRoot, ".clangd"), []byte(custom), 0600); err != nil {
 		t.Fatal(err)
 	}
 	managed, err = ConfigureClangd(customRoot, filepath.Join(customRoot, "build"))
