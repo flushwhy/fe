@@ -11,6 +11,7 @@ import (
 	"strings"
 )
 
+// Entry is one compiler invocation in a compilation database.
 type Entry struct {
 	Directory string   `json:"directory"`
 	File      string   `json:"file"`
