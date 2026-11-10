@@ -13,6 +13,7 @@ type releaseGitState struct {
 	Commit        string
 	Branch        string
 	Dirty         bool
+	DirtyFiles    []string
 	Unpushed      int
 	UnpushedKnown bool
 }
@@ -43,11 +44,12 @@ func inspectReleaseGit() (releaseGitState, error) {
 		return state, fmt.Errorf("checked-out commit %s does not match GITHUB_SHA %s", state.Commit, expected)
 	}
 
-	status, err := run("status", "--porcelain", "--untracked-files=all")
+	status, err := run("status", "--porcelain=v1", "--untracked-files=all", "-z")
 	if err != nil {
 		return state, fmt.Errorf("inspect Git working tree: %w", err)
 	}
-	state.Dirty = len(status) > 0
+	state.DirtyFiles = parseReleaseGitStatus(status)
+	state.Dirty = len(state.DirtyFiles) > 0
 
 	upstream, err := run("rev-parse", "--abbrev-ref", "--symbolic-full-name", "@{upstream}")
 	if err == nil {
@@ -80,12 +82,34 @@ func inspectReleaseGit() (releaseGitState, error) {
 	return state, nil
 }
 
+// parseReleaseGitStatus preserves Git's status codes and handles filenames containing spaces.
+func parseReleaseGitStatus(status []byte) []string {
+	var files []string
+	for _, entry := range strings.Split(string(status), "\\x00") {
+		if entry == "" {
+			continue
+		}
+		if len(entry) >= 3 {
+			files = append(files, entry[:2]+" "+entry[3:])
+		} else {
+			files = append(files, entry)
+		}
+	}
+	return files
+}
+
 func validateReleaseGit(state releaseGitState, allowDirty, allowUnpushed bool) error {
 	if !state.IsRepo {
 		return nil
 	}
 	if state.Dirty && !allowDirty {
-		return fmt.Errorf("release blocked: Git working tree has uncommitted or untracked changes; commit or stash them, or explicitly pass --allow-dirty")
+		var details strings.Builder
+		fmt.Fprintln(&details, "release blocked: Git working tree has uncommitted or untracked changes:")
+		for _, file := range state.DirtyFiles {
+			fmt.Fprintf(&details, "  %s\\n", file)
+		}
+		fmt.Fprint(&details, "Commit or stash these changes, or explicitly pass --allow-dirty")
+		return fmt.Errorf("%s", details.String())
 	}
 	if !state.UnpushedKnown && !allowUnpushed {
 		return fmt.Errorf("release blocked: cannot verify that HEAD is present on a remote; configure an upstream or explicitly pass --allow-unpushed")
@@ -104,6 +128,9 @@ func printReleaseGitState(state releaseGitState) {
 	fmt.Printf("Git: %s (%s)\n", state.Commit, state.Branch)
 	if state.Dirty {
 		fmt.Println("  working tree: dirty")
+		for _, file := range state.DirtyFiles {
+			fmt.Printf("    %s\\n", file)
+		}
 	} else {
 		fmt.Println("  working tree: clean")
 	}
