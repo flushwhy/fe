@@ -9,6 +9,7 @@ import (
 	"github.com/flushwhy/fe/internal/config"
 
 	"github.com/flushwhy/fe/internal/doctor"
+	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -38,7 +39,7 @@ Run 'fe add <tool>' to fix most issues.`,
 		results = append(results, feProjectChecks()...)
 		allOK := doctor.Print(results)
 		if !allOK {
-			return fmt.Errorf("doctor found one or more problems")
+			return &ui.CommandError{\n\t\t\t\tMessage: "doctor found one or more problems",\n\t\t\t\tHint:    "fix the failed checks above, then run `fe doctor` again",\n\t\t\t}
 		}
 		return nil
 	},
