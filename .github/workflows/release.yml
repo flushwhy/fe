@@ -338,7 +338,8 @@ jobs:
       - name: Release Fe through Fe
         run: |
           chmod +x dist/fe-linux-amd64
-          args=(release --skip-build --skip-pack --userversion "$RELEASE_TAG")
+          # This job deliberately stages release binaries in the checkout builds/ directory.
+          args=(release --skip-build --skip-pack --allow-dirty --userversion "$RELEASE_TAG")
           if [ -n "$ITCH_CHANNEL_SUFFIX" ]; then
             args+=(--channel-suffix "$ITCH_CHANNEL_SUFFIX")
           fi
