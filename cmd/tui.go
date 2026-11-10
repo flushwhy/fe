@@ -64,7 +64,7 @@ var (
 	styleDim     = ui.StyleDim
 	styleSuccess = ui.StyleSuccess
 	styleError   = ui.StyleError
-	styleWarn    = ui.StyleWarn
+	styleWarn    = lipgloss.NewStyle().Foreground(yellow)
 
 	styleInput = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder()).
