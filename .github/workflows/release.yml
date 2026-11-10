@@ -151,7 +151,6 @@ jobs:
     env:
       RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Build Debian packages
-    needs: binaries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -201,7 +200,6 @@ jobs:
     env:
       RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Publish GitHub Release assets
-    needs: [binaries, riscv-binary, deb-packages]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
@@ -233,10 +231,7 @@ jobs:
       RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
       HAS_CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY != '' }}
     name: Package Fe for Chocolatey
-    needs: [binaries, github-release]
     runs-on: windows-latest
-    env:
-      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -282,6 +277,8 @@ jobs:
         shell: pwsh
         env:
           CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+        env:
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
         run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
 
   # Dogfood Fe's own release pipeline to publish the Fe CLI binaries.
@@ -290,7 +287,6 @@ jobs:
     env:
       RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Release Fe to itch.io using Fe
-    needs: binaries
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
