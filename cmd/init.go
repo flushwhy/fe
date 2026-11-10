@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/flushwhy/fe/internal/scaffold"
+	"github.com/flushwhy/fe/internal/tty"
+	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -30,13 +32,10 @@ List available templates with: fe template list
 Refresh a cached template with: fe template update <template-id>`, supportedLangs()),
 	Args: func(cmd *cobra.Command, args []string) error {
 		templateID, _ := cmd.Flags().GetString("template")
-		if templateID != "" && len(args) == 0 {
-			return nil
+		if len(args) > 1 {
+			return fmt.Errorf("provide one language or use --template <id>")
 		}
-		if len(args) != 1 {
-			return fmt.Errorf("provide a language or use --template <id>")
-		}
-		if templateID != "" {
+		if templateID != "" && len(args) > 0 {
 			return fmt.Errorf("provide either a language or --template, not both")
 		}
 		return nil
@@ -44,6 +43,20 @@ Refresh a cached template with: fe template update <template-id>`, supportedLang
 	RunE: func(cmd *cobra.Command, args []string) error {
 		templateID, _ := cmd.Flags().GetString("template")
 		lang := scaffold.Lang("")
+		if len(args) == 0 && templateID == "" {
+			if !tty.IsInteractive() {
+				return fmt.Errorf("provide a language, for example: fe init go --name my-project")
+			}
+			choices := make([]string, len(scaffold.SupportedLangs))
+			for i, supported := range scaffold.SupportedLangs {
+				choices[i] = string(supported)
+			}
+			selected, err := ui.Select("Choose a project language", choices)
+			if err != nil {
+				return err
+			}
+			args = []string{selected}
+		}
 		if len(args) > 0 {
 			lang = scaffold.Lang(strings.ToLower(args[0]))
 		}
