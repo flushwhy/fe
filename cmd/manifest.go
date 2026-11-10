@@ -13,7 +13,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/flushwhy/fe/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +36,7 @@ var manifestCmd = &cobra.Command{
 	Long:  "Scans a build output directory and records each file's relative path, platform folder, size, and SHA-256 checksum.",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		cfg, err := loadProjectConfig()
 		if err != nil {
 			return err
 		}
