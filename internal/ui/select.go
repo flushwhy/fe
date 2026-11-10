@@ -24,7 +24,7 @@ func Select(title string, options []string) (string, error) {
 	}
 	model, ok := result.(selectModel)
 	if !ok || model.selected == "" {
-		return "", fmt.Errorf("selection cancelled")
+		return "", ErrCancelled
 	}
 	return model.selected, nil
 }
