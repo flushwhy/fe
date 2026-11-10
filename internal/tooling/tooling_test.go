@@ -155,7 +155,7 @@ func TestFindCompileCommandsDir(t *testing.T) {
 		defer cleanup()
 
 		buildDir := filepath.Join(dir, "build")
-		os.MkdirAll(buildDir, 0755)
+		os.MkdirAll(buildDir, 0700)
 		os.WriteFile(filepath.Join(buildDir, "compile_commands.json"), []byte("[]\n"), 0644)
 
 		got := findCompileCommandsDir(dir)
