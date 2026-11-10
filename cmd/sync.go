@@ -1,14 +1,17 @@
 package cmd
 
 import (
+	"bufio"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
 	"github.com/flushwhy/fe/internal/godotinstall"
 	"github.com/flushwhy/fe/internal/projectstate"
+	"github.com/flushwhy/fe/internal/tty"
 	"github.com/spf13/cobra"
 )
 
@@ -87,7 +90,8 @@ var cleanCmd = &cobra.Command{
 	Short: "Remove files and registrations managed by Fe.",
 	Long: "Removes only files recorded as Fe-managed. Modified files are preserved.\n" +
 		"Use --all to clean every registered project, including records for deleted repositories.\n" +
-		"Use --dry-run to preview changes without modifying anything.",
+		"Use --dry-run to preview changes without modifying anything.\n" +
+		"Interactive terminals ask for confirmation before cleanup; use --yes to skip the prompt.",
 	Args: func(cmd *cobra.Command, args []string) error {
 		all, _ := cmd.Flags().GetBool("all")
 		if all && len(args) > 0 {
@@ -101,7 +105,28 @@ var cleanCmd = &cobra.Command{
 		}
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		all, _ := cmd.Flags().GetBool("all")
+		yes, _ := cmd.Flags().GetBool("yes")
 		keepUninstallers, _ := cmd.Flags().GetBool("keep-uninstallers")
+
+		root := "."
+		if len(args) == 1 {
+			root = args[0]
+		}
+		if !dryRun && !yes && tty.IsInteractive() {
+			target := fmt.Sprintf("project at %s", root)
+			if all {
+				target = "every registered project"
+			}
+			confirmed, err := confirmClean(bufio.NewReader(cmd.InOrStdin()), cmd.OutOrStdout(), target)
+			if err != nil {
+				return fmt.Errorf("confirm cleanup: %w", err)
+			}
+			if !confirmed {
+				fmt.Fprintln(cmd.OutOrStdout(), "Cleanup cancelled.")
+				return nil
+			}
+		}
+
 		var results []projectstate.Cleanup
 		if all {
 			var err error
@@ -110,10 +135,6 @@ var cleanCmd = &cobra.Command{
 				return err
 			}
 		} else {
-			root := "."
-			if len(args) == 1 {
-				root = args[0]
-			}
 			result, err := projectstate.Clean(root, dryRun, keepUninstallers)
 			if err != nil {
 				return err
@@ -142,11 +163,22 @@ var cleanCmd = &cobra.Command{
 	},
 }
 
+func confirmClean(reader *bufio.Reader, out io.Writer, target string) (bool, error) {
+	fmt.Fprintf(out, "Remove Fe-managed files from %s? [y/N] ", target)
+	answer, err := reader.ReadString('\n')
+	if err != nil && err != io.EOF {
+		return false, err
+	}
+	answer = strings.TrimSpace(answer)
+	return strings.EqualFold(answer, "y") || strings.EqualFold(answer, "yes"), nil
+}
+
 func init() {
 	rootCmd.AddCommand(syncCmd, cleanCmd)
 	cleanCmd.Flags().Bool("all", false, "clean every registered project and remove stale records")
 	cleanCmd.Flags().Bool("dry-run", false, "show what would be removed without changing files")
 	cleanCmd.Flags().Bool("keep-uninstallers", false, "leave uninstall scripts for the script to remove itself")
+	cleanCmd.Flags().Bool("yes", false, "skip the interactive confirmation prompt")
 }
 
 func isCI() bool {
