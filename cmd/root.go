@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -11,8 +12,10 @@ import (
 var cfgFile string
 
 var rootCmd = &cobra.Command{
-	Use:   "fe",
-	Short: "Fe — dev middleware for the awkward parts of shipping software",
+	Use:          "fe",
+	Short:        "Fe — dev middleware for the awkward parts of shipping software",
+	SilenceErrors: true,
+	SilenceUsage:  true,
 	Long: `Fe is a local CLI and CI-friendly middleware layer.
 
   Project scaffolding:
@@ -72,6 +75,7 @@ Config priority: env vars > .fe.yaml > conventions > defaults`,
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
+		ui.WriteError(os.Stderr, err)
 		os.Exit(1)
 	}
 }
