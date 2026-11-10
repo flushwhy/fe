@@ -1,3 +1,4 @@
+// Package cmd defines Fe's command-line interface.
 package cmd
 
 import (
@@ -22,7 +23,7 @@ This uses CMake's actual configuration; it does not guess compiler flags or
 run a build. Make-based projects are left untouched — use Bear with your
 normal build command instead.`,
 	Args: cobra.MaximumNArgs(1),
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(_ *cobra.Command, args []string) error {
 		root := "."
 		if len(args) == 1 {
 			root = args[0]
