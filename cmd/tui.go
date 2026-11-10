@@ -38,19 +38,19 @@ var (
 
 	styleTabActive = lipgloss.NewStyle().
 			Padding(0, 2).
-			Foreground(purple).
+			Foreground(ui.ColorPurple).
 			Bold(true).
 			BorderBottom(true).
 			BorderStyle(lipgloss.NormalBorder()).
-			BorderForeground(purple)
+			BorderForeground(ui.ColorPurple)
 
 	stylePane = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(purple).
+			BorderForeground(ui.ColorPurple).
 			Padding(1, 2)
 
 	styleSelected = lipgloss.NewStyle().
-			Foreground(purple).
+			Foreground(ui.ColorPurple).
 			Bold(true)
 
 	styleCmd = lipgloss.NewStyle().
@@ -59,7 +59,7 @@ var (
 
 	styleInput = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder()).
-			BorderForeground(purple).
+			BorderForeground(ui.ColorPurple).
 			Padding(0, 1)
 
 	styleLog = lipgloss.NewStyle().
@@ -69,7 +69,7 @@ var (
 			Foreground(lightGray)
 
 	styleKey = lipgloss.NewStyle().
-			Foreground(purple).
+			Foreground(ui.ColorPurple).
 			Bold(true)
 )
 
@@ -184,7 +184,7 @@ type tuiModel struct {
 func newTuiModel(cfg *config.Config, cfgErr error) tuiModel {
 	sp := spinner.New()
 	sp.Spinner = spinner.Dot
-	sp.Style = lipgloss.NewStyle().Foreground(purple)
+	sp.Style = lipgloss.NewStyle().Foreground(ui.ColorPurple)
 
 	ti := textinput.New()
 	ti.CharLimit = 64
@@ -471,14 +471,14 @@ func (m tuiModel) viewCompact() string {
 	case stateInput:
 		b.WriteString(styleSelected.Render(m.inputLabel) + "\n")
 		b.WriteString(styleInput.Width(width).Render(m.input.View()) + "\n")
-		b.WriteString(styleDim.Render("Enter confirms · Esc cancels"))
+		b.WriteString(ui.StyleDim.Render("Enter confirms · Esc cancels"))
 	case stateResult:
 		if m.lastErr != nil {
 			b.WriteString(ui.StyleError.Render("✗ Command failed"))
 		} else {
 			b.WriteString(ui.StyleSuccess.Render("✓ Done"))
 		}
-		b.WriteString(styleDim.Render("  " + m.lastDur.Round(time.Millisecond).String()) + "\n\n")
+		b.WriteString(ui.StyleDim.Render("  " + m.lastDur.Round(time.Millisecond).String()) + "\n\n")
 		output := strings.TrimSpace(m.lastOutput)
 		if output == "" {
 			output = "(no output)"
@@ -492,13 +492,13 @@ func (m tuiModel) viewCompact() string {
 			lines = lines[len(lines)-limit:]
 		}
 		b.WriteString(lipgloss.NewStyle().Width(width).Render(strings.Join(lines, "\n")))
-		b.WriteString("\n\n" + styleDim.Render("Enter/Esc back"))
+		b.WriteString("\n\n" + ui.StyleDim.Render("Enter/Esc back"))
 	default:
 		if m.activeTab == tabConfig {
 			b.WriteString(m.renderConfigPane())
 		} else if m.activeTab == tabDoctor {
 			b.WriteString(styleSelected.Render("Run doctor") + "\n")
-			b.WriteString(styleDim.Render("Press Enter to check tools and editor configs."))
+			b.WriteString(ui.StyleDim.Render("Press Enter to check tools and editor configs."))
 		} else {
 			visible := m.height - 9
 			if visible < 1 {
@@ -520,17 +520,17 @@ func (m tuiModel) viewCompact() string {
 					marker = styleKey.Render("› ")
 					label = styleSelected.Render(label)
 					b.WriteString(marker + label + "\n")
-					b.WriteString(styleDim.Render("  "+item.desc) + "\n")
+					b.WriteString(ui.StyleDim.Render("  "+item.desc) + "\n")
 				} else {
 					b.WriteString(marker + label + "\n")
 				}
 			}
 			if start > 0 || end < len(m.items) {
-				b.WriteString(styleDim.Render(fmt.Sprintf("  items %d–%d of %d", start+1, end, len(m.items))))
+				b.WriteString(ui.StyleDim.Render(fmt.Sprintf("  items %d–%d of %d", start+1, end, len(m.items))))
 			}
 		}
 	}
-	b.WriteString("\n\n" + styleDim.Render("↑↓ navigate · Enter select · Tab switch · q quit"))
+	b.WriteString("\n\n" + ui.StyleDim.Render("↑↓ navigate · Enter select · Tab switch · q quit"))
 	return lipgloss.NewStyle().Width(width).Render(b.String())
 }
 
@@ -545,7 +545,7 @@ func (m tuiModel) renderCompactTabs() string {
 	for _, t := range tabs {
 		label := labels[t.id]
 		if t.id == m.activeTab {
-			parts = append(parts, lipgloss.NewStyle().Padding(0, 1).Foreground(purple).Bold(true).Render(label))
+			parts = append(parts, lipgloss.NewStyle().Padding(0, 1).Foreground(ui.ColorPurple).Bold(true).Render(label))
 		} else {
 			parts = append(parts, lipgloss.NewStyle().Padding(0, 1).Foreground(gray).Render(label))
 		}
@@ -571,7 +571,7 @@ func (m tuiModel) renderMenu(menuW, detailW int) string {
 	for i, item := range m.items {
 		prefix := "  "
 		style := lipgloss.NewStyle().Foreground(white)
-		descStyle := styleDim
+		descStyle := ui.StyleDim
 
 		if i == m.cursor {
 			prefix = styleKey.Render("▶ ")
@@ -590,9 +590,9 @@ func (m tuiModel) renderMenu(menuW, detailW int) string {
 	// Special tab content
 	if m.activeTab == tabDoctor {
 		menu.WriteString(fmt.Sprintf("  %s\n\n", styleSelected.Render("Run doctor")))
-		menu.WriteString(fmt.Sprintf("   %s\n", styleDim.Render("Check tools + LSP configs")))
+		menu.WriteString(fmt.Sprintf("   %s\n", ui.StyleDim.Render("Check tools + LSP configs")))
 		menu.WriteString("\n")
-		menu.WriteString(styleDim.Render("  Press enter to run"))
+		menu.WriteString(ui.StyleDim.Render("  Press enter to run"))
 	}
 
 	if m.activeTab == tabConfig {
@@ -614,7 +614,7 @@ func (m tuiModel) renderDetail(w int) string {
 	}
 
 	if len(m.items) == 0 || m.cursor >= len(m.items) {
-		return styleDim.Render("No item selected")
+		return ui.StyleDim.Render("No item selected")
 	}
 
 	item := m.items[m.cursor]
@@ -624,7 +624,7 @@ func (m tuiModel) renderDetail(w int) string {
 	b.WriteString("\n\n")
 	b.WriteString(item.desc)
 	b.WriteString("\n\n")
-	b.WriteString(styleDim.Render("Command:"))
+	b.WriteString(ui.StyleDim.Render("Command:"))
 	b.WriteString("\n")
 
 	cmdStr := "fe " + item.command
@@ -636,17 +636,17 @@ func (m tuiModel) renderDetail(w int) string {
 
 	// Show config summary if available
 	if m.cfg != nil {
-		b.WriteString(styleDim.Render("Active config:"))
+		b.WriteString(ui.StyleDim.Render("Active config:"))
 		b.WriteString("\n")
 		for _, line := range m.cfg.SummaryLines() {
-			b.WriteString(styleDim.Render(line))
+			b.WriteString(ui.StyleDim.Render(line))
 			b.WriteString("\n")
 		}
 	}
 
 	if len(m.logs) > 0 {
 		b.WriteString("\n")
-		b.WriteString(styleDim.Render("Last run:"))
+		b.WriteString(ui.StyleDim.Render("Last run:"))
 		b.WriteString("\n")
 		last := m.logs[len(m.logs)-1]
 		lines := strings.Split(last, "\n")
@@ -664,9 +664,9 @@ func (m tuiModel) renderRunning(menuW, detailW int) string {
 		m.spinner.View(),
 	)
 	if len(m.items) > 0 && m.cursor < len(m.items) {
-		content += fmt.Sprintf("  %s\n", styleDim.Render(m.items[m.cursor].desc))
+		content += fmt.Sprintf("  %s\n", ui.StyleDim.Render(m.items[m.cursor].desc))
 	}
-	content += fmt.Sprintf("\n  %s", styleDim.Render("Press ctrl+c to cancel"))
+	content += fmt.Sprintf("\n  %s", ui.StyleDim.Render("Press ctrl+c to cancel"))
 
 	box := stylePane.Width(menuW + detailW + 2).Height(m.height - 10).Render(content)
 	return box
@@ -675,11 +675,11 @@ func (m tuiModel) renderRunning(menuW, detailW int) string {
 func (m tuiModel) renderResult(menuW, detailW int) string {
 	var header string
 	if m.lastErr != nil {
-		header = styleError.Render("✗  Command failed") +
-			styleDim.Render(fmt.Sprintf("  (%s)", m.lastDur.Round(time.Millisecond)))
+		header = ui.StyleError.Render("✗  Command failed") +
+			ui.StyleDim.Render(fmt.Sprintf("  (%s)", m.lastDur.Round(time.Millisecond)))
 	} else {
-		header = styleSuccess.Render("✓  Done") +
-			styleDim.Render(fmt.Sprintf("  (%s)", m.lastDur.Round(time.Millisecond)))
+		header = ui.StyleSuccess.Render("✓  Done") +
+			ui.StyleDim.Render(fmt.Sprintf("  (%s)", m.lastDur.Round(time.Millisecond)))
 	}
 
 	output := m.lastOutput
@@ -699,7 +699,7 @@ func (m tuiModel) renderResult(menuW, detailW int) string {
 
 	content := header + "\n\n" +
 		styleLog.Width(menuW+detailW-2).Render(strings.Join(lines, "\n")) +
-		"\n\n" + styleDim.Render("  Press enter or esc to go back")
+		"\n\n" + ui.StyleDim.Render("  Press enter or esc to go back")
 
 	return stylePane.Width(menuW + detailW + 2).Height(m.height - 10).Render(content)
 }
@@ -708,18 +708,18 @@ func (m tuiModel) renderInput(menuW, detailW int) string {
 	content := fmt.Sprintf("\n  %s\n\n  %s\n\n  %s",
 		styleSelected.Render(m.inputLabel),
 		styleInput.Render(m.input.View()),
-		styleDim.Render("enter to confirm · esc to cancel"),
+		ui.StyleDim.Render("enter to confirm · esc to cancel"),
 	)
 	return stylePane.Width(menuW + detailW + 2).Height(m.height - 10).Render(content)
 }
 
 func (m tuiModel) renderConfigPane() string {
 	if m.cfgErr != nil {
-		return styleError.Render("Config error: "+m.cfgErr.Error()) +
-			"\n\n" + styleDim.Render("Create a .fe.yaml in your project root.")
+		return ui.StyleError.Render("Config error: "+m.cfgErr.Error()) +
+			"\n\n" + ui.StyleDim.Render("Create a .fe.yaml in your project root.")
 	}
 	if m.cfg == nil {
-		return styleDim.Render("No .fe.yaml found — using conventions.")
+		return ui.StyleDim.Render("No .fe.yaml found — using conventions.")
 	}
 
 	var b strings.Builder
@@ -738,7 +738,7 @@ func (m tuiModel) renderFooter() string {
 		styleKey.Render("1-4") + " jump tab",
 		styleKey.Render("q") + " quit",
 	}
-	return styleDim.Render("  " + strings.Join(keys, "  ·  "))
+	return ui.StyleDim.Render("  " + strings.Join(keys, "  ·  "))
 }
 
 func itemsForTab(t tabID) []menuItem {
