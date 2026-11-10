@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"path/filepath"
 
-	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/godot"
 	"github.com/spf13/cobra"
 )
@@ -19,7 +18,7 @@ var exportCmd = &cobra.Command{
 Godot must be installed and its export templates/platform requirements must be ready.
 Use --preset to export one named preset.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		cfg, err := loadProjectConfig()
 		if err != nil {
 			return err
 		}

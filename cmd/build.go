@@ -30,7 +30,7 @@ Use --target to select a named target, --platform to build every target for
 one platform, or --list-targets to inspect the configured targets. Existing
 platform-only configurations remain supported.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		cfg, err := loadProjectConfig()
 		if err != nil {
 			return err
 		}

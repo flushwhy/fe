@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/pack"
 	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
@@ -32,7 +31,7 @@ Example:
         input: assets/sprites/npcs
         output: assets/npcs.png`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		cfg, err := loadProjectConfig()
 		if err != nil {
 			return err
 		}

@@ -17,7 +17,7 @@ commands configured under preflight.checks in .fe.yaml.
 Checks are read-only by default. Missing tools are reported with installation
 guidance; Fe never installs software automatically.`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		cfg, err := loadProjectConfig()
 		if err != nil {
 			return err
 		}

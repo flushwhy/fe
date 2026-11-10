@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/flushwhy/fe/internal/config"
+	"github.com/flushwhy/fe/internal/tty"
+	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -11,8 +14,16 @@ import (
 var cfgFile string
 
 var rootCmd = &cobra.Command{
-	Use:   "fe",
-	Short: "Fe — dev middleware for the awkward parts of shipping software",
+	Use:           "fe",
+	Short:         "Fe — dev middleware for the awkward parts of shipping software",
+	SilenceErrors: true,
+	SilenceUsage:  true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if tty.IsInteractive() {
+			return tuiCmd.RunE(tuiCmd, args)
+		}
+		return cmd.Help()
+	},
 	Long: `Fe is a local CLI and CI-friendly middleware layer.
 
   Project scaffolding:
@@ -65,13 +76,15 @@ var rootCmd = &cobra.Command{
     fe validate                       pre-flight config and path check
 
   Interactive:
-    fe tui                            Bubble Tea UI (local terminals only)
+    fe                                open the interactive dashboard in a terminal
+    fe tui                            open the Bubble Tea UI explicitly
 
 Config priority: env vars > .fe.yaml > conventions > defaults`,
 }
 
 func Execute() {
 	if err := rootCmd.Execute(); err != nil {
+		ui.WriteError(os.Stderr, err)
 		os.Exit(1)
 	}
 }
@@ -100,4 +113,16 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "config:", viper.ConfigFileUsed())
 	}
+}
+
+func loadProjectConfig() (*config.Config, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, &ui.CommandError{
+			Message: "could not load the Fe project configuration",
+			Cause:   err,
+			Hint:    "check the YAML syntax and field types in .fe.yaml (or the file passed with --config), then run `fe validate`",
+		}
+	}
+	return cfg, nil
 }
