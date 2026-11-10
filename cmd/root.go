@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -104,4 +105,16 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Fprintln(os.Stderr, "config:", viper.ConfigFileUsed())
 	}
+}
+
+func loadProjectConfig() (*config.Config, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, &ui.CommandError{
+			Message: "could not load the Fe project configuration",
+			Cause:   err,
+			Hint:    "check the YAML syntax and field types in .fe.yaml (or the file passed with --config), then run `fe validate`",
+		}
+	}
+	return cfg, nil
 }
