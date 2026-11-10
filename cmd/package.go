@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/flushwhy/fe/internal/archivepkg"
-	"github.com/flushwhy/fe/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +19,7 @@ Examples:
   fe package --format zip
   fe package --dir builds/linux-x64 --format tar.gz --version 1.2.0`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		cfg, err := loadProjectConfig()
 		if err != nil {
 			return err
 		}
