@@ -28,7 +28,7 @@ func Input(title, initial string) (string, error) {
 	}
 	model, ok := result.(inputModel)
 	if !ok || model.cancelled {
-		return "", fmt.Errorf("input cancelled")
+		return "", ErrCancelled
 	}
 	return strings.TrimSpace(model.field.Value()), nil
 }
