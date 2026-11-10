@@ -39,7 +39,7 @@ CI example:
   export ITCHIO_USERNAME=myuser ITCHIO_GAME=mygame
   fe release --userversion v1.2.3 --package-format zip`,
 	RunE: func(cmd *cobra.Command, args []string) error {
-		cfg, err := config.Load()
+		cfg, err := loadProjectConfig()
 		if err != nil {
 			return err
 		}
