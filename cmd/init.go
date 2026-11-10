@@ -71,6 +71,15 @@ Refresh a cached template with: fe template update <template-id>`, supportedLang
 			} else {
 				name = string(lang) + "-project"
 			}
+			if tty.IsInteractive() {
+				selected, err := ui.Input("Project name", name)
+				if err != nil {
+					return err
+				}
+				if selected != "" {
+					name = selected
+				}
+			}
 		}
 
 		// Remote URL from flag or config file.
