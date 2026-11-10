@@ -56,8 +56,17 @@ func buildArgs(cfg config.TranscodeConfig) map[string]interface{} {
 		args["preset"] = first(cfg.Preset, "medium")
 		args["crf"] = first(cfg.CRF, "20")
 		args["pix_fmt"] = first(cfg.PixelFormat, "yuv420p")
-		args["c:a"] = first(cfg.AudioCodec, legacyCodec(cfg.Codec, legacyAudioCodec), "aac")
-		args["b:a"] = first(cfg.AudioBitrate, legacyBitrate(cfg.Bitrate, legacyAudioCodec), "192k")
+		audioCodec, audioBitrate := cfg.AudioCodec, cfg.AudioBitrate
+		if legacyAudioCodec {
+			if audioCodec == "" {
+				audioCodec = cfg.Codec
+			}
+			if audioBitrate == "" {
+				audioBitrate = cfg.Bitrate
+			}
+		}
+		args["c:a"] = first(audioCodec, "aac")
+		args["b:a"] = first(audioBitrate, "192k")
 		if cfg.Bitrate != "" && !legacyAudioCodec {
 			args["b:v"] = cfg.Bitrate
 		}
@@ -121,20 +130,6 @@ func isAudioCodec(codec string) bool {
 	default:
 		return false
 	}
-}
-
-func legacyCodec(codec string, audio bool) string {
-	if audio {
-		return codec
-	}
-	return ""
-}
-
-func legacyBitrate(bitrate string, audio bool) string {
-	if audio {
-		return bitrate
-	}
-	return ""
 }
 
 func first(values ...string) string {
