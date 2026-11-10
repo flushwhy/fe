@@ -43,6 +43,16 @@ jobs:
           mkdir -p dist
           CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/fe-linux-amd64 .
           CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o dist/fe-linux-arm64 .
+          mkdir -p dist
+          CGO_ENABLED=0 GOOS=linux GOARCH=amd64 go build -o dist/fe-linux-amd64 .
+          CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o dist/fe-linux-arm64 .
           bash scripts/package-linux.sh 0.0.0
           test "$(rpm -qp --qf '%{ARCH}' dist/packages/fe-0.0.0-x86_64.rpm)" = x86_64
           test "$(rpm -qp --qf '%{ARCH}' dist/packages/fe-0.0.0-aarch64.rpm)" = aarch64
+          package="./dist/packages/fe_0.0.0_amd64.deb"
+          test -f "$package"
+          dpkg-deb --info "$package" >/dev/null
+          sudo dpkg -i "$package"
+          dpkg-query -W -f='${Status} ${Version} ${Architecture}\\n' fe | grep -Fx "install ok installed 0.0.0 amd64"
+          fe --help >/dev/null
+          fe o3de --help >/dev/null
