@@ -5,6 +5,8 @@ import (
 	"strings"
 
 	"github.com/flushwhy/fe/internal/tooling"
+	"github.com/flushwhy/fe/internal/tty"
+	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -32,8 +34,22 @@ Examples:
   cd myodingame && fe add ols
   cd myzigapp  && fe add zls
   cd mygoapp   && fe add gopls`, supportedTools()),
-	Args: cobra.ExactArgs(1),
+	Args: cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
+		if len(args) == 0 {
+			if !tty.IsInteractive() {
+				return fmt.Errorf("provide a tool, for example: fe add clangd")
+			}
+			choices := make([]string, len(tooling.SupportedTools))
+			for i, supported := range tooling.SupportedTools {
+				choices[i] = string(supported)
+			}
+			selected, err := ui.Select("Choose a tool to configure", choices)
+			if err != nil {
+				return err
+			}
+			args = []string{selected}
+		}
 		tool := tooling.Tool(strings.ToLower(args[0]))
 		return tooling.Add(tool)
 	},
