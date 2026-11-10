@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.7.4](https://github.com/flushwhy/fe/compare/v0.7.3...v0.7.4) (2026-11-10)
+
+
+### Bug Fixes
+
+* **ci:** validate Debian package from packages directory ([#169](https://github.com/flushwhy/fe/issues/169)) ([bc62709](https://github.com/flushwhy/fe/commit/bc627090713061e49c0b1175cf2ac11973e809fd))
+
 ## [0.7.3](https://github.com/flushwhy/fe/compare/v0.7.2...v0.7.3) (2026-11-10)
 
 
