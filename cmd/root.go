@@ -28,6 +28,7 @@ var rootCmd = &cobra.Command{
     fe inspect [path]                detect project types and ecosystem markers
     fe setup [path]                  check project tool requirements
     fe doctor                         check tools are installed and configs are correct
+    fe fix compile-commands [path]    repair C/C++ compilation databases for clangd
     fe update [check]                 check for and install Fe updates using the detected package manager
     fe check [path]                   run available language-aware static analyzers
 
@@ -60,7 +61,6 @@ var rootCmd = &cobra.Command{
     fe transcode                      convert audio/video via ffmpeg
     fe bmp                            push builds to itch.io via butler
     fe changelog                      generate release notes from Git history and tags
-    fe release                        build, pack, optionally package, and publish
     fe release                        build, pack, optionally package, and publish
     fe validate                       pre-flight config and path check
 

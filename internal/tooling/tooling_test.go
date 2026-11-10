@@ -17,7 +17,7 @@ func inTempDir(t *testing.T) (string, func()) {
 }
 
 func TestAddClangd(t *testing.T) {
-	t.Run("writes .clangd and stub compile_commands.json", func(t *testing.T) {
+	t.Run("writes .clangd without creating an empty compilation database", func(t *testing.T) {
 		dir, cleanup := inTempDir(t)
 		defer cleanup()
 
@@ -25,35 +25,24 @@ func TestAddClangd(t *testing.T) {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
-		// .clangd must exist.
-		clangdPath := filepath.Join(dir, ".clangd")
-		content, err := os.ReadFile(clangdPath)
+		content, err := os.ReadFile(filepath.Join(dir, ".clangd"))
 		if err != nil {
 			t.Fatalf(".clangd not written: %v", err)
 		}
 		if !strings.Contains(string(content), "CompileFlags") {
 			t.Error(".clangd missing CompileFlags section")
 		}
-
-		// compile_commands.json must exist and be valid JSON.
-		ccPath := filepath.Join(dir, "compile_commands.json")
-		ccContent, err := os.ReadFile(ccPath)
-		if err != nil {
-			t.Fatalf("compile_commands.json not written: %v", err)
-		}
-		var arr []interface{}
-		if err := json.Unmarshal(ccContent, &arr); err != nil {
-			t.Errorf("compile_commands.json is not valid JSON: %v", err)
+		if _, err := os.Stat(filepath.Join(dir, "compile_commands.json")); !os.IsNotExist(err) {
+			t.Error("add clangd should not create an empty compilation database")
 		}
 	})
-
 	t.Run("detects cmake build dir and sets CompilationDatabase", func(t *testing.T) {
 		dir, cleanup := inTempDir(t)
 		defer cleanup()
 
 		// Simulate cmake output.
 		buildDir := filepath.Join(dir, "build")
-		os.MkdirAll(buildDir, 0755)
+		os.MkdirAll(buildDir, 0700)
 		os.WriteFile(filepath.Join(buildDir, "compile_commands.json"), []byte("[]\n"), 0644)
 		os.WriteFile(filepath.Join(dir, "CMakeLists.txt"), []byte(""), 0644)
 
@@ -166,7 +155,7 @@ func TestFindCompileCommandsDir(t *testing.T) {
 		defer cleanup()
 
 		buildDir := filepath.Join(dir, "build")
-		os.MkdirAll(buildDir, 0755)
+		os.MkdirAll(buildDir, 0700)
 		os.WriteFile(filepath.Join(buildDir, "compile_commands.json"), []byte("[]\n"), 0644)
 
 		got := findCompileCommandsDir(dir)
@@ -260,5 +249,38 @@ func TestConfigWritersRejectDanglingSymlinks(t *testing.T) {
 	}
 	if err := addZLS(dir); err == nil {
 		t.Fatal("writer accepted a dangling symlink destination")
+	}
+}
+
+func TestConfigureClangd(t *testing.T) {
+	root := t.TempDir()
+	buildDir := filepath.Join(root, "out", "build", "debug")
+	if err := os.MkdirAll(buildDir, 0755); err != nil {
+		t.Fatal(err)
+	}
+	managed, err := ConfigureClangd(root, buildDir)
+	if err != nil || !managed {
+		t.Fatalf("ConfigureClangd() = %v, %v; want true, nil", managed, err)
+	}
+	data, err := os.ReadFile(filepath.Join(root, ".clangd"))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(data), "CompilationDatabase: out/build/debug") {
+		t.Fatalf("generated .clangd does not point to build directory: %s", data)
+	}
+
+	customRoot := t.TempDir()
+	custom := "CompileFlags:\n  Add: [-DUSER_SETTING]\n"
+	if err := os.WriteFile(filepath.Join(customRoot, ".clangd"), []byte(custom), 0600); err != nil {
+		t.Fatal(err)
+	}
+	managed, err = ConfigureClangd(customRoot, filepath.Join(customRoot, "build"))
+	if err != nil || managed {
+		t.Fatalf("custom .clangd should be left untouched: %v, %v", managed, err)
+	}
+	got, err := os.ReadFile(filepath.Join(customRoot, ".clangd"))
+	if err != nil || string(got) != custom {
+		t.Fatalf("custom .clangd changed: %q, %v", got, err)
 	}
 }
