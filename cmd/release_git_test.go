@@ -52,8 +52,8 @@ func TestInspectReleaseGitDetectsDirtyTree(t *testing.T) {
 	state, err := inspectReleaseGit()
 	if err != nil { t.Fatal(err) }
 	if !state.IsRepo || !state.Dirty || state.Commit == "" { t.Fatalf("unexpected Git state: %+v", state) }
-	if err := validateReleaseGit(state, false, true); err == nil || !strings.Contains(err.Error(), "uncommitted") {
-		t.Fatalf("expected dirty-tree blocker, got %v", err)
+	if err := validateReleaseGit(state, false, true); err == nil || !strings.Contains(err.Error(), "tracked.txt") {
+		t.Fatalf("expected dirty-tree blocker to list tracked.txt, got %v", err)
 	}
 	if err := validateReleaseGit(state, true, true); err != nil { t.Fatalf("explicit override should allow dirty tree: %v", err) }
 }
@@ -69,4 +69,8 @@ func TestInspectReleaseGitUntrackedFilesAreDirty(t *testing.T) {
 	state, err := inspectReleaseGit()
 	if err != nil { t.Fatal(err) }
 	if !state.Dirty { t.Fatal("untracked file should make the working tree dirty") }
+	err = validateReleaseGit(state, false, true)
+	if err == nil || !strings.Contains(err.Error(), "new.txt") {
+		t.Fatalf("expected dirty-tree blocker to list new.txt, got %v", err)
+	}
 }
