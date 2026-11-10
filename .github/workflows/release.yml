@@ -13,13 +13,58 @@ on:
         type: string
 
 permissions:
-  contents: write
-
-env:
-  RELEASE_TAG: ${{ inputs.tag_name || github.ref_name }}
+  contents: read
 
 jobs:
+  validate-release:
+    name: Validate release tag
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    outputs:
+      tag: ${{ steps.validate.outputs.tag }}
+      commit: ${{ steps.validate.outputs.commit }}
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
+        with:
+          fetch-depth: 0
+      - name: Validate and resolve release tag
+        id: validate
+        env:
+          RELEASE_TAG: ${{ inputs.tag_name || github.ref_name }}
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          if [[ ! "$RELEASE_TAG" =~ ^(fe-)?v[0-9]+\.[0-9]+\.[0-9]+([.+~:-][0-9A-Za-z.+~:-]*)?$ ]]; then
+            echo "Invalid release tag: $RELEASE_TAG" >&2
+            exit 1
+          fi
+          git fetch --force --no-tags origin "refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then gh release view "$RELEASE_TAG" >/dev/null; fi
+          commit="$(git rev-parse "$RELEASE_TAG^{commit}")"
+          if [[ "$GITHUB_EVENT_NAME" != "workflow_dispatch" && "$commit" != "$GITHUB_SHA" ]]; then
+            echo "The pushed tag does not resolve to the event commit." >&2
+            exit 1
+          fi
+          git fetch --force --no-tags origin '+refs/heads/master:refs/remotes/origin/master' '+refs/heads/release/*:refs/remotes/origin/release/*'
+          version="${RELEASE_TAG#fe-v}"
+          version="${version#v}"
+          release_line="$(printf '%s' "$version" | cut -d. -f1-2)"
+          manifest_version="$(git show "$commit:.release-please-manifest.json" | python3 -c 'import json,sys; print(json.load(sys.stdin)["."])')"
+          manifest_line="$(printf '%s' "$manifest_version" | cut -d. -f1-2)"
+          if [[ "$release_line" != "$manifest_line" ]]; then echo "Tag does not match its release manifest ($manifest_version)." >&2; exit 1; fi
+          master_version="$(git show origin/master:.release-please-manifest.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["."])')"
+          master_line="$(printf '%s' "$master_version" | cut -d. -f1-2)"
+          if [[ "$release_line" == "$master_line" ]]; then expected_ref="origin/master"; else expected_ref="origin/release/$release_line"; fi
+          if ! git show-ref --verify --quiet "refs/remotes/$expected_ref"; then echo "Expected release branch $expected_ref does not exist." >&2; exit 1; fi
+          if ! git merge-base --is-ancestor "$commit" "$expected_ref"; then echo "Tag is not on its expected release branch ($expected_ref)." >&2; exit 1; fi
+          echo "tag=$RELEASE_TAG" >> "$GITHUB_OUTPUT"
+          echo "commit=$commit" >> "$GITHUB_OUTPUT"
+
   binaries:
+    needs: validate-release
+    env:
+      RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Build ${{ matrix.goos }}-${{ matrix.goarch }}
     runs-on: ubuntu-latest
     strategy:
@@ -43,11 +88,11 @@ jobs:
             asset: fe-macos-arm64
 
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: "1.26.10"
           cache: true
@@ -64,7 +109,7 @@ jobs:
           mkdir -p dist
           go build -trimpath -ldflags="-s -w" -o "dist/${{ matrix.asset }}" .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: ${{ matrix.asset }}
           path: dist/${{ matrix.asset }}
@@ -72,14 +117,17 @@ jobs:
           retention-days: 1
 
   riscv-binary:
+    needs: validate-release
+    env:
+      RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Build Linux RISC-V 64-bit binary on native hardware
     runs-on: ubuntu-24.04-riscv
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/setup-go@v5
+      - uses: actions/setup-go@924ae3a1cded613372ab5595356fb5720e22ba16
         with:
           go-version: "1.26.10"
           cache: true
@@ -91,7 +139,7 @@ jobs:
           mkdir -p dist
           CGO_ENABLED=0 GOOS=linux GOARCH=riscv64 go build -trimpath -ldflags="-s -w" -o dist/fe-linux-riscv64 .
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: fe-linux-riscv64
           path: dist/fe-linux-riscv64
@@ -99,15 +147,17 @@ jobs:
           retention-days: 1
 
   deb-packages:
+    needs: [validate-release, binaries]
+    env:
+      RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Build Debian packages
-    needs: binaries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
           path: dist
           merge-multiple: true
@@ -136,7 +186,7 @@ jobs:
           fe --help >/dev/null
           fe o3de --help >/dev/null
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
         with:
           name: deb-packages
           path: dist/packages/*
@@ -144,11 +194,15 @@ jobs:
           retention-days: 1
 
   github-release:
+    needs: [validate-release, binaries, riscv-binary, deb-packages]
+    permissions:
+      contents: write
+    env:
+      RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Publish GitHub Release assets
-    needs: [binaries, riscv-binary, deb-packages]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
           path: dist
           merge-multiple: true
@@ -162,7 +216,7 @@ jobs:
           cat dist/SHA256SUMS
 
       - name: Create release and upload binaries
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           name: Fe ${{ env.RELEASE_TAG }}
@@ -170,17 +224,20 @@ jobs:
           files: dist/*
 
   chocolatey:
-    name: Package Fe for Chocolatey
-    needs: [binaries, github-release]
-    runs-on: windows-latest
+    needs: [validate-release, binaries, github-release]
+    permissions:
+      contents: write
     env:
-      CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
+      RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
+      HAS_CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY != '' }}
+    name: Package Fe for Chocolatey
+    runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
           name: fe-windows-amd64.exe
           path: dist
@@ -209,28 +266,32 @@ jobs:
           if (!(Test-Path "fe.$version.nupkg")) { throw "Chocolatey package was not created" }
 
       - name: Attach Chocolatey package to GitHub Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@3bb12739c298aeb8a4eeaf626c5b8d85266b0e65
         with:
           tag_name: ${{ env.RELEASE_TAG }}
           files: fe.*.nupkg
           fail_on_unmatched_files: true
 
       - name: Publish to Chocolatey Community Repository
-        if: env.CHOCOLATEY_API_KEY != ''
+        if: env.HAS_CHOCOLATEY_API_KEY == 'true'
         shell: pwsh
+        env:
+          CHOCOLATEY_API_KEY: ${{ secrets.CHOCOLATEY_API_KEY }}
         run: choco push (Get-ChildItem "fe.*.nupkg" | Select-Object -First 1 -ExpandProperty FullName) --source https://push.chocolatey.org/ --api-key "$env:CHOCOLATEY_API_KEY"
 
   # Dogfood Fe's own release pipeline to publish the Fe CLI binaries.
   itchio:
+    needs: [validate-release, binaries]
+    env:
+      RELEASE_TAG: ${{ needs.validate-release.outputs.tag }}
     name: Release Fe to itch.io using Fe
-    needs: binaries
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803
         with:
-          ref: ${{ env.RELEASE_TAG }}
+          ref: ${{ needs.validate-release.outputs.commit }}
 
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
         with:
           path: dist
           merge-multiple: true

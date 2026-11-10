@@ -14,6 +14,7 @@ import (
 	"text/template"
 	"time"
 
+	"github.com/flushwhy/fe/internal/archivepath"
 	"github.com/flushwhy/fe/internal/ui"
 )
 
@@ -171,18 +172,24 @@ func writeTemplate(src fs.FS, destRoot string, data TemplateData) error {
 		if err != nil {
 			return err
 		}
-		if !fs.ValidPath(path) || path == "." {
-			if path == "." && d.IsDir() {
-				info, err := os.Lstat(destRoot)
-				if err != nil {
-					return err
-				}
-				if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
-					return fmt.Errorf("project destination is not a real directory")
-				}
-				return nil
+		if path == "." && d.IsDir() {
+			info, err := os.Lstat(destRoot)
+			if err != nil {
+				return err
 			}
+			if !info.IsDir() || info.Mode()&os.ModeSymlink != 0 {
+				return fmt.Errorf("project destination is not a real directory")
+			}
+			return nil
+		}
+		if !fs.ValidPath(path) {
 			return fmt.Errorf("unsafe template path %q", path)
+		}
+		if err := archivepath.Validate(path); err != nil {
+			return fmt.Errorf("unsafe template path %q: %w", path, err)
+		}
+		if d.Type()&fs.ModeSymlink != 0 || (!d.IsDir() && !d.Type().IsRegular()) {
+			return fmt.Errorf("unsupported template entry type at %q", path)
 		}
 		dest := filepath.Join(destRoot, filepath.FromSlash(path))
 		rel, err := filepath.Rel(destRoot, dest)
