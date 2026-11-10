@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"os"
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"path/filepath"
@@ -263,5 +264,26 @@ func TestWriteTemplateRejectsSymlinkDestinationFile(t *testing.T) {
 	}
 	if string(got) != "keep me" {
 		t.Fatalf("symlink target changed to %q", got)
+	}
+}
+
+
+func TestWriteTemplateRejectsSymlinkSourceEntries(t *testing.T) {
+	src := fstest.MapFS{
+		"link.txt": &fstest.MapFile{Data: []byte("outside"), Mode: fs.ModeSymlink},
+	}
+	err := writeTemplate(src, t.TempDir(), TemplateData{Name: "project"})
+	if err == nil {
+		t.Fatal("writeTemplate accepted a symlink source entry")
+	}
+}
+
+func TestWriteTemplateRejectsNonPortablePaths(t *testing.T) {
+	src := fstest.MapFS{
+		`bad\\name.txt`: &fstest.MapFile{Data: []byte("unsafe")},
+	}
+	err := writeTemplate(src, t.TempDir(), TemplateData{Name: "project"})
+	if err == nil {
+		t.Fatal("writeTemplate accepted a path containing a backslash")
 	}
 }

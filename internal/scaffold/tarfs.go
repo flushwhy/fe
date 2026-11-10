@@ -10,8 +10,9 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
-)
 
+	"github.com/flushwhy/fe/internal/archivepath"
+)
 const maxTemplateArchiveBytes = 50 << 20
 
 // memFile implements fs.File for in-memory content.
@@ -108,19 +109,19 @@ func extractTarGz(data []byte) (fs.FS, error) {
 		if err != nil {
 			return nil, fmt.Errorf("reading tar: %w", err)
 		}
-		name := strings.ReplaceAll(hdr.Name, "\\", "/")
-		if strings.HasPrefix(name, "/") || filepath.IsAbs(name) || filepath.Clean(name) != filepath.FromSlash(name) || name == ".." || strings.HasPrefix(name, "../") {
-			return nil, fmt.Errorf("unsafe path in template archive: %q", hdr.Name)
+		name := strings.TrimSuffix(hdr.Name, "/")
+		if err := archivepath.Validate(name); err != nil {
+			return nil, fmt.Errorf("unsafe path in template archive: %q: %w", hdr.Name, err)
+		}
+		count++
+		if count > 500 {
+			return nil, fmt.Errorf("template archive contains too many entries")
 		}
 		if hdr.Typeflag == tar.TypeDir {
 			continue
 		}
 		if hdr.Typeflag != tar.TypeReg && hdr.Typeflag != tar.TypeRegA {
 			continue
-		}
-		count++
-		if count > 500 {
-			return nil, fmt.Errorf("template archive contains too many files")
 		}
 
 		content, err := io.ReadAll(io.LimitReader(tr, maxTemplateArchiveBytes-total+1))
@@ -138,8 +139,8 @@ func extractTarGz(data []byte) (fs.FS, error) {
 		} else {
 			continue
 		}
-		if name == "" || name == "." || name == ".." || strings.HasPrefix(name, "../") || strings.Contains(name, "\\") {
-			return nil, fmt.Errorf("unsafe path in template archive: %q", hdr.Name)
+		if err := archivepath.Validate(name); err != nil {
+			return nil, fmt.Errorf("unsafe path in template archive: %q: %w", hdr.Name, err)
 		}
 		if _, exists := mem[name]; exists {
 			return nil, fmt.Errorf("duplicate path in template archive: %q", name)

@@ -198,3 +198,67 @@ func TestFindCompileCommandsDir(t *testing.T) {
 		}
 	})
 }
+
+
+func TestConfigWritersRejectSymlinks(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("symlink creation may require elevated privileges on Windows")
+	}
+	dir := t.TempDir()
+	target := filepath.Join(t.TempDir(), "outside.json")
+	if err := os.WriteFile(target, []byte("keep me"), 0644); err != nil {
+		t.Fatal(err)
+	}
+
+	for _, tc := range []struct {
+		name string
+		file string
+		write func(string) error
+	}{
+		{"ols", "ols.json", addOLS},
+		{"zls", "zls.json", addZLS},
+		{"gopls", ".gopls.yaml", addGopls},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			path := filepath.Join(dir, tc.file)
+			if err := os.Symlink(target, path); err != nil {
+				t.Fatal(err)
+			}
+			if err := tc.write(dir); err == nil {
+				t.Fatal("writer accepted a symlink destination")
+			}
+			if err := os.Remove(path); err != nil {
+				t.Fatal(err)
+			}
+		})
+	}
+
+	clangd := filepath.Join(dir, ".clangd")
+	if err := os.Symlink(target, clangd); err != nil {
+		t.Fatal(err)
+	}
+	if err := writeFileWithBackup(clangd, []byte("new config")); err == nil {
+		t.Fatal("backup writer accepted a symlink destination")
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "keep me" {
+		t.Fatalf("symlink target was modified: %q", got)
+	}
+}
+
+func TestConfigWritersRejectDanglingSymlinks(t *testing.T) {
+	if os.PathSeparator == '\\' {
+		t.Skip("symlink creation may require elevated privileges on Windows")
+	}
+	dir := t.TempDir()
+	path := filepath.Join(dir, "zls.json")
+	if err := os.Symlink(filepath.Join(dir, "missing-target"), path); err != nil {
+		t.Fatal(err)
+	}
+	if err := addZLS(dir); err == nil {
+		t.Fatal("writer accepted a dangling symlink destination")
+	}
+}
