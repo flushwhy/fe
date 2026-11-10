@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 
@@ -74,6 +75,10 @@ Config priority: env vars > .fe.yaml > conventions > defaults`,
 func Execute() {
 	cmd, err := rootCmd.ExecuteC()
 	if err != nil {
+		if errors.Is(err, ui.ErrCancelled) {
+			ui.PrintCancelled()
+			return
+		}
 		path := "fe"
 		if cmd != nil {
 			path = cmd.CommandPath()
