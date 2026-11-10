@@ -24,7 +24,7 @@ Exit code 0 = all good. Non-zero = problems found.`,
 		var cfg *config.Config
 		err := ui.RunSpinner("Loading config", func() error {
 			var e error
-			cfg, e = config.Load()
+			cfg, e = loadProjectConfig()
 			return e
 		})
 		if err != nil {
