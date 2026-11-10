@@ -39,7 +39,10 @@ Run 'fe add <tool>' to fix most issues.`,
 		results = append(results, feProjectChecks()...)
 		allOK := doctor.Print(results)
 		if !allOK {
-			return &ui.CommandError{\n\t\t\t\tMessage: "doctor found one or more problems",\n\t\t\t\tHint:    "fix the failed checks above, then run `fe doctor` again",\n\t\t\t}
+			return &ui.CommandError{
+				Message: "doctor found one or more problems",
+				Hint:    "fix the failed checks above, then run `fe doctor` again",
+			}
 		}
 		return nil
 	},
