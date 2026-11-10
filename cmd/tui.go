@@ -21,14 +21,13 @@ import (
 // ── Palette ───────────────────────────────────────────────────────────────────
 
 var (
-	purple    = lipgloss.Color("#7C5FD6")
-	green     = lipgloss.Color("#3DDC84")
-	red       = lipgloss.Color("#FF5F57")
-	yellow    = lipgloss.Color("#FFBE2E")
-	gray      = lipgloss.Color("#6B7280")
+	purple    = ui.ColorPurple
+	green     = ui.ColorGreen
+	red       = ui.ColorRed
+	yellow    = ui.ColorYellow
+	gray      = ui.ColorGray
 	lightGray = lipgloss.Color("#9CA3AF")
-	white     = lipgloss.Color("#F9FAFB")
-	dark      = lipgloss.Color("#1F2937")
+	white     = ui.ColorWhite
 
 	styleBanner = lipgloss.NewStyle().
 			Bold(true).
@@ -62,11 +61,10 @@ var (
 			Foreground(lightGray).
 			Italic(true)
 
-	styleDim = lipgloss.NewStyle().Foreground(gray)
-
-	styleSuccess = lipgloss.NewStyle().Foreground(green).Bold(true)
-	styleError   = lipgloss.NewStyle().Foreground(red).Bold(true)
-	styleWarn    = lipgloss.NewStyle().Foreground(yellow)
+	styleDim     = ui.StyleDim
+	styleSuccess = ui.StyleSuccess
+	styleError   = ui.StyleError
+	styleWarn    = ui.StyleWarn
 
 	styleInput = lipgloss.NewStyle().
 			Border(lipgloss.NormalBorder()).
@@ -791,6 +789,3 @@ var tuiCmd = &cobra.Command{
 func init() {
 	rootCmd.AddCommand(tuiCmd)
 }
-
-// Ensure ui import is used (it provides shared styles referenced from doctor/scaffold)
-var _ = ui.StyleSuccess
