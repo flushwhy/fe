@@ -160,7 +160,7 @@ jobs:
           version="$major.$minor.$((patch + 1))"
           bash scripts/package-linux.sh "$version" "rolling.g${GITHUB_SHA:0:7}" amd64
           cp dist/packages/* dist/
-          sha256sum dist/fe-* dist/*.deb dist/*.rpm dist/*.tar.gz > dist/SHA256SUMS
+          find dist -maxdepth 1 -type f ! -name SHA256SUMS -print0 | sort -z | xargs -0 sha256sum > dist/SHA256SUMS
 
       - name: Update rolling GitHub Release page
         uses: softprops/action-gh-release@8a0cd651e5b2365bd640854a3fa5dfc70e4875f3
