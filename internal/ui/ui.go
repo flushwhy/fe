@@ -201,3 +201,7 @@ func RunSteps(steps []StepTask) error {
 	return nil
 }
 
+// Elapsed prints a dim elapsed time string. Call with time.Now() before the op.
+func Elapsed(start time.Time) {
+	Dim("done in %s", time.Since(start).Round(time.Millisecond))
+}
