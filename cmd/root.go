@@ -14,8 +14,8 @@ import (
 var cfgFile string
 
 var rootCmd = &cobra.Command{
-	Use:          "fe",
-	Short:        "Fe — dev middleware for the awkward parts of shipping software",
+	Use:           "fe",
+	Short:         "Fe — dev middleware for the awkward parts of shipping software",
 	SilenceErrors: true,
 	SilenceUsage:  true,
 	RunE: func(cmd *cobra.Command, args []string) error {
