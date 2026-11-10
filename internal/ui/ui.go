@@ -39,10 +39,6 @@ var (
 			Foreground(ColorPurple).
 			Bold(true)
 
-	StyleBox = lipgloss.NewStyle().
-			Border(lipgloss.RoundedBorder()).
-			BorderForeground(ColorPurple).
-			Padding(0, 1)
 )
 
 // ── Icons ─────────────────────────────────────────────────────────────────────
@@ -53,7 +49,6 @@ const (
 	IconWarn = "⚠"
 	IconArrow = "→"
 	IconRocket = "🚀"
-	IconSpark  = "✨"
 )
 
 // OK prints a green success line. Always prints regardless of TTY.
@@ -206,50 +201,3 @@ func RunSteps(steps []StepTask) error {
 	return nil
 }
 
-// ── Confirm prompt ────────────────────────────────────────────────────────────
-
-// Confirm shows a y/N prompt and returns true if the user typed y/yes.
-// In non-TTY mode it always returns true (CI-safe — assume yes).
-func Confirm(prompt string) bool {
-	if !tty.IsInteractive() {
-		return true
-	}
-
-	fmt.Printf("  %s [y/N] ", StyleBold.Render(prompt))
-
-	var input string
-	fmt.Scanln(&input)
-	return input == "y" || input == "Y" || input == "yes"
-}
-
-// ── Progress bar (simple, no bubbletea) ──────────────────────────────────────
-
-// Progress renders a simple ASCII progress bar to stdout.
-func Progress(current, total int, label string) {
-	width := 30
-	filled := 0
-	if total > 0 {
-		filled = (current * width) / total
-	}
-	bar := ""
-	for i := 0; i < width; i++ {
-		if i < filled {
-			bar += "█"
-		} else {
-			bar += "░"
-		}
-	}
-	pct := 0
-	if total > 0 {
-		pct = (current * 100) / total
-	}
-	fmt.Printf("\r  %s %s %d%%", lipgloss.NewStyle().Foreground(ColorPurple).Render(bar), StyleDim.Render(label), pct)
-	if current >= total {
-		fmt.Println()
-	}
-}
-
-// Elapsed prints a dim elapsed time string. Call with time.Now() before the op.
-func Elapsed(start time.Time) {
-	Dim("done in %s", time.Since(start).Round(time.Millisecond))
-}
