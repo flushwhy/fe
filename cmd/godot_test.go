@@ -50,6 +50,9 @@ func TestGodotExtensionInitCreatesManifestAndBuildOutputs(t *testing.T) {
 }
 
 func TestGodotExportRequiresPreset(t *testing.T) {
+	if err := godotExportCmd.Flags().Set("optimize", ""); err != nil {
+		t.Fatal(err)
+	}
 	if err := godotExportCmd.Flags().Set("preset", ""); err != nil {
 		t.Fatal(err)
 	}
@@ -111,6 +114,54 @@ export_path="game.x86_64"
 	err := godotExportCmd.RunE(godotExportCmd, nil)
 	if err == nil || !strings.Contains(err.Error(), "not found in export_presets.cfg") {
 		t.Fatalf("expected unknown-preset error, got %v", err)
+	}
+}
+
+func TestGodotExportServerOptimizationRequiresDedicatedPreset(t *testing.T) {
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	presets := `[preset.0]
+name="Linux Desktop"
+platform="Linux"
+dedicated_server=false
+`
+	if err := os.WriteFile(filepath.Join(project, "export_presets.cfg"), []byte(presets), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(project)
+	_ = godotExportCmd.Flags().Set("preset", "")
+	_ = godotExportCmd.Flags().Set("optimize", "server")
+	_ = godotExportCmd.Flags().Set("output", "build/server.x86_64")
+
+	err := godotExportCmd.RunE(godotExportCmd, nil)
+	if err == nil || !strings.Contains(err.Error(), "no Linux dedicated-server export preset found") {
+		t.Fatalf("expected missing dedicated-server preset error, got %v", err)
+	}
+}
+
+func TestGodotExportServerOptimizationRejectsDesktopPreset(t *testing.T) {
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	presets := `[preset.0]
+name="Linux Desktop"
+platform="Linux"
+dedicated_server=false
+`
+	if err := os.WriteFile(filepath.Join(project, "export_presets.cfg"), []byte(presets), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(project)
+	_ = godotExportCmd.Flags().Set("preset", "Linux Desktop")
+	_ = godotExportCmd.Flags().Set("optimize", "server")
+	_ = godotExportCmd.Flags().Set("output", "build/server.x86_64")
+
+	err := godotExportCmd.RunE(godotExportCmd, nil)
+	if err == nil || !strings.Contains(err.Error(), "not configured for Linux dedicated-server export") {
+		t.Fatalf("expected dedicated-server validation error, got %v", err)
 	}
 }
 

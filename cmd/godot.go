@@ -110,7 +110,7 @@ var godotOpenCmd = &cobra.Command{
 var godotExportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "Export the current Godot project using an export preset.",
-	Long:  "Run a headless Godot export. Create export presets in the Godot editor first.",
+	Long:  "Run a headless Godot export. Use --optimize server to discover and export a Linux dedicated-server preset.",
 	Args:  cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
 		project, err := findGodotProject(".")
@@ -118,13 +118,14 @@ var godotExportCmd = &cobra.Command{
 			return err
 		}
 		preset, _ := cmd.Flags().GetString("preset")
-		if strings.TrimSpace(preset) == "" {
+		optimize, _ := cmd.Flags().GetString("optimize")
+		if optimize != "" && optimize != "server" {
+			return fmt.Errorf("unsupported optimization profile %q; currently supported: server", optimize)
+		}
+		if optimize == "" && strings.TrimSpace(preset) == "" {
 			return errors.New("an export preset is required; pass --preset")
 		}
 		output, _ := cmd.Flags().GetString("output")
-		if strings.TrimSpace(output) == "" {
-			return errors.New("an output path is required; pass --output")
-		}
 		presetFile := filepath.Join(project, "export_presets.cfg")
 		if _, err := os.Stat(presetFile); err != nil {
 			return errors.New("export presets not found; create one in the Godot editor and save export_presets.cfg")
@@ -133,15 +134,53 @@ var godotExportCmd = &cobra.Command{
 		if err != nil {
 			return err
 		}
-		found := false
-		for _, configured := range presets {
-			if configured.Name == preset {
-				found = true
-				break
+		var selectedPreset *godot.Preset
+		if optimize == "server" {
+			if preset == "" {
+				selected, err := godot.FindLinuxServerPreset(presets)
+				if err != nil {
+					return err
+				}
+				preset = selected.Name
+				selectedPreset = &selected
+				fmt.Fprintf(cmd.OutOrStdout(), "Selected Linux dedicated-server preset: %s\n", preset)
+			} else {
+				var selected *godot.Preset
+				for i := range presets {
+					if presets[i].Name == preset {
+						selected = &presets[i]
+						break
+					}
+				}
+				if selected == nil {
+					return fmt.Errorf("Godot export preset %q not found in export_presets.cfg", preset)
+				}
+				if !strings.Contains(strings.ToLower(selected.Platform), "linux") || !selected.DedicatedServer {
+					return fmt.Errorf("preset %q is not configured for Linux dedicated-server export; choose a preset with 'Export as dedicated server' enabled", preset)
+				}
+				selectedPreset = selected
+			}
+		} else {
+			if strings.TrimSpace(preset) == "" {
+				return errors.New("an export preset is required; pass --preset or use --optimize server")
+			}
+			found := false
+			for i := range presets {
+				if presets[i].Name == preset {
+					found = true
+					selectedPreset = &presets[i]
+					break
+				}
+			}
+			if !found {
+				return fmt.Errorf("Godot export preset %q not found in export_presets.cfg", preset)
 			}
 		}
-		if !found {
-			return fmt.Errorf("Godot export preset %q not found in export_presets.cfg", preset)
+		if strings.TrimSpace(output) == "" {
+			if optimize != "server" || selectedPreset == nil || strings.TrimSpace(selectedPreset.ExportPath) == "" {
+				return errors.New("an output path is required; pass --output or configure export_path in the selected server preset")
+			}
+			output = selectedPreset.ExportPath
 		}
 		requested, _ := cmd.Flags().GetString("version")
 		engine, err := selectGodotEngine(project, requested)
@@ -423,7 +462,8 @@ func init() {
 	godotCmd.AddCommand(godotEnginesCmd, godotInstallCmd, godotOpenCmd, godotExportCmd, godotDoctorCmd, godotExtensionCmd)
 	godotInstallCmd.Flags().String("version", "", "stable Godot version to install (for example 4.3 or 3.5.3)")
 	godotOpenCmd.Flags().String("version", "", "installed Godot version to use (for example 4.3 or 3.5)")
-	godotExportCmd.Flags().String("preset", "", "export preset name from export_presets.cfg")
+	godotExportCmd.Flags().String("preset", "", "export preset name from export_presets.cfg (auto-detected for --optimize server)")
+	godotExportCmd.Flags().String("optimize", "", "apply a target optimization profile (currently: server)")
 	godotExportCmd.Flags().String("output", "", "export output path (relative to the project or absolute)")
 	godotExportCmd.Flags().Bool("debug", false, "create a debug export instead of a release export")
 	godotExportCmd.Flags().String("version", "", "installed Godot version to use (for example 4.3 or 3.5)")
