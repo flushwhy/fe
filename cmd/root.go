@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/flushwhy/fe/internal/config"
+	"github.com/flushwhy/fe/internal/tty"
 	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -17,6 +18,12 @@ var rootCmd = &cobra.Command{
 	Short:        "Fe — dev middleware for the awkward parts of shipping software",
 	SilenceErrors: true,
 	SilenceUsage:  true,
+	RunE: func(cmd *cobra.Command, args []string) error {
+		if tty.IsInteractive() {
+			return tuiCmd.RunE(tuiCmd, args)
+		}
+		return cmd.Help()
+	},
 	Long: `Fe is a local CLI and CI-friendly middleware layer.
 
   Project scaffolding:
@@ -69,7 +76,8 @@ var rootCmd = &cobra.Command{
     fe validate                       pre-flight config and path check
 
   Interactive:
-    fe tui                            Bubble Tea UI (local terminals only)
+    fe                                open the interactive dashboard in a terminal
+    fe tui                            open the Bubble Tea UI explicitly
 
 Config priority: env vars > .fe.yaml > conventions > defaults`,
 }
