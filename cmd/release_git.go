@@ -85,7 +85,7 @@ func inspectReleaseGit() (releaseGitState, error) {
 // parseReleaseGitStatus preserves Git's status codes and handles filenames containing spaces.
 func parseReleaseGitStatus(status []byte) []string {
 	var files []string
-	for _, entry := range strings.Split(string(status), "\\x00") {
+	for _, entry := range strings.Split(string(status), "\x00") {
 		if entry == "" {
 			continue
 		}
@@ -106,7 +106,7 @@ func validateReleaseGit(state releaseGitState, allowDirty, allowUnpushed bool) e
 		var details strings.Builder
 		fmt.Fprintln(&details, "release blocked: Git working tree has uncommitted or untracked changes:")
 		for _, file := range state.DirtyFiles {
-			fmt.Fprintf(&details, "  %s\\n", file)
+			fmt.Fprintf(&details, "  %s\n", file)
 		}
 		fmt.Fprint(&details, "Commit or stash these changes, or explicitly pass --allow-dirty")
 		return fmt.Errorf("%s", details.String())
@@ -129,7 +129,7 @@ func printReleaseGitState(state releaseGitState) {
 	if state.Dirty {
 		fmt.Println("  working tree: dirty")
 		for _, file := range state.DirtyFiles {
-			fmt.Printf("    %s\\n", file)
+			fmt.Printf("    %s\n", file)
 		}
 	} else {
 		fmt.Println("  working tree: clean")
