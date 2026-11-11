@@ -2,8 +2,10 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 
 	projectsetup "github.com/flushwhy/fe/internal/setup"
+	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -31,42 +33,51 @@ Optional tools are shown separately from tools required for the detected workflo
 		if err != nil {
 			return err
 		}
-		if len(tools) == 0 {
-			fmt.Fprintln(cmd.OutOrStdout(), "No tool requirements detected.")
-			fmt.Fprintln(cmd.OutOrStdout(), "Run 'fe inspect' to see the project markers Fe recognizes.")
-			return nil
-		}
-
-		missing := 0
-		for _, tool := range tools {
-			status := "FOUND"
-			if tool.Found == "" {
-				status = "MISSING"
-				if tool.Required {
-					missing++
-				}
-			}
-			requirement := "required"
-			if !tool.Required {
-				requirement = "optional"
-			}
-			fmt.Fprintf(cmd.OutOrStdout(), "%-7s %-18s (%s) — %s\n", status, tool.Name, requirement, tool.Reason)
-			if tool.Found != "" {
-				fmt.Fprintf(cmd.OutOrStdout(), "        %s\n", tool.Found)
-			} else if tool.Required {
-				fmt.Fprintf(cmd.OutOrStdout(), "        Install %s and ensure it is available in PATH.\n", tool.Name)
-			} else {
-				fmt.Fprintf(cmd.OutOrStdout(), "        Not needed for basic ZIP packaging.\n")
-			}
-		}
-		if missing == 0 {
-			fmt.Fprintln(cmd.OutOrStdout(), "\nRequired tools are available.")
-		} else {
-			fmt.Fprintf(cmd.OutOrStdout(), "\n%d required tool(s) missing. Install them before running the corresponding build or test workflow.\n", missing)
-		}
-		fmt.Fprintln(cmd.OutOrStdout(), "No software was installed and no files were changed.")
+		printSetupResults(cmd.OutOrStdout(), root, tools)
 		return nil
 	},
+}
+
+func printSetupResults(out io.Writer, root string, tools []projectsetup.Tool) {
+	fmt.Fprintf(out, "%s\n  Directory: %s\n\n", ui.StyleTitle.Render("Project setup"), root)
+	if len(tools) == 0 {
+		fmt.Fprintln(out, "No tool requirements detected.")
+		fmt.Fprintln(out, "Run 'fe inspect' to see the project markers Fe recognizes.")
+		return
+	}
+
+	missing := 0
+	for _, tool := range tools {
+		status := ui.StyleSuccess.Render(ui.IconOK + " FOUND")
+		if tool.Found == "" {
+			status = ui.StyleError.Render(ui.IconFail + " MISSING")
+			if tool.Required {
+				missing++
+			}
+		}
+		requirement := "required"
+		if !tool.Required {
+			requirement = "optional"
+		}
+		fmt.Fprintf(out, "  %-12s %-18s (%s) — %s\n", status, tool.Name, requirement, tool.Reason)
+		if tool.Found != "" {
+			fmt.Fprintf(out, "               %s\n", ui.StyleDim.Render(tool.Found))
+		} else if tool.Required {
+			fmt.Fprintf(out, "               Install %s and ensure it is available in PATH.\n", tool.Name)
+		} else {
+			fmt.Fprintln(out, "               Optional; install only if you use this workflow.")
+		}
+	}
+
+	fmt.Fprintln(out)
+	if missing == 0 {
+		fmt.Fprintln(out, ui.StyleSuccess.Render(ui.IconOK+" All required tools are available."))
+		fmt.Fprintln(out, "Next: run 'fe doctor' to check project configuration.")
+	} else {
+		fmt.Fprintf(out, ui.StyleError.Render("%s %d required tool(s) missing.")+" Install them before running the corresponding build or test workflow.\n", ui.IconFail, missing)
+		fmt.Fprintln(out, "Next: install the missing tools, then run 'fe setup' again.")
+	}
+	fmt.Fprintln(out, ui.StyleDim.Render("Read-only check: no software was installed and no files were changed."))
 }
 
 func init() {
