@@ -312,10 +312,13 @@ jobs:
 
       - name: Install butler
         run: |
-          curl -fsSL https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default -o butler.zip
-          unzip -q butler.zip
-          chmod +x butler
-          sudo mv butler /usr/local/bin/
+          set -euo pipefail
+          butler_dir="$RUNNER_TEMP/butler"
+          mkdir -p "$butler_dir"
+          curl -fsSL https://broth.itch.zone/butler/linux-amd64/LATEST/archive/default -o "$butler_dir/butler.zip"
+          unzip -q "$butler_dir/butler.zip" -d "$butler_dir"
+          chmod +x "$butler_dir/butler"
+          sudo install -m 0755 "$butler_dir/butler" /usr/local/bin/butler
           butler -V
 
       - name: Release Fe through Fe
