@@ -64,22 +64,18 @@ jobs:
             exit 1
           fi
 
-          # Only the version line tracked by master may publish to itch.io's stable channels.
-          master_version="$(git show origin/master:.release-please-manifest.json | python3 -c 'import json,sys; print(json.load(sys.stdin)["."])')"
-          master_line="$(printf '%s' "$master_version" | cut -d. -f1-2)"
-          if [[ "$release_line" == "$master_line" ]]; then
+          # Prefer the matching maintenance line when the tag belongs to it.
+          # A maintenance tag may also become reachable from master after back-merging.
+          maintenance_ref="origin/release/$release_line"
+          if git show-ref --verify --quiet "refs/remotes/$maintenance_ref" &&
+            git merge-base --is-ancestor "$commit" "$maintenance_ref"; then
+            expected_ref="$maintenance_ref"
+            itch_channel_suffix="${release_line//./-}"
+          elif git merge-base --is-ancestor "$commit" origin/master; then
             expected_ref="origin/master"
             itch_channel_suffix=""
           else
-            expected_ref="origin/release/$release_line"
-            itch_channel_suffix="${release_line//./-}"
-          fi
-          if ! git show-ref --verify --quiet "refs/remotes/$expected_ref"; then
-            echo "No maintenance branch exists for release line $release_line." >&2
-            exit 1
-          fi
-          if ! git merge-base --is-ancestor "$commit" "$expected_ref"; then
-            echo "Tag $RELEASE_TAG is not on its expected release branch ($expected_ref)." >&2
+            echo "Tag $RELEASE_TAG is not on its expected release branch (origin/master or $maintenance_ref)." >&2
             exit 1
           fi
 
