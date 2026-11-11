@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.8.5](https://github.com/flushwhy/fe/compare/v0.8.4...v0.8.5) (2026-11-11)
+
+
+### Bug Fixes
+
+* **release:** detect tag release branch by ancestry ([#192](https://github.com/flushwhy/fe/issues/192)) ([4046a98](https://github.com/flushwhy/fe/commit/4046a988e4a6c67cfdeddac3264f352359d9204d))
+
 ## [0.8.4](https://github.com/flushwhy/fe/compare/v0.8.3...v0.8.4) (2026-11-10)
 
 
