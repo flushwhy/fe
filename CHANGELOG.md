@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.8.4](https://github.com/flushwhy/fe/compare/v0.8.3...v0.8.4) (2026-11-10)
+
+
+### Bug Fixes
+
+* **ci:** avoid duplicate release checksums ([caba45e](https://github.com/flushwhy/fe/commit/caba45e3d4f79c6ef8f7418b59a112b5e29339a2))
+* **ci:** install local Debian packages with apt ([#171](https://github.com/flushwhy/fe/issues/171)) ([f5991c1](https://github.com/flushwhy/fe/commit/f5991c121e0d659da0f489b253f81dc31c325a7a))
+* **release:** isolate 0.8 maintenance publishing ([#135](https://github.com/flushwhy/fe/issues/135)) ([516c5ad](https://github.com/flushwhy/fe/commit/516c5ad61cd5c8fc2287a155491b12ff8eee2e3c))
+
 ## [0.8.3](https://github.com/flushwhy/fe/compare/v0.8.2...v0.8.3) (2026-11-04)
 
 
