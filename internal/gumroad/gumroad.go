@@ -10,7 +10,6 @@ import (
 	"strings"
 )
 
-// CommandExecutor creates the Gumroad CLI command used by release operations.
 type commandExecutor func(name string, args ...string) *exec.Cmd
 
 type artifactManifest struct {
