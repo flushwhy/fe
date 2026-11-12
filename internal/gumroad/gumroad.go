@@ -168,7 +168,7 @@ func releaseFiles(directory, version string) ([]string, error) {
 	return files, nil
 }
 
-func run(executor CommandExecutor, args ...string) ([]byte, error) {
+func run(executor commandExecutor, args ...string) ([]byte, error) {
 	cmd := executor("gumroad", args...)
 	if cmd == nil {
 		return nil, fmt.Errorf("Gumroad command executor returned no command")
