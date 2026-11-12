@@ -134,6 +134,10 @@ func releaseFiles(directory, version string) ([]string, error) {
 	if err != nil {
 		return nil, fmt.Errorf("resolve artifact directory: %w", err)
 	}
+	root, err = filepath.EvalSymlinks(root)
+	if err != nil {
+		return nil, fmt.Errorf("resolve artifact directory symlinks: %w", err)
+	}
 	var files []string
 	for _, artifact := range manifest.Artifacts {
 		rel := filepath.FromSlash(artifact.Path)
