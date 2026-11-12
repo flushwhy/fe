@@ -57,7 +57,7 @@ func TestPublishStableProduct(t *testing.T) {
 		`{}`,
 		`{"preserved":[{"id":"uploaded-file"}]}`,
 	}
-	err := Publish("1.2.3", dir, map[string]string{"1.2.3": "product-123"}, testExecutor(t, responses, &calls), nil)
+	err := Publish("1.2.3", dir, map[string]string{"1.2.3": "product-123"}, testExecutor(t, responses, &calls))
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func TestPublishStableProduct(t *testing.T) {
 func TestPublishRefusesNonEmptyStableProduct(t *testing.T) {
 	dir := writeTestManifest(t, "1.2.3")
 	var calls [][]string
-	err := Publish("1.2.3", dir, map[string]string{"1.2.3": "product-123"}, testExecutor(t, []string{`{"preserved":[{"id":"old-file"}]}`}, &calls), nil)
+	err := Publish("1.2.3", dir, map[string]string{"1.2.3": "product-123"}, testExecutor(t, []string{`{"preserved":[{"id":"old-file"}]}`}, &calls))
 	if err == nil || !strings.Contains(err.Error(), "already contains") {
 		t.Fatalf("expected non-empty product to be rejected, got %v", err)
 	}
