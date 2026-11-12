@@ -61,7 +61,7 @@ The current CLI upload operation appends files while preserving existing files. 
 
 - Gumroad is optional; projects that do not use it need no Gumroad configuration.
 - Product IDs must be explicitly configured for each stable version.
-- Stable uploads require a product with no existing files.
+- Stable uploads require a product with no existing downloadable files.
 - Fe uploads only files listed in the existing artifact manifest.
 - Fe never deletes products or silently overwrites a stable product.
 - A failed or ambiguous upload must be inspected before retrying.
