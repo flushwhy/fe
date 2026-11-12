@@ -87,8 +87,7 @@ func preflight(version, directory string, products map[string]string, executor C
 	if productID == "" {
 		return "", nil, nil, fmt.Errorf("no Gumroad stable product configured for version %q (set gumroad.stable.%s in .fe.yaml)", version, version)
 	}
-	if configuredProductID != productID || strings.ContainsAny(productID, " \t\r
-") {
+	if configuredProductID != productID || strings.ContainsAny(productID, " \t\r\n") {
 		return "", nil, nil, fmt.Errorf("Gumroad product ID for version %q is invalid", version)
 	}
 	files, err := releaseFiles(directory, version)
@@ -129,8 +128,7 @@ func ValidateRelease(version, directory string, products map[string]string) (str
 	if productID == "" {
 		return "", nil, fmt.Errorf("no Gumroad stable product configured for version %q (set gumroad.stable.%s in .fe.yaml)", version, version)
 	}
-	if configuredProductID != productID || strings.ContainsAny(productID, " \t\r
-") {
+	if configuredProductID != productID || strings.ContainsAny(productID, " \t\r\n") {
 		return "", nil, fmt.Errorf("Gumroad product ID for version %q is invalid", version)
 	}
 	files, err := releaseFiles(directory, version)
@@ -202,8 +200,7 @@ func run(executor CommandExecutor, args ...string) ([]byte, error) {
 	}
 	output, err := cmd.CombinedOutput()
 	if err != nil {
-		return nil, fmt.Errorf("gumroad %s failed: %w
-%s", strings.Join(args[:min(len(args), 3)], " "), err, strings.TrimSpace(string(output)))
+		return nil, fmt.Errorf("gumroad %s failed: %w\n%s", strings.Join(args[:min(len(args), 3)], " "), err, strings.TrimSpace(string(output)))
 	}
 	return output, nil
 }
