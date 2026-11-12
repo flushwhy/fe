@@ -123,6 +123,9 @@ func ValidateRelease(version, directory string, products map[string]string) (str
 	if productID == "" {
 		return "", nil, fmt.Errorf("no Gumroad stable product configured for version %q (set gumroad.stable.%s in .fe.yaml)", version, version)
 	}
+	if strings.TrimSpace(productID) != products[version] || strings.ContainsAny(productID, " \\t\\r\\n") {
+		return "", nil, fmt.Errorf("Gumroad product ID for version %q is invalid", version)
+	}
 	files, err := releaseFiles(directory, version)
 	if err != nil {
 		return "", nil, err
