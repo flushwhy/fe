@@ -112,8 +112,12 @@ CI example:
 		if gumroadRequested {
 			totalSteps++
 		}
-		if changelogOutput != "" { totalSteps++ }
-		if packageFormat != "" { totalSteps++ }
+		if changelogOutput != "" {
+			totalSteps++
+		}
+		if packageFormat != "" {
+			totalSteps++
+		}
 		stepNumber := 1
 
 		// ── Step 1: Build/export ───────────────────────────────────────────
@@ -298,7 +302,7 @@ func writeReleaseChangelog(output string) error {
 func validateReleaseBuildDir(directory string) error {
 	entries, err := os.ReadDir(directory)
 	if err != nil {
-		return fmt.Errorf("release cannot push to itch.io: build output directory %q is unavailable (%w); configure build.targets in .fe.yaml or provide prebuilt platform folders and set butler.directory to their parent", directory, err)
+		return fmt.Errorf("release cannot upload: build output directory %q is unavailable (%w); configure build.targets in .fe.yaml or provide prebuilt platform folders and set butler.directory to their parent", directory, err)
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -426,7 +430,7 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp, gumroadR
 			fmt.Printf("Gumroad stable upload: no product configured for version %s (set gumroad.stable.%s)\n", cfg.Butler.Userversion, cfg.Butler.Userversion)
 			problems++
 		} else {
-			fmt.Printf("Gumroad stable upload: product %s for version %s\\n", productID, cfg.Butler.Userversion)
+			fmt.Printf("Gumroad stable upload: product %s for version %s\n", productID, cfg.Butler.Userversion)
 			fmt.Println("   - files will be read from the artifact manifest after build/package steps")
 		}
 	}
