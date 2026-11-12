@@ -109,7 +109,9 @@ CI example:
 		ui.Title("Release Pipeline")
 		start := time.Now()
 		totalSteps := 3
-		if gumroadRequested {\n\t\t\ttotalSteps++\n\t\t}
+		if gumroadRequested {
+			totalSteps++
+		}
 		if changelogOutput != "" { totalSteps++ }
 		if packageFormat != "" { totalSteps++ }
 		stepNumber := 1
