@@ -67,7 +67,7 @@ func Publish(version, directory string, products map[string]string, executor Com
 	return nil
 }
 
-// CheckProduct verifies that the selected stable product exists and is empty.
+// CheckProduct verifies that the selected stable product has no existing downloadable files.
 // It performs only the Gumroad CLI's non-mutating update dry-run.
 func CheckProduct(version, directory string, products map[string]string, executor CommandExecutor) error {
 	_, _, _, err := preflight(version, directory, products, executor)
@@ -108,7 +108,7 @@ func preflight(version, directory string, products map[string]string, executor C
 		return "", nil, nil, fmt.Errorf("Gumroad CLI returned an unreadable product preflight response: %w", err)
 	}
 	if len(before.Preserved) != 0 {
-		return "", nil, nil, fmt.Errorf("Gumroad product %s already contains %d file(s); refusing to append a stable release (use a new, empty product ID for version %s)", productID, len(before.Preserved), version)
+		return "", nil, nil, fmt.Errorf("Gumroad product %s already contains %d file(s); refusing to append a stable release (use a new product ID with no existing files for version %s)", productID, len(before.Preserved), version)
 	}
 	return productID, files, args, nil
 }
