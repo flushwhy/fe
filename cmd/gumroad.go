@@ -1,3 +1,4 @@
+// Package cmd implements the fe command-line interface.
 package cmd
 
 import (
@@ -26,7 +27,7 @@ explicitly configured for the requested version.
 Each stable version must have its own pre-created Gumroad product with no existing downloadable files.
 Authentication is handled by the installed Gumroad CLI.`,
 	Args: cobra.NoArgs,
-	RunE: func(cmd *cobra.Command, args []string) error {
+	RunE: func(cmd *cobra.Command, _ []string) error {
 		cfg, err := loadProjectConfig()
 		if err != nil {
 			return err
