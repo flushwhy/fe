@@ -21,7 +21,7 @@ type Config struct {
 	Preflight PreflightConfig `mapstructure:"preflight"`
 }
 
-type GumroadConfig struct {
+// GumroadConfig maps stable release versions to their Gumroad product IDs.\ntype GumroadConfig struct {
 	Stable map[string]string `mapstructure:"stable"`
 }
 
