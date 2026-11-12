@@ -44,18 +44,23 @@ Authentication is handled by the installed Gumroad CLI.`,
 		}
 
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
-		fmt.Printf("Gumroad stable release %s\n", version)
-		fmt.Printf("Product: %s\n", productID)
-		fmt.Printf("Artifacts: %d\n", len(files))
-		for _, file := range files {
-			fmt.Printf("  - %s\n", file)
-		}
-		if dryRun {
-			fmt.Println("Dry run — no Gumroad commands were run and no files were uploaded.")
-			return nil
-		}
 		if _, err := exec.LookPath("gumroad"); err != nil {
 			return fmt.Errorf("Gumroad CLI not found; install it and authenticate with gumroad auth login")
+		}
+		if dryRun {
+			ui.Title("Gumroad Stable Release — Dry Run")
+			ui.OK("Version: %s", version)
+			ui.Dim("Product: %s", productID)
+			ui.Dim("Artifacts: %d", len(files))
+			for _, file := range files {
+				ui.Dim("  %s", file)
+			}
+			if err := gumroad.CheckProduct(version, directory, cfg.Gumroad.Stable, exec.Command); err != nil {
+				return err
+			}
+			ui.OK("Product preflight passed — no existing downloadable files")
+			ui.Warn("Dry run complete — no files were uploaded or changed")
+			return nil
 		}
 
 		if err := ui.RunSpinner("Uploading stable release to Gumroad", func() error {
@@ -73,5 +78,5 @@ func init() {
 	rootCmd.AddCommand(gumroadCmd)
 	gumroadReleaseCmd.Flags().String("version", "", "stable release version (defaults to butler.userversion)")
 	gumroadReleaseCmd.Flags().String("dir", "", "artifact directory (defaults to butler.directory)")
-	gumroadReleaseCmd.Flags().Bool("dry-run", false, "show the configured product and artifacts without uploading")
+	gumroadReleaseCmd.Flags().Bool("dry-run", false, "inspect the Gumroad product and show the upload plan without uploading")
 }
