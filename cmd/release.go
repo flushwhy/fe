@@ -34,7 +34,7 @@ var releaseCmd = &cobra.Command{
 
 Sprite packing is skipped with a warning when the configured sprite input is missing.
 Use --changelog-output and --package-format to enable the optional stages.
-Skip individual steps with --skip-build, --skip-pack, and --skip-bmp.
+Skip individual steps with --skip-build, --skip-pack, and --skip-bmp.\nUse --gumroad to upload a stable version to its explicitly configured Gumroad product.
 
 CI example:
   export ITCHIO_USERNAME=myuser ITCHIO_GAME=mygame
@@ -81,6 +81,17 @@ CI example:
 		if err := validateReleaseGit(gitState, allowDirty, allowUnpushed); err != nil {
 			return err
 		}
+		if gumroadRequested {
+			if cfg.Butler.Userversion == "" {
+				return fmt.Errorf("Gumroad stable release requires --userversion")
+			}
+			if strings.TrimSpace(cfg.Gumroad.Stable[cfg.Butler.Userversion]) == "" {
+				return fmt.Errorf("no Gumroad stable product configured for version %q (set gumroad.stable.%s in .fe.yaml)", cfg.Butler.Userversion, cfg.Butler.Userversion)
+			}
+			if _, err := exec.LookPath("gumroad"); err != nil {
+				return fmt.Errorf("Gumroad CLI not found; install it and authenticate with gumroad auth login")
+			}
+		}
 		if gitState.IsRepo {
 			fmt.Printf("Release commit: %s (%s)\n", gitState.Commit, gitState.Branch)
 		}
@@ -98,7 +109,7 @@ CI example:
 		ui.Title("Release Pipeline")
 		start := time.Now()
 		totalSteps := 3
-		if gumroadRequested { totalSteps++ }
+		if gumroadRequested {\n\t\t\ttotalSteps++\n\t\t}
 		if changelogOutput != "" { totalSteps++ }
 		if packageFormat != "" { totalSteps++ }
 		stepNumber := 1
@@ -132,7 +143,7 @@ CI example:
 
 		// A missing build directory is often caused by an empty build.targets
 		// configuration. Catch it before packing assets or attempting an upload.
-		// When --skip-bmp is set, the caller explicitly requested no upload.
+		// When both destinations are skipped, no upload directory is required.
 		if !skipBmp || gumroadRequested {
 			if err := validateReleaseBuildDir(cfg.Butler.Directory); err != nil {
 				return err
@@ -164,6 +175,11 @@ CI example:
 			manifestPath := filepath.Join(cfg.Butler.Directory, "artifact-manifest.json")
 			if err := writeArtifactManifest(cfg.Butler.Directory, manifestPath, cfg.Butler.Userversion, commit); err != nil {
 				return fmt.Errorf("create artifact manifest: %w", err)
+			}
+		}
+		if gumroadRequested {
+			if _, _, err := gumroad.ValidateRelease(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable); err != nil {
+				return err
 			}
 		}
 
@@ -227,9 +243,6 @@ CI example:
 			ui.Step(stepNumber+1, totalSteps, "Publish stable release to Gumroad")
 			if _, err := gumroad.ValidateRelease(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable); err != nil {
 				return err
-			}
-			if _, err := exec.LookPath("gumroad"); err != nil {
-				return fmt.Errorf("Gumroad CLI not found; install it and authenticate with gumroad auth login")
 			}
 			logger := log.New(os.Stdout, "", 0)
 			if err := ui.RunSpinner("Uploading stable release to Gumroad", func() error {
