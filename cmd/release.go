@@ -248,12 +248,8 @@ CI example:
 		if gumroadRequested {
 			fmt.Println()
 			ui.Step(stepNumber+1, totalSteps, "Publish stable release to Gumroad")
-			if _, _, err := gumroad.ValidateRelease(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable); err != nil {
-				return err
-			}
-			logger := log.New(os.Stdout, "", 0)
 			if err := ui.RunSpinner("Uploading stable release to Gumroad", func() error {
-				return gumroad.Publish(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable, exec.Command, logger)
+				return gumroad.Publish(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable, exec.Command)
 			}); err != nil {
 				return fmt.Errorf("Gumroad publish step failed: %w", err)
 			}
