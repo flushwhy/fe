@@ -3,8 +3,6 @@ package cmd
 
 import (
 	"fmt"
-	"log"
-	"os"
 	"os/exec"
 	"strings"
 
@@ -60,9 +58,8 @@ Authentication is handled by the installed Gumroad CLI.`,
 			return fmt.Errorf("Gumroad CLI not found; install it and authenticate with gumroad auth login")
 		}
 
-		logger := log.New(os.Stdout, "", 0)
 		if err := ui.RunSpinner("Uploading stable release to Gumroad", func() error {
-			return gumroad.Publish(version, directory, cfg.Gumroad.Stable, exec.Command, logger)
+			return gumroad.Publish(version, directory, cfg.Gumroad.Stable, exec.Command)
 		}); err != nil {
 			return err
 		}
