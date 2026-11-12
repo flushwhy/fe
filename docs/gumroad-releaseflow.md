@@ -1,138 +1,69 @@
 # Gumroad release flow
 
-This document describes the proposed Gumroad publishing integration for Fe. It is a design contract, not a description of functionality that exists today.
-
-Fe should reuse its existing release artifacts and manifest. Gumroad is an optional destination, not another build or packaging system.
+Fe uses the installed Gumroad CLI for stable release file uploads. Gumroad is an optional destination; it does not replace Fe's build, packaging, or artifact manifest.
 
 ## Product model
 
-| Role | Gumroad product lifecycle | Release behavior |
+| Role | Product lifecycle | Release behavior |
 |---|---|---|
-| Stable | One product per stable version | Upload that version's artifacts to its matching product |
-| Rolling | One persistent product | Replace the product's current files with the newest rolling artifacts |
+| Stable | One pre-created product per stable version | Upload that version's artifacts to its matching product |
+| Rolling | One persistent product | Not automated yet; keep the current manual workflow |
 
-Product IDs are configured explicitly. Fe must never guess a target product from its display name.
+Product IDs are configured explicitly. Fe never guesses a product from its display name.
 
-### Rolling update policy
+## Stable releases
 
-Use Gumroad's existing product content as the rolling download location:
+Stable upload is supported by:
 
-1. Keep one Gumroad product for the rolling channel.
-2. For each rolling release, prepare the same named platform artifacts as the previous release.
-3. Replace the current files in that product's Content editor; do not append every build as another download and do not create a new Gumroad product version for each build.
-4. Verify the new files in the buyer-facing content page before announcing the release.
-5. Keep historical builds in Fe's normal release artifact store, not in the rolling product.
+- `fe gumroad release --version 1.2.3` — upload an existing artifact manifest.
+- `fe gumroad release --version 1.2.3 --dry-run` — inspect the local release plan without contacting Gumroad.
+- `fe release --gumroad --userversion 1.2.3` — include the stable upload after Fe builds and creates the artifact manifest.
+- `fe release --gumroad --skip-bmp --userversion 1.2.3` — publish to Gumroad without selecting the itch.io destination.
 
-Gumroad says buyers can access the product's up-to-date files from their Library. This gives the rolling product a single current download set while keeping release history outside Gumroad. See [I'm not receiving updates](https://gumroad.com/help/article/211-im-not-receiving-updates) and [The Gumroad Library](https://gumroad.com/help/article/247-what-your-customers-see).
-
-This is a **manual Gumroad step** until Gumroad documents a non-interactive file replacement API that Fe can safely call. Do not substitute public GitHub download links for paid Gumroad files: that would bypass Gumroad's content access.
-
-Stable products follow the same manual upload process, but their content is immutable after publication; a new stable version gets a new product.
-
-## Proposed command surface
-
-These names are proposals, not implemented commands:
-
-- `fe gumroad products` — list products available to the authenticated account and show IDs.
-- `fe gumroad release` — prepare a stable release for its configured product.
-- `fe gumroad rolling` — prepare a rolling release for the persistent product.
-- `fe release --gumroad` — include the Gumroad handoff in the normal release pipeline.
-
-The preparation commands should support `--dry-run`. Until upload is supported, they must clearly say that the files still need to be replaced/uploaded in Gumroad; they must never report a successful Gumroad publication.
-
-Publishing to Gumroad remains independently selectable from itch.io. Projects that do not use Gumroad need no Gumroad configuration or credentials.
-
-## Configuration direction
-
-Illustrative only; not implemented or finalized:
+Each version must map to a product that already exists in Gumroad:
 
 ```yaml
 gumroad:
-  enabled: false
   stable:
-    # "1.2.0": "PRODUCT_ID_FOR_1_2_0"
-  rolling:
-    product_id: "ROLLING_PRODUCT_ID"
+    "1.2.3": "PRODUCT_ID_FOR_1_2_3"
+    "1.2.4": "PRODUCT_ID_FOR_1_2_4"
 ```
 
-Credentials must come from the environment or a secure credential store, never committed `.fe.yaml`. The eventual client must redact credentials from logs and errors.
+Create the product in Gumroad first and copy its product ID into the matching version entry. Use a separate product for every stable version. Fe does not create products or change product pricing, descriptions, visibility, or publication state.
 
-## Release pipeline integration
+Before upload, Fe reads `<butler.directory>/artifact-manifest.json`, requires its version to exactly match the requested version, and validates every artifact path. It then asks the Gumroad CLI for a non-mutating dry-run plan. If the product already contains files, Fe refuses to append another release. After upload, Fe runs the same plan again and verifies the expected file count.
 
-1. Run the existing Fe preflight and build/export steps.
-2. Run optional asset packing.
-3. Produce the release artifacts and `artifact-manifest.json`.
-4. Resolve the selected Gumroad product from explicit configuration.
-5. Validate the artifact set and show the exact files intended for Gumroad.
-6. Until automated file delivery is officially supported, stop at a clear manual handoff.
-7. Report Gumroad as published only after the actual product content has been verified.
+This makes stable uploads intentionally one-shot per product. If an upload command returns an error, the result may be partial: inspect the Gumroad product before retrying. Do not clear or reuse a stable product to force a retry.
 
-The existing build output and manifest remain the source of truth. Gumroad must not rebuild, rename, or silently omit platform artifacts.
+## Gumroad CLI setup
 
-## Gumroad API capabilities and limitations
+Install the Gumroad CLI separately and authenticate it using its own login flow:
 
-Research checked against Gumroad's own help documentation on 2026-11-01.
+```sh
+gumroad auth login
+gumroad products list
+```
 
-### REST API v2
+Fe invokes the executable as a subprocess and does not store or manage Gumroad credentials. It does not install the CLI automatically. The CLI's own authentication and product commands remain available for account management.
 
-Gumroad's help center says the REST API cannot create products or upload product content. Product setup and downloadable content therefore cannot be fully automated through REST.
+## Rolling releases
 
-- Product creation must be done outside the REST API.
-- Product content files cannot be uploaded through the REST API.
-- Do not invent endpoints such as `POST /v2/products/:id/files`.
-- Do not report a release as delivered merely because product metadata was updated.
+Rolling uploads are not automated yet. The intended policy remains:
 
-Official reference: [Gumroad license keys and API FAQ](https://gumroad.com/help/article/76-license-keys).
+1. Keep one persistent Gumroad product for the rolling channel.
+2. Replace its current files for each rolling release; do not append another set of downloads.
+3. Keep historical artifacts in Fe's normal release artifact store.
+4. Verify the buyer-facing content before announcing the update.
 
-### Gumroad MCP
+The current CLI upload operation appends files while preserving existing files. Fe will not use that behavior for rolling releases. Rolling automation stays blocked until a safe replacement workflow is available.
 
-Gumroad documents an MCP connector for supported assistants. It can create unpublished drafts, edit product details, attach files from public URLs, list attached files, and publish/unpublish products. Files are copied into Gumroad and are limited to 250 MB each.
+## Safety and boundaries
 
-The connector is currently available for Claude; Gumroad says ChatGPT is not available yet. It is not a general-purpose REST endpoint for Fe, and its public documentation does not establish a safe non-interactive rolling file replacement operation.
-
-Fe must not pretend to be an MCP client by calling undocumented endpoints or scraping the dashboard.
-
-Official references:
-- [Connecting AI assistants to your Gumroad store](https://gumroad.com/help/article/355-connect-ai-assistants-to-gumroad)
-- [Gumroad MCP](https://gumroad.com/mcp)
-
-## Implementation stages
-
-### Stage 1 — Read-only account support
-
-- Add product listing only after verifying the official REST authentication and response contract.
-- Validate configured product IDs without changing products or uploading files.
-- Keep the manual rolling/stable handoff explicit.
-
-### Stage 2 — File delivery
-
-Do not implement an uploader until Gumroad documents a supported non-interactive way to add and replace product content files.
-
-When that exists:
-- Use a small client and the existing release artifacts.
-- Replace the rolling product's current file set rather than accumulating obsolete downloads.
-- Keep stable product content version-specific.
-- Add dry-run, credential redaction, and partial-failure reporting.
-
-### Stage 3 — Release integration
-
-- Add Gumroad as an optional destination to `fe release`.
-- Keep itch.io and Gumroad failures independently visible.
-- Allow publishing existing artifacts without rebuilding.
-- Never claim overall release success if a selected destination failed.
-
-## Safety
-
-- Never modify a product unless its ID is explicitly configured or selected.
-- Never delete a product as part of a release.
-- Never overwrite a stable product with rolling artifacts, or vice versa.
-- Never publish public download URLs as a substitute for paid Gumroad content.
-- Treat a timeout as an unknown result; reconcile product state before retrying.
-- Show which files were delivered and which still need manual action.
-- Unsupported operations must fail clearly, not fall back to browser automation or undocumented endpoints.
-
-## Remaining decision
-
-The rolling policy is settled: **one persistent product, current files replaced each release, historical builds retained outside Gumroad**.
-
-The remaining implementation blocker is Gumroad's lack of a documented non-interactive file upload/replacement API. Stable/rolling artifact layout can be finalized against Fe's existing release asset naming when the preparation command is implemented.
+- Gumroad is optional; projects that do not use it need no Gumroad configuration.
+- Product IDs must be explicitly configured for each stable version.
+- Stable uploads require a product with no existing files.
+- Fe uploads only files listed in the existing artifact manifest.
+- Fe never deletes products or silently overwrites a stable product.
+- A failed or ambiguous upload must be inspected before retrying.
+- Fe reports an upload as successful only after the CLI preflight confirms the expected file count.
+- itch.io and Gumroad remain separately selectable destinations.
