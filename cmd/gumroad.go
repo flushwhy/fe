@@ -23,7 +23,7 @@ var gumroadReleaseCmd = &cobra.Command{
 	Long: `Uploads the files in the existing artifact manifest to the Gumroad product
 explicitly configured for the requested version.
 
-Each stable version must have its own pre-created, empty Gumroad product.
+Each stable version must have its own pre-created Gumroad product with no existing downloadable files.
 Authentication is handled by the installed Gumroad CLI.`,
 	Args: cobra.NoArgs,
 	RunE: func(cmd *cobra.Command, args []string) error {
