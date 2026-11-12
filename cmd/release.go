@@ -15,6 +15,7 @@ import (
 	"github.com/flushwhy/fe/internal/changelog"
 	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/godot"
+	"github.com/flushwhy/fe/internal/gumroad"
 	"github.com/flushwhy/fe/internal/pack"
 	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
@@ -47,6 +48,7 @@ CI example:
 		skipBuild, _ := cmd.Flags().GetBool("skip-build")
 		skipPack, _ := cmd.Flags().GetBool("skip-pack")
 		skipBmp, _ := cmd.Flags().GetBool("skip-bmp")
+		gumroadRequested, _ := cmd.Flags().GetBool("gumroad")
 		channelSuffix, _ := cmd.Flags().GetString("channel-suffix")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		allowDirty, _ := cmd.Flags().GetBool("allow-dirty")
@@ -69,7 +71,7 @@ CI example:
 		}
 		if dryRun {
 			printReleaseGitState(gitState)
-			planErr := printReleasePlan(cfg, skipBuild, skipPack, skipBmp, channelSuffix, changelogOutput, packageFormat, packageOutput)
+			planErr := printReleasePlan(cfg, skipBuild, skipPack, skipBmp, gumroadRequested, channelSuffix, changelogOutput, packageFormat, packageOutput)
 			if gitErr := validateReleaseGit(gitState, allowDirty, allowUnpushed); gitErr != nil {
 				fmt.Printf("Git preflight: %v\n", gitErr)
 				return gitErr
@@ -219,6 +221,23 @@ CI example:
 			ui.Dim("skipped")
 		}
 
+		if gumroadRequested {
+			fmt.Println()
+			ui.Step(stepNumber+1, totalSteps, "Publish stable release to Gumroad")
+			if _, err := gumroad.ValidateRelease(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable); err != nil {
+				return err
+			}
+			if _, err := exec.LookPath("gumroad"); err != nil {
+				return fmt.Errorf("Gumroad CLI not found; install it and authenticate with gumroad auth login")
+			}
+			logger := log.New(os.Stdout, "", 0)
+			if err := ui.RunSpinner("Uploading stable release to Gumroad", func() error {
+				return gumroad.Publish(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable, exec.Command, logger)
+			}); err != nil {
+				return fmt.Errorf("Gumroad publish step failed: %w", err)
+			}
+		}
+
 		fmt.Println()
 		ui.OK("Release complete")
 		ui.Elapsed(start)
@@ -302,7 +321,7 @@ func releaseSpriteInputsAvailable(cfg config.PackConfig) bool {
 	return false
 }
 
-func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, channelSuffix, changelogOutput, packageFormat, packageOutput string) error {
+func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp, gumroadRequested bool, channelSuffix, changelogOutput, packageFormat, packageOutput string) error {
 	fmt.Println("Release dry run — no builds, exports, packing, changelog generation, packaging, or uploads will be performed.")
 	fmt.Println()
 	problems := 0
@@ -382,6 +401,19 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, cha
 			fmt.Printf("   - build directory not currently available: %s\n", cfg.Butler.Directory)
 		}
 	}
+	if gumroadRequested {
+		productID := cfg.Gumroad.Stable[cfg.Butler.Userversion]
+		if cfg.Butler.Userversion == "" {
+			fmt.Println("Gumroad stable upload: missing release version (set --userversion)")
+			problems++
+		} else if productID == "" {
+			fmt.Printf("Gumroad stable upload: no product configured for version %s (set gumroad.stable.%s)\\n", cfg.Butler.Userversion, cfg.Butler.Userversion)
+			problems++
+		} else {
+			fmt.Printf("Gumroad stable upload: product %s for version %s\\n", productID, cfg.Butler.Userversion)
+			fmt.Println("   - files will be read from the artifact manifest after build/package steps")
+		}
+	}
 	if problems > 0 {
 		return fmt.Errorf("dry run found %d issue(s) to review", problems)
 	}
@@ -396,6 +428,7 @@ func init() {
 	releaseCmd.Flags().Bool("skip-build", false, "skip the build step")
 	releaseCmd.Flags().Bool("skip-pack", false, "skip the sprite pack step")
 	releaseCmd.Flags().Bool("skip-bmp", false, "skip the itch.io push step")
+	releaseCmd.Flags().Bool("gumroad", false, "also upload this stable version to its configured Gumroad product")
 	releaseCmd.Flags().String("changelog-output", "", "write Git-based release notes to this Markdown file")
 	releaseCmd.Flags().String("package-format", "", "also package build artifacts as zip or tar.gz")
 	releaseCmd.Flags().String("package-output", "", "package output path (defaults to dist/<project>-<version>.<format>)")
