@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.8.6](https://github.com/flushwhy/fe/compare/v0.8.5...v0.8.6) (2026-11-12)
+
+
+### Bug Fixes
+
+* **release:** keep Butler download outside checkout ([#194](https://github.com/flushwhy/fe/issues/194)) ([ab05fd3](https://github.com/flushwhy/fe/commit/ab05fd3852cd2a965df5445a2a7333f839b75a60))
+* **security:** update Go to 1.26.11 on 0.8 ([#197](https://github.com/flushwhy/fe/issues/197)) ([5a4c6b4](https://github.com/flushwhy/fe/commit/5a4c6b4be1f996b08a10359dea0ca394f5a24b25))
+
 ## [0.8.5](https://github.com/flushwhy/fe/compare/v0.8.4...v0.8.5) (2026-11-11)
 
 
