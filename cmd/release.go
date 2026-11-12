@@ -98,6 +98,7 @@ CI example:
 		ui.Title("Release Pipeline")
 		start := time.Now()
 		totalSteps := 3
+		if gumroadRequested { totalSteps++ }
 		if changelogOutput != "" { totalSteps++ }
 		if packageFormat != "" { totalSteps++ }
 		stepNumber := 1
@@ -132,7 +133,7 @@ CI example:
 		// A missing build directory is often caused by an empty build.targets
 		// configuration. Catch it before packing assets or attempting an upload.
 		// When --skip-bmp is set, the caller explicitly requested no upload.
-		if !skipBmp {
+		if !skipBmp || gumroadRequested {
 			if err := validateReleaseBuildDir(cfg.Butler.Directory); err != nil {
 				return err
 			}
@@ -155,7 +156,7 @@ CI example:
 			}
 		}
 
-		if !skipBmp || packageFormat != "" {
+		if !skipBmp || packageFormat != "" || gumroadRequested {
 			commit := gitState.Commit
 			if commit == "" {
 				commit = strings.TrimSpace(os.Getenv("GITHUB_SHA"))
@@ -374,7 +375,7 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp, gumroadR
 		fmt.Printf("Package: %s -> %s\n", packageFormat, packageOutput)
 	}
 
-	if !skipBmp || packageFormat != "" {
+	if !skipBmp || packageFormat != "" || gumroadRequested {
 		fmt.Printf("Artifact manifest: %s\n", filepath.Join(cfg.Butler.Directory, "artifact-manifest.json"))
 	}
 	if skipBmp {
