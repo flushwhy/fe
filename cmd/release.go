@@ -248,7 +248,7 @@ CI example:
 		if gumroadRequested {
 			fmt.Println()
 			ui.Step(stepNumber+1, totalSteps, "Publish stable release to Gumroad")
-			if _, err := gumroad.ValidateRelease(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable); err != nil {
+			if _, _, err := gumroad.ValidateRelease(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable); err != nil {
 				return err
 			}
 			logger := log.New(os.Stdout, "", 0)
