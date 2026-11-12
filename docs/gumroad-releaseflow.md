@@ -37,7 +37,7 @@ This makes stable uploads intentionally one-shot per product. If an upload comma
 
 ## Gumroad CLI setup
 
-Install the Gumroad CLI separately and authenticate it using its own login flow:
+Install the Gumroad CLI separately from [antiwork/gumroad-cli](https://github.com/antiwork/gumroad-cli) and authenticate it using its own login flow:
 
 ```sh
 gumroad auth login
