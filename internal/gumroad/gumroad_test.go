@@ -9,7 +9,7 @@ import (
 	"testing"
 )
 
-func TestGumroadHelperProcess(t *testing.T) {
+func TestGumroadHelperProcess(_ *testing.T) {
 	if os.Getenv("GO_WANT_GUMROAD_HELPER") != "1" {
 		return
 	}
