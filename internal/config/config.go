@@ -226,6 +226,10 @@ const DefaultYAML = `# fe configuration
 # templates:
 #   source: "https://github.com/flushwhy/fe-templates"
 
+gumroad:
+  # Map each stable version to its pre-created, empty Gumroad product ID.
+  stable: {}
+
 itchio:
   username: ""   # or set ITCHIO_USERNAME env var
   game: ""       # or set ITCHIO_GAME env var
