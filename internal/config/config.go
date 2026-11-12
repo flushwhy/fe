@@ -227,7 +227,7 @@ const DefaultYAML = `# fe configuration
 #   source: "https://github.com/flushwhy/fe-templates"
 
 gumroad:
-  # Map each stable version to its pre-created, empty Gumroad product ID.
+  # Map each stable version to its pre-created Gumroad product ID with no existing files.
   stable: {}
 
 itchio:
