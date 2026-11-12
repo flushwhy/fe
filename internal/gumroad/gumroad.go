@@ -33,16 +33,9 @@ type dryRunResult struct {
 // Publish uploads a stable release to its explicitly configured, version-specific
 // product. It refuses to append to a product that already contains files.
 func Publish(version, directory string, products map[string]string, executor CommandExecutor, logger Logger) error {
-	version = strings.TrimSpace(version)
-	if version == "" {
-		return fmt.Errorf("Gumroad stable release requires a version")
-	}
-	productID := strings.TrimSpace(products[version])
-	if productID == "" {
-		return fmt.Errorf("no Gumroad stable product configured for version %q (set gumroad.stable.%s in .fe.yaml)", version, version)
-	}
-	if strings.TrimSpace(productID) != productID || strings.ContainsAny(productID, " \t\r\n") {
-		return fmt.Errorf("Gumroad product ID for version %q is invalid", version)
+	productID, files, args, err := preflight(version, directory, products, executor)
+	if err != nil {
+		return err
 	}
 	if executor == nil {
 		executor = exec.Command
@@ -51,29 +44,73 @@ func Publish(version, directory string, products map[string]string, executor Com
 		logger = discardLogger{}
 	}
 
+	logger.Printf("Uploading %d artifact(s) to Gumroad product %s", len(files), productID)
+	liveArgs := append(append([]string{}, args...), "--json", "--no-input")
+	if _, err := run(executor, liveArgs...); err != nil {
+		return fmt.Errorf("Gumroad upload for product %s returned an error; its state may be partial, inspect the product before retrying: %w", productID, err)
+	}
+
+	checkArgs := append(append([]string{}, args...), "--dry-run", "--json", "--no-input")
+	output, err := run(executor, checkArgs...)
+	if err != nil {
+		return fmt.Errorf("Gumroad upload command completed, but product %s could not be verified: %w", productID, err)
+	}
+	var after dryRunResult
+	if err := json.Unmarshal(output, &after); err != nil {
+		return fmt.Errorf("Gumroad upload command completed, but the verification response was unreadable: %w", err)
+	}
+	if len(after.Preserved) != len(files) {
+		return fmt.Errorf("Gumroad upload verification failed for product %s: expected %d file(s), found %d; inspect the product before retrying", productID, len(files), len(after.Preserved))
+	}
+
+	logger.Printf("Verified %d artifact(s) on Gumroad product %s", len(files), productID)
+	return nil
+}
+
+// CheckProduct verifies that the selected stable product exists and is empty.
+// It performs only the Gumroad CLI's non-mutating update dry-run.
+func CheckProduct(version, directory string, products map[string]string, executor CommandExecutor) error {
+	_, _, _, err := preflight(version, directory, products, executor)
+	return err
+}
+
+func preflight(version, directory string, products map[string]string, executor CommandExecutor) (string, []string, []string, error) {
+	version = strings.TrimSpace(version)
+	if version == "" {
+		return "", nil, nil, fmt.Errorf("Gumroad stable release requires a version")
+	}
+	productID := strings.TrimSpace(products[version])
+	if productID == "" {
+		return "", nil, nil, fmt.Errorf("no Gumroad stable product configured for version %q (set gumroad.stable.%s in .fe.yaml)", version, version)
+	}
+	if strings.TrimSpace(productID) != productID || strings.ContainsAny(productID, " \\t\\r\\n") {
+		return "", nil, nil, fmt.Errorf("Gumroad product ID for version %q is invalid", version)
+	}
 	files, err := releaseFiles(directory, version)
 	if err != nil {
-		return err
+		return "", nil, nil, err
 	}
 	args := []string{"products", "update", productID}
 	for _, path := range files {
 		args = append(args, "--file", path)
 	}
-
-	// The CLI's dry-run exposes the existing file set. Stable products are
-	// one-release products, so appending to a non-empty product is never safe.
+	if executor == nil {
+		executor = exec.Command
+	}
 	checkArgs := append(append([]string{}, args...), "--dry-run", "--json", "--no-input")
 	output, err := run(executor, checkArgs...)
 	if err != nil {
-		return fmt.Errorf("could not inspect Gumroad product %s before upload: %w", productID, err)
+		return "", nil, nil, fmt.Errorf("could not inspect Gumroad product %s before upload: %w", productID, err)
 	}
 	var before dryRunResult
 	if err := json.Unmarshal(output, &before); err != nil {
-		return fmt.Errorf("Gumroad CLI returned an unreadable product preflight response: %w", err)
+		return "", nil, nil, fmt.Errorf("Gumroad CLI returned an unreadable product preflight response: %w", err)
 	}
 	if len(before.Preserved) != 0 {
-		return fmt.Errorf("Gumroad product %s already contains %d file(s); refusing to append a stable release (use a new, empty product ID for version %s)", productID, len(before.Preserved), version)
+		return "", nil, nil, fmt.Errorf("Gumroad product %s already contains %d file(s); refusing to append a stable release (use a new, empty product ID for version %s)", productID, len(before.Preserved), version)
 	}
+	return productID, files, args, nil
+}
 
 	logger.Printf("Uploading %d artifact(s) to Gumroad product %s", len(files), productID)
 	liveArgs := append(append([]string{}, args...), "--json", "--no-input")
