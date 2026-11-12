@@ -1,4 +1,4 @@
-package gumroad
+// Package gumroad publishes versioned release artifacts through the Gumroad CLI.\npackage gumroad
 
 import (
 	"encoding/json"
@@ -9,9 +9,9 @@ import (
 	"strings"
 )
 
-type CommandExecutor func(name string, args ...string) *exec.Cmd
+// CommandExecutor creates the Gumroad CLI command used by release operations.\ntype CommandExecutor func(name string, args ...string) *exec.Cmd
 
-type Logger interface {
+// Logger receives progress messages from Gumroad release operations.\ntype Logger interface {
 	Printf(format string, v ...interface{})
 }
 
