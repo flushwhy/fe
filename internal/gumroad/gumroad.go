@@ -112,30 +112,6 @@ func preflight(version, directory string, products map[string]string, executor C
 	return productID, files, args, nil
 }
 
-	logger.Printf("Uploading %d artifact(s) to Gumroad product %s", len(files), productID)
-	liveArgs := append(append([]string{}, args...), "--json", "--no-input")
-	if _, err := run(executor, liveArgs...); err != nil {
-		return fmt.Errorf("Gumroad upload for product %s returned an error; its state may be partial, inspect the product before retrying: %w", productID, err)
-	}
-
-	// Re-run the non-mutating plan to verify that Gumroad now reports the
-	// expected number of existing files. Do not claim success on a blind exit code.
-	output, err = run(executor, checkArgs...)
-	if err != nil {
-		return fmt.Errorf("Gumroad upload command completed, but product %s could not be verified: %w", productID, err)
-	}
-	var after dryRunResult
-	if err := json.Unmarshal(output, &after); err != nil {
-		return fmt.Errorf("Gumroad upload command completed, but the verification response was unreadable: %w", err)
-	}
-	if len(after.Preserved) != len(files) {
-		return fmt.Errorf("Gumroad upload verification failed for product %s: expected %d file(s), found %d; inspect the product before retrying", productID, len(files), len(after.Preserved))
-	}
-
-	logger.Printf("Verified %d artifact(s) on Gumroad product %s", len(files), productID)
-	return nil
-}
-
 // ValidateRelease checks the local manifest and resolves the exact stable product
 // without invoking Gumroad. It is used by dry-run planning.
 func ValidateRelease(version, directory string, products map[string]string) (string, []string, error) {
