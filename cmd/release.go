@@ -178,7 +178,7 @@ CI example:
 			}
 		}
 		if gumroadRequested {
-			if _, _, err := gumroad.ValidateRelease(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable); err != nil {
+			if err := gumroad.CheckProduct(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable, exec.Command); err != nil {
 				return err
 			}
 		}
