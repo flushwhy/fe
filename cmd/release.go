@@ -34,7 +34,8 @@ var releaseCmd = &cobra.Command{
 
 Sprite packing is skipped with a warning when the configured sprite input is missing.
 Use --changelog-output and --package-format to enable the optional stages.
-Skip individual steps with --skip-build, --skip-pack, and --skip-bmp.\nUse --gumroad to upload a stable version to its explicitly configured Gumroad product.
+Skip individual steps with --skip-build, --skip-pack, and --skip-bmp.
+Use --gumroad to upload a stable version to its explicitly configured Gumroad product.
 
 CI example:
   export ITCHIO_USERNAME=myuser ITCHIO_GAME=mygame
