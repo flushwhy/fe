@@ -17,7 +17,7 @@ func TestGumroadHelperProcess(_ *testing.T) {
 	os.Exit(0)
 }
 
-func testExecutor(t *testing.T, responses []string, calls *[][]string) CommandExecutor {
+func testExecutor(t *testing.T, responses []string, calls *[][]string) commandExecutor {
 	t.Helper()
 	index := 0
 	return func(name string, args ...string) *exec.Cmd {
