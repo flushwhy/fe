@@ -11,12 +11,7 @@ import (
 )
 
 // CommandExecutor creates the Gumroad CLI command used by release operations.
-type CommandExecutor func(name string, args ...string) *exec.Cmd
-
-// Logger receives progress messages from Gumroad release operations.
-type Logger interface {
-	Printf(format string, v ...interface{})
-}
+type commandExecutor func(name string, args ...string) *exec.Cmd
 
 type artifactManifest struct {
 	Version   string           `json:"version,omitempty"`
@@ -35,7 +30,7 @@ type dryRunResult struct {
 
 // Publish uploads a stable release to its explicitly configured, version-specific
 // product. It refuses to append to a product that already contains files.
-func Publish(version, directory string, products map[string]string, executor CommandExecutor, logger Logger) error {
+func Publish(version, directory string, products map[string]string, executor commandExecutor) error {
 	productID, files, args, err := preflight(version, directory, products, executor)
 	if err != nil {
 		return err
@@ -43,11 +38,6 @@ func Publish(version, directory string, products map[string]string, executor Com
 	if executor == nil {
 		executor = exec.Command
 	}
-	if logger == nil {
-		logger = discardLogger{}
-	}
-
-	logger.Printf("Uploading %d artifact(s) to Gumroad product %s", len(files), productID)
 	liveArgs := append(append([]string{}, args...), "--json", "--no-input")
 	if _, err := run(executor, liveArgs...); err != nil {
 		return fmt.Errorf("Gumroad upload for product %s returned an error; its state may be partial, inspect the product before retrying: %w", productID, err)
@@ -66,31 +56,18 @@ func Publish(version, directory string, products map[string]string, executor Com
 		return fmt.Errorf("Gumroad upload verification failed for product %s: expected %d file(s), found %d; inspect the product before retrying", productID, len(files), len(after.Preserved))
 	}
 
-	logger.Printf("Verified %d artifact(s) on Gumroad product %s", len(files), productID)
 	return nil
 }
 
 // CheckProduct verifies that the selected stable product has no existing downloadable files.
 // It performs only the Gumroad CLI's non-mutating update dry-run.
-func CheckProduct(version, directory string, products map[string]string, executor CommandExecutor) error {
+func CheckProduct(version, directory string, products map[string]string, executor commandExecutor) error {
 	_, _, _, err := preflight(version, directory, products, executor)
 	return err
 }
 
-func preflight(version, directory string, products map[string]string, executor CommandExecutor) (string, []string, []string, error) {
-	version = strings.TrimSpace(version)
-	if version == "" {
-		return "", nil, nil, fmt.Errorf("Gumroad stable release requires a version")
-	}
-	configuredProductID := products[version]
-	productID := strings.TrimSpace(configuredProductID)
-	if productID == "" {
-		return "", nil, nil, fmt.Errorf("no Gumroad stable product configured for version %q (set gumroad.stable.%s in .fe.yaml)", version, version)
-	}
-	if configuredProductID != productID || strings.ContainsAny(productID, " \t\r\n") {
-		return "", nil, nil, fmt.Errorf("Gumroad product ID for version %q is invalid", version)
-	}
-	files, err := releaseFiles(directory, version)
+func preflight(version, directory string, products map[string]string, executor commandExecutor) (string, []string, []string, error) {
+	productID, files, err := ValidateRelease(version, directory, products)
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -101,8 +78,7 @@ func preflight(version, directory string, products map[string]string, executor C
 	if executor == nil {
 		executor = exec.Command
 	}
-	checkArgs := append(append([]string{}, args...), "--dry-run", "--json", "--no-input")
-	output, err := run(executor, checkArgs...)
+	output, err := run(executor, append(args, "--dry-run", "--json", "--no-input")...)
 	if err != nil {
 		return "", nil, nil, fmt.Errorf("could not inspect Gumroad product %s before upload: %w", productID, err)
 	}
@@ -205,6 +181,3 @@ func run(executor CommandExecutor, args ...string) ([]byte, error) {
 	return output, nil
 }
 
-type discardLogger struct{}
-
-func (discardLogger) Printf(string, ...interface{}) {}
