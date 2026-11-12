@@ -79,11 +79,12 @@ func preflight(version, directory string, products map[string]string, executor C
 	if version == "" {
 		return "", nil, nil, fmt.Errorf("Gumroad stable release requires a version")
 	}
-	productID := strings.TrimSpace(products[version])
+	configuredProductID := products[version]
+	productID := strings.TrimSpace(configuredProductID)
 	if productID == "" {
 		return "", nil, nil, fmt.Errorf("no Gumroad stable product configured for version %q (set gumroad.stable.%s in .fe.yaml)", version, version)
 	}
-	if strings.TrimSpace(productID) != productID || strings.ContainsAny(productID, " \\t\\r\\n") {
+	if configuredProductID != productID || strings.ContainsAny(productID, " \\t\\r\\n") {
 		return "", nil, nil, fmt.Errorf("Gumroad product ID for version %q is invalid", version)
 	}
 	files, err := releaseFiles(directory, version)
@@ -119,11 +120,12 @@ func ValidateRelease(version, directory string, products map[string]string) (str
 	if version == "" {
 		return "", nil, fmt.Errorf("Gumroad stable release requires a version")
 	}
-	productID := strings.TrimSpace(products[version])
+	configuredProductID := products[version]
+	productID := strings.TrimSpace(configuredProductID)
 	if productID == "" {
 		return "", nil, fmt.Errorf("no Gumroad stable product configured for version %q (set gumroad.stable.%s in .fe.yaml)", version, version)
 	}
-	if strings.TrimSpace(productID) != products[version] || strings.ContainsAny(productID, " \\t\\r\\n") {
+	if configuredProductID != productID || strings.ContainsAny(productID, " \\t\\r\\n") {
 		return "", nil, fmt.Errorf("Gumroad product ID for version %q is invalid", version)
 	}
 	files, err := releaseFiles(directory, version)
