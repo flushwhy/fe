@@ -12,12 +12,17 @@ import (
 // Priority: env vars > .fe.yaml > conventions > defaults
 type Config struct {
 	Itchio    ItchioConfig    `mapstructure:"itchio"`
+	Gumroad   GumroadConfig   `mapstructure:"gumroad"`
 	Butler    ButlerConfig    `mapstructure:"butler"`
 	Pack      PackConfig      `mapstructure:"pack"`
 	Transcode TranscodeConfig `mapstructure:"transcode"`
 	Build     BuildConfig     `mapstructure:"build"`
 	Godot     GodotConfig     `mapstructure:"godot"`
 	Preflight PreflightConfig `mapstructure:"preflight"`
+}
+
+type GumroadConfig struct {
+	Stable map[string]string `mapstructure:"stable"`
 }
 
 type ItchioConfig struct {
