@@ -407,7 +407,7 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp, gumroadR
 			fmt.Println("Gumroad stable upload: missing release version (set --userversion)")
 			problems++
 		} else if productID == "" {
-			fmt.Printf("Gumroad stable upload: no product configured for version %s (set gumroad.stable.%s)\\n", cfg.Butler.Userversion, cfg.Butler.Userversion)
+			fmt.Printf("Gumroad stable upload: no product configured for version %s (set gumroad.stable.%s)\n", cfg.Butler.Userversion, cfg.Butler.Userversion)
 			problems++
 		} else {
 			fmt.Printf("Gumroad stable upload: product %s for version %s\\n", productID, cfg.Butler.Userversion)
