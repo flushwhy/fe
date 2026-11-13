@@ -12,12 +12,18 @@ import (
 // Priority: env vars > .fe.yaml > conventions > defaults
 type Config struct {
 	Itchio    ItchioConfig    `mapstructure:"itchio"`
+	Gumroad   GumroadConfig   `mapstructure:"gumroad"`
 	Butler    ButlerConfig    `mapstructure:"butler"`
 	Pack      PackConfig      `mapstructure:"pack"`
 	Transcode TranscodeConfig `mapstructure:"transcode"`
 	Build     BuildConfig     `mapstructure:"build"`
 	Godot     GodotConfig     `mapstructure:"godot"`
 	Preflight PreflightConfig `mapstructure:"preflight"`
+}
+
+// GumroadConfig maps stable release versions to their Gumroad product IDs.
+type GumroadConfig struct {
+	Stable map[string]string `mapstructure:"stable"`
 }
 
 type ItchioConfig struct {
@@ -220,6 +226,10 @@ const DefaultYAML = `# fe configuration
 # Optional: pull init templates from a remote source instead of built-ins.
 # templates:
 #   source: "https://github.com/flushwhy/fe-templates"
+
+gumroad:
+  # Map each stable version to its pre-created Gumroad product ID with no existing files.
+  stable: {}
 
 itchio:
   username: ""   # or set ITCHIO_USERNAME env var

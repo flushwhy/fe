@@ -71,8 +71,10 @@ var rootCmd = &cobra.Command{
     fe package                        create a ZIP or tar.gz archive from build artifacts
     fe transcode                      convert audio/video via ffmpeg
     fe bmp                            push builds to itch.io via butler
+    fe gumroad release                upload a stable version to its configured Gumroad product
     fe changelog                      generate release notes from Git history and tags
     fe release                        build, pack, optionally package, and publish
+    fe release --gumroad              also upload to the configured stable Gumroad product
     fe validate                       pre-flight config and path check
 
   Interactive:

@@ -15,6 +15,7 @@ import (
 	"github.com/flushwhy/fe/internal/changelog"
 	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/godot"
+	"github.com/flushwhy/fe/internal/gumroad"
 	"github.com/flushwhy/fe/internal/pack"
 	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
@@ -34,6 +35,7 @@ var releaseCmd = &cobra.Command{
 Sprite packing is skipped with a warning when the configured sprite input is missing.
 Use --changelog-output and --package-format to enable the optional stages.
 Skip individual steps with --skip-build, --skip-pack, and --skip-bmp.
+Use --gumroad to upload a stable version to its explicitly configured Gumroad product.
 
 CI example:
   export ITCHIO_USERNAME=myuser ITCHIO_GAME=mygame
@@ -47,6 +49,7 @@ CI example:
 		skipBuild, _ := cmd.Flags().GetBool("skip-build")
 		skipPack, _ := cmd.Flags().GetBool("skip-pack")
 		skipBmp, _ := cmd.Flags().GetBool("skip-bmp")
+		gumroadRequested, _ := cmd.Flags().GetBool("gumroad")
 		channelSuffix, _ := cmd.Flags().GetString("channel-suffix")
 		dryRun, _ := cmd.Flags().GetBool("dry-run")
 		allowDirty, _ := cmd.Flags().GetBool("allow-dirty")
@@ -69,7 +72,7 @@ CI example:
 		}
 		if dryRun {
 			printReleaseGitState(gitState)
-			planErr := printReleasePlan(cfg, skipBuild, skipPack, skipBmp, channelSuffix, changelogOutput, packageFormat, packageOutput)
+			planErr := printReleasePlan(cfg, skipBuild, skipPack, skipBmp, gumroadRequested, channelSuffix, changelogOutput, packageFormat, packageOutput)
 			if gitErr := validateReleaseGit(gitState, allowDirty, allowUnpushed); gitErr != nil {
 				fmt.Printf("Git preflight: %v\n", gitErr)
 				return gitErr
@@ -78,6 +81,17 @@ CI example:
 		}
 		if err := validateReleaseGit(gitState, allowDirty, allowUnpushed); err != nil {
 			return err
+		}
+		if gumroadRequested {
+			if cfg.Butler.Userversion == "" {
+				return fmt.Errorf("Gumroad stable release requires --userversion")
+			}
+			if strings.TrimSpace(cfg.Gumroad.Stable[cfg.Butler.Userversion]) == "" {
+				return fmt.Errorf("no Gumroad stable product configured for version %q (set gumroad.stable.%s in .fe.yaml)", cfg.Butler.Userversion, cfg.Butler.Userversion)
+			}
+			if _, err := exec.LookPath("gumroad"); err != nil {
+				return fmt.Errorf("Gumroad CLI not found; install it and authenticate with gumroad auth login")
+			}
 		}
 		if gitState.IsRepo {
 			fmt.Printf("Release commit: %s (%s)\n", gitState.Commit, gitState.Branch)
@@ -96,8 +110,15 @@ CI example:
 		ui.Title("Release Pipeline")
 		start := time.Now()
 		totalSteps := 3
-		if changelogOutput != "" { totalSteps++ }
-		if packageFormat != "" { totalSteps++ }
+		if gumroadRequested {
+			totalSteps++
+		}
+		if changelogOutput != "" {
+			totalSteps++
+		}
+		if packageFormat != "" {
+			totalSteps++
+		}
 		stepNumber := 1
 
 		// ── Step 1: Build/export ───────────────────────────────────────────
@@ -129,8 +150,8 @@ CI example:
 
 		// A missing build directory is often caused by an empty build.targets
 		// configuration. Catch it before packing assets or attempting an upload.
-		// When --skip-bmp is set, the caller explicitly requested no upload.
-		if !skipBmp {
+		// When both destinations are skipped, no upload directory is required.
+		if !skipBmp || gumroadRequested {
 			if err := validateReleaseBuildDir(cfg.Butler.Directory); err != nil {
 				return err
 			}
@@ -153,7 +174,7 @@ CI example:
 			}
 		}
 
-		if !skipBmp || packageFormat != "" {
+		if !skipBmp || packageFormat != "" || gumroadRequested {
 			commit := gitState.Commit
 			if commit == "" {
 				commit = strings.TrimSpace(os.Getenv("GITHUB_SHA"))
@@ -161,6 +182,11 @@ CI example:
 			manifestPath := filepath.Join(cfg.Butler.Directory, "artifact-manifest.json")
 			if err := writeArtifactManifest(cfg.Butler.Directory, manifestPath, cfg.Butler.Userversion, commit); err != nil {
 				return fmt.Errorf("create artifact manifest: %w", err)
+			}
+		}
+		if gumroadRequested {
+			if err := gumroad.CheckProduct(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable, exec.Command); err != nil {
+				return err
 			}
 		}
 
@@ -219,6 +245,16 @@ CI example:
 			ui.Dim("skipped")
 		}
 
+		if gumroadRequested {
+			fmt.Println()
+			ui.Step(stepNumber+1, totalSteps, "Publish stable release to Gumroad")
+			if err := ui.RunSpinner("Uploading stable release to Gumroad", func() error {
+				return gumroad.Publish(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable, exec.Command)
+			}); err != nil {
+				return fmt.Errorf("Gumroad publish step failed: %w", err)
+			}
+		}
+
 		fmt.Println()
 		ui.OK("Release complete")
 		ui.Elapsed(start)
@@ -263,7 +299,7 @@ func writeReleaseChangelog(output string) error {
 func validateReleaseBuildDir(directory string) error {
 	entries, err := os.ReadDir(directory)
 	if err != nil {
-		return fmt.Errorf("release cannot push to itch.io: build output directory %q is unavailable (%w); configure build.targets in .fe.yaml or provide prebuilt platform folders and set butler.directory to their parent", directory, err)
+		return fmt.Errorf("release cannot upload: build output directory %q is unavailable (%w); configure build.targets in .fe.yaml or provide prebuilt platform folders and set butler.directory to their parent", directory, err)
 	}
 	for _, entry := range entries {
 		if entry.IsDir() {
@@ -302,7 +338,7 @@ func releaseSpriteInputsAvailable(cfg config.PackConfig) bool {
 	return false
 }
 
-func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, channelSuffix, changelogOutput, packageFormat, packageOutput string) error {
+func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp, gumroadRequested bool, channelSuffix, changelogOutput, packageFormat, packageOutput string) error {
 	fmt.Println("Release dry run — no builds, exports, packing, changelog generation, packaging, or uploads will be performed.")
 	fmt.Println()
 	problems := 0
@@ -355,7 +391,7 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, cha
 		fmt.Printf("Package: %s -> %s\n", packageFormat, packageOutput)
 	}
 
-	if !skipBmp || packageFormat != "" {
+	if !skipBmp || packageFormat != "" || gumroadRequested {
 		fmt.Printf("Artifact manifest: %s\n", filepath.Join(cfg.Butler.Directory, "artifact-manifest.json"))
 	}
 	if skipBmp {
@@ -382,6 +418,19 @@ func printReleasePlan(cfg *config.Config, skipBuild, skipPack, skipBmp bool, cha
 			fmt.Printf("   - build directory not currently available: %s\n", cfg.Butler.Directory)
 		}
 	}
+	if gumroadRequested {
+		productID := cfg.Gumroad.Stable[cfg.Butler.Userversion]
+		if cfg.Butler.Userversion == "" {
+			fmt.Println("Gumroad stable upload: missing release version (set --userversion)")
+			problems++
+		} else if productID == "" {
+			fmt.Printf("Gumroad stable upload: no product configured for version %s (set gumroad.stable.%s)\n", cfg.Butler.Userversion, cfg.Butler.Userversion)
+			problems++
+		} else {
+			fmt.Printf("Gumroad stable upload: product %s for version %s\n", productID, cfg.Butler.Userversion)
+			fmt.Println("   - files will be read from the artifact manifest after build/package steps")
+		}
+	}
 	if problems > 0 {
 		return fmt.Errorf("dry run found %d issue(s) to review", problems)
 	}
@@ -396,6 +445,7 @@ func init() {
 	releaseCmd.Flags().Bool("skip-build", false, "skip the build step")
 	releaseCmd.Flags().Bool("skip-pack", false, "skip the sprite pack step")
 	releaseCmd.Flags().Bool("skip-bmp", false, "skip the itch.io push step")
+	releaseCmd.Flags().Bool("gumroad", false, "also upload this stable version to its configured Gumroad product")
 	releaseCmd.Flags().String("changelog-output", "", "write Git-based release notes to this Markdown file")
 	releaseCmd.Flags().String("package-format", "", "also package build artifacts as zip or tar.gz")
 	releaseCmd.Flags().String("package-output", "", "package output path (defaults to dist/<project>-<version>.<format>)")
