@@ -33,14 +33,6 @@ brew install fe
 
 Or download the standalone macOS binary from the releases page.
 
-### Windows
-
-Install the stable release from Chocolatey:
-
-```powershell
-choco install fe
-```
-
 ### Build from source
 
 ```sh
