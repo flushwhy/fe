@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/flushwhy/fe/internal/archivepkg"
+	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -51,7 +52,11 @@ Examples:
 			return fmt.Errorf("create package output directory: %w", err)
 		}
 		if err := archivepkg.Create(directory, output, format); err != nil {
-			return err
+			return &ui.CommandError{
+				Message: "could not package build artifacts",
+				Cause:   err,
+				Hint:    "check that the source directory exists and contains readable files, and that the output path is writable",
+			}
 		}
 		fmt.Printf("Created %s\n", output)
 		return nil
