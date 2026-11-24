@@ -22,7 +22,7 @@ func TestDefaultRunnerReportsProcessExitCode(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected command failure")
 	}
-	if !strings.Contains(err.Error(), "exit code 23") {
-		t.Fatalf("DefaultRunner() error = %q, want exit code 23", err)
+	if !strings.Contains(err.Error(), "exited with code 23") {
+		t.Fatalf("DefaultRunner() error = %q, want an exit-code diagnostic", err)
 	}
 }
