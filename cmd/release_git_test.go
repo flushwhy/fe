@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/flushwhy/fe/internal/ui"
 )
 
 func initReleaseGitRepo(t *testing.T) string {
@@ -33,44 +36,56 @@ func initReleaseGitRepo(t *testing.T) string {
 	return dir
 }
 
-func TestValidateReleaseGitAllowsNonRepository(t *testing.T) {
-	state := releaseGitState{}
-	if err := validateReleaseGit(state, false, false); err != nil {
-		t.Fatalf("non-repository should remain supported: %v", err)
+func TestValidateReleaseGitProvidesDirtyTreeDetailsAndRecoveryHint(t *testing.T) {
+	state := releaseGitState{
+		IsRepo:     true,
+		Dirty:      true,
+		DirtyFiles: []string{"M tracked.txt", "?? new file.txt"},
+	}
+	err := validateReleaseGit(state, false, true)
+	if err == nil {
+		t.Fatal("expected dirty working tree to block release")
+	}
+	var commandErr *ui.CommandError
+	if !errors.As(err, &commandErr) {
+		t.Fatalf("expected ui.CommandError, got %T: %v", err, err)
+	}
+	for _, file := range []string{"M tracked.txt", "?? new file.txt"} {
+		if !strings.Contains(strings.Join(commandErr.Details, "\n"), file) {
+			t.Errorf("release error details %#v do not include %q", commandErr.Details, file)
+		}
+	}
+	if !strings.Contains(commandErr.Hint, "--allow-dirty") {
+		t.Fatalf("recovery hint should explain the explicit override: %q", commandErr.Hint)
 	}
 }
 
-func TestInspectReleaseGitDetectsDirtyTree(t *testing.T) {
-	t.Setenv("GITHUB_SHA", "")
-	dir := initReleaseGitRepo(t)
-	old, err := os.Getwd()
-	if err != nil { t.Fatal(err) }
-	if err := os.Chdir(dir); err != nil { t.Fatal(err) }
-	t.Cleanup(func() { _ = os.Chdir(old) })
-
-	if err := os.WriteFile(filepath.Join(dir, "tracked.txt"), []byte("changed\n"), 0o600); err != nil { t.Fatal(err) }
-	state, err := inspectReleaseGit()
-	if err != nil { t.Fatal(err) }
-	if !state.IsRepo || !state.Dirty || state.Commit == "" { t.Fatalf("unexpected Git state: %+v", state) }
-	if err := validateReleaseGit(state, false, true); err == nil || !strings.Contains(err.Error(), "tracked.txt") {
-		t.Fatalf("expected dirty-tree blocker to list tracked.txt, got %v", err)
+func TestValidateReleaseGitExplainsUnpushedCommits(t *testing.T) {
+	state := releaseGitState{IsRepo: true, UnpushedKnown: true, Unpushed: 3}
+	err := validateReleaseGit(state, true, false)
+	if err == nil {
+		t.Fatal("expected unpushed commits to block release")
 	}
-	if err := validateReleaseGit(state, true, true); err != nil { t.Fatalf("explicit override should allow dirty tree: %v", err) }
+	var commandErr *ui.CommandError
+	if !errors.As(err, &commandErr) {
+		t.Fatalf("expected ui.CommandError, got %T: %v", err, err)
+	}
+	if !strings.Contains(commandErr.Message, "3 commit(s)") || !strings.Contains(commandErr.Hint, "push") {
+		t.Fatalf("unexpected unpushed-commit guidance: %#v", commandErr)
+	}
 }
 
-func TestInspectReleaseGitUntrackedFilesAreDirty(t *testing.T) {
-	t.Setenv("GITHUB_SHA", "")
-	dir := initReleaseGitRepo(t)
-	old, err := os.Getwd()
-	if err != nil { t.Fatal(err) }
-	if err := os.Chdir(dir); err != nil { t.Fatal(err) }
-	t.Cleanup(func() { _ = os.Chdir(old) })
-	if err := os.WriteFile(filepath.Join(dir, "new.txt"), []byte("new\n"), 0o600); err != nil { t.Fatal(err) }
-	state, err := inspectReleaseGit()
-	if err != nil { t.Fatal(err) }
-	if !state.Dirty { t.Fatal("untracked file should make the working tree dirty") }
-	err = validateReleaseGit(state, false, true)
-	if err == nil || !strings.Contains(err.Error(), "new.txt") {
-		t.Fatalf("expected dirty-tree blocker to list new.txt, got %v", err)
+func TestValidateReleaseGitExplainsUnknownRemoteState(t *testing.T) {
+	state := releaseGitState{IsRepo: true}
+	err := validateReleaseGit(state, true, false)
+	if err == nil {
+		t.Fatal("expected unknown remote state to block release")
+	}
+	var commandErr *ui.CommandError
+	if !errors.As(err, &commandErr) {
+		t.Fatalf("expected ui.CommandError, got %T: %v", err, err)
+	}
+	if !strings.Contains(commandErr.Message, "cannot verify") || !strings.Contains(commandErr.Hint, "upstream") {
+		t.Fatalf("unexpected remote-state guidance: %#v", commandErr)
 	}
 }

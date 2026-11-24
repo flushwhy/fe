@@ -63,7 +63,14 @@ platform-only configurations remain supported.`,
 				return err
 			}
 			runtimeName, _ := cmd.Flags().GetString("runtime")
-			return build.RunContainer(cfg.Build.Container, runtimeName)
+			if err := build.RunContainer(cfg.Build.Container, runtimeName); err != nil {
+				return &ui.CommandError{
+					Message: "container build failed",
+					Cause:   err,
+					Hint:    "check that Docker or Podman is running and review the container output above",
+				}
+			}
+			return nil
 		}
 
 		if project, projectErr := findGodotProject("."); projectErr == nil {
@@ -75,10 +82,11 @@ platform-only configurations remain supported.`,
 		}
 
 		if errs := cfg.Validate("build"); len(errs) > 0 {
-			for _, e := range errs {
-				ui.Fail("config: %s", e)
+			return &ui.CommandError{
+				Message: "build configuration is invalid",
+				Details: errs,
+				Hint:    "correct the build settings in .fe.yaml, then run fe validate",
 			}
-			return fmt.Errorf("fix config errors above and try again")
 		}
 
 		targets, err := selectBuildTargets(cfg.Build.Targets, target, platform)
@@ -110,7 +118,11 @@ platform-only configurations remain supported.`,
 		}
 
 		if err := ui.RunSteps(steps); err != nil {
-			return err
+			return &ui.CommandError{
+				Message: "one or more build targets failed",
+				Cause:   err,
+				Hint:    "review the failed target and compiler output above; run fe doctor to check common toolchain issues",
+			}
 		}
 
 		ui.Elapsed(start)

@@ -114,3 +114,32 @@ func TestRun(t *testing.T) {
 		}
 	})
 }
+
+func TestRunTargetErrorIncludesTargetAndConfiguredCommand(t *testing.T) {
+	target := config.BuildTarget{
+		Name:    "linux-release",
+		Platform: "linux-x64",
+		Cmd:     "gcc -o game src/main.c",
+	}
+	err := RunTarget(target, func(string) error {
+		return errors.New("compiler failed")
+	})
+	if err == nil {
+		t.Fatal("expected build target error")
+	}
+	for _, want := range []string{"linux-release", "gcc -o game src/main.c", "compiler failed"} {
+		if !strings.Contains(err.Error(), want) {
+			t.Errorf("RunTarget() error = %q, want it to contain %q", err, want)
+		}
+	}
+}
+
+func TestDefaultRunnerExplainsWhenExecutableCannotStart(t *testing.T) {
+	err := DefaultRunner("fe-command-that-does-not-exist-for-this-test")
+	if err == nil {
+		t.Fatal("expected missing executable error")
+	}
+	if !strings.Contains(err.Error(), "could not start command") {
+		t.Fatalf("DefaultRunner() error = %q, want a start-failure explanation", err)
+	}
+}

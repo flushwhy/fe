@@ -1,12 +1,14 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 
+	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -55,10 +57,11 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		fmt.Printf("SKIP  %s\n", message)
 	}
 	if len(tasks) == 0 {
-		return fmt.Errorf("no static analyzer could run; install a supported analyzer or configure the project first")
+		return &ui.CommandError{Message: "no static analyzer could run", Hint: "install a supported analyzer for the detected language or configure the project before running fe check"}
 	}
 
 	failed := 0
+	var failures []string
 	for _, task := range tasks {
 		fmt.Printf("\nCHECK %s\n", task.name)
 		run := exec.CommandContext(cmd.Context(), task.bin, task.args...)
@@ -67,15 +70,28 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		run.Stderr = os.Stderr
 		if err := run.Run(); err != nil {
 			failed++
+			failures = append(failures, analyzerFailureDetail(task.name, err))
 			fmt.Printf("FAIL  %s: %v\n", task.name, err)
 		} else {
 			fmt.Printf("PASS  %s\n", task.name)
 		}
 	}
 	if failed > 0 {
-		return fmt.Errorf("%d static check(s) failed", failed)
+		return &ui.CommandError{
+			Message: fmt.Sprintf("%d static check(s) failed", failed),
+			Details: failures,
+			Hint:    "run the failed analyzer directly to inspect its diagnostics, then fix the reported source issues",
+		}
 	}
 	return nil
+}
+
+func analyzerFailureDetail(name string, err error) string {
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return fmt.Sprintf("%s exited with code %d", name, exitErr.ExitCode())
+	}
+	return fmt.Sprintf("%s could not start: %v", name, err)
 }
 
 func discoverCheckTasks(root string) ([]checkTask, []string, error) {

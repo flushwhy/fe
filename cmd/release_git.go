@@ -6,6 +6,8 @@ import (
 	"os/exec"
 	"strconv"
 	"strings"
+
+	"github.com/flushwhy/fe/internal/ui"
 )
 
 type releaseGitState struct {
@@ -103,19 +105,23 @@ func validateReleaseGit(state releaseGitState, allowDirty, allowUnpushed bool) e
 		return nil
 	}
 	if state.Dirty && !allowDirty {
-		var details strings.Builder
-		fmt.Fprintln(&details, "release blocked: Git working tree has uncommitted or untracked changes:")
-		for _, file := range state.DirtyFiles {
-			fmt.Fprintf(&details, "  %s\n", file)
+		return &ui.CommandError{
+			Message: "release blocked: Git working tree is not clean",
+			Details: state.DirtyFiles,
+			Hint:    "commit or stash these changes before releasing; use --allow-dirty only when you intentionally want to publish from a dirty tree",
 		}
-		fmt.Fprint(&details, "Commit or stash these changes, or explicitly pass --allow-dirty")
-		return fmt.Errorf("%s", details.String())
 	}
 	if !state.UnpushedKnown && !allowUnpushed {
-		return fmt.Errorf("release blocked: cannot verify that HEAD is present on a remote; configure an upstream or explicitly pass --allow-unpushed")
+		return &ui.CommandError{
+			Message: "release blocked: Fe cannot verify that HEAD is present on a remote",
+			Hint:    "configure and fetch an upstream branch, or pass --allow-unpushed if this checkout is intentionally not tracking a remote",
+		}
 	}
 	if state.Unpushed > 0 && !allowUnpushed {
-		return fmt.Errorf("release blocked: HEAD is %d commit(s) ahead of its upstream; push the commits or explicitly pass --allow-unpushed", state.Unpushed)
+		return &ui.CommandError{
+			Message: fmt.Sprintf("release blocked: HEAD is %d commit(s) ahead of its upstream", state.Unpushed),
+			Hint:    "push the commits before releasing, or pass --allow-unpushed only when publishing this checkout is intentional",
+		}
 	}
 	return nil
 }

@@ -39,10 +39,11 @@ Example:
 			return err
 		}
 		if errs := cfg.Validate("pack"); len(errs) > 0 {
-			for _, e := range errs {
-				ui.Fail("config: %s", e)
+			return &ui.CommandError{
+				Message: "sprite packing configuration is invalid",
+				Details: errs,
+				Hint:    "correct the pack settings in .fe.yaml, then run fe validate",
 			}
-			return fmt.Errorf("missing required config")
 		}
 
 		ui.Title("Packing sprites")
@@ -56,7 +57,11 @@ Example:
 			return pack.Run(cfg.Pack)
 		})
 		if err != nil {
-			return err
+			return &ui.CommandError{
+				Message: "sprite packing failed",
+				Cause:   err,
+				Hint:    "check that the input directory contains readable PNG files and that the output directory is writable",
+			}
 		}
 
 		ui.Elapsed(start)
