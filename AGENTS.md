@@ -10,8 +10,7 @@ Before changing files or running build commands:
 
 1. Confirm that `fe` is installed and available:
    ```sh
-   fe --version
-   fe --help
+      fe --help
    ```
 2. Inspect the project:
    ```sh
@@ -315,7 +314,28 @@ Gumroad stable uploads require explicit version-to-product mappings. Do not inve
 
 For normal agent build tasks, stop after a successful build and report the artifact paths. Ask before running any publishing command.
 
-## 9. Completion checklist
+## 9. Other supported CLI workflows
+
+These commands are available in addition to the build workflows above. Read their command help before using them:
+
+| Command | Purpose |
+|---|---|
+| `fe sync [path]` | Sync Fe-managed project files and required local tools. Inspect the planned changes and resulting files. |
+| `fe clean [path]` | Remove Fe-managed files and registrations. This is destructive; use `fe clean --dry-run` first and never run a real cleanup without explicit approval. |
+| `fe template list` / `fe template update <id>` | Browse remote templates and refresh a local cached template. |
+| `fe inspect [path]` / `fe setup [path]` | Detect project markers and report tool requirements. |
+| `fe fix compile-commands [path]` | Repair a C/C++ compilation database for clangd. |
+| `fe add <tool>` | Add supported editor/LSP configuration (`clangd`, `ols`, `zls`, `gopls`). |
+| `fe check [path]` | Run available language-aware static analyzers. |
+| `fe watch` | Watch supported project files and run configured development actions. |
+| `fe tui` | Open the interactive terminal dashboard. |
+| `fe update` / `fe update check` | Check for Fe updates and, for supported package-managed installs, request an update. Direct-binary and rolling update paths have limitations; inspect the command output and help. |
+
+Other shipping commands are documented above: `build`, `export`, `pack`, `transcode`, `bmp`, `package`, `manifest`, `changelog`, `release`, and `gumroad release`.
+
+Do not use `fe clean`, `fe update`, or any publishing command as an automatic troubleshooting step. These can change the project, installed Fe version, or remote state.
+
+## 10. Completion checklist
 
 Before reporting that a project is rebuildable:
 
