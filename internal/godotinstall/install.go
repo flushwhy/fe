@@ -386,11 +386,11 @@ func extractArchive(archivePath, destination string) error {
 	defer root.Close()
 	var total uint64
 	for _, entry := range reader.File {
-		name := strings.TrimSuffix(entry.Name, "/")
-		if err := archivepath.Validate(name); err != nil {
+		entryName := strings.TrimSuffix(entry.Name, "/")
+		if err := archivepath.Validate(entryName); err != nil {
 			return fmt.Errorf("archive contains unsafe path %q: %w", entry.Name, err)
 		}
-		rawName := filepath.FromSlash(name)
+		rawName := filepath.FromSlash(entryName)
 		if !filepath.IsLocal(rawName) {
 			return fmt.Errorf("archive contains unsafe path %q", entry.Name)
 		}
