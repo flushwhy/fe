@@ -93,6 +93,7 @@ func analyzerFailureDetail(name string, err error) string {
 	}
 	return fmt.Sprintf("%s could not start: %v", name, err)
 }
+
 func discoverCheckTasks(root string) ([]checkTask, []string, error) {
 	tasks := []checkTask{}
 	skipped := []string{}
