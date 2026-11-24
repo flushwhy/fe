@@ -215,11 +215,19 @@ func updateProcessError(manager string, err error) *ui.CommandError {
 func inspectFeUpdate(cmd *cobra.Command) (updateInfo, error) {
 	install, err := update.Detect(cmd.Context(), update.Method(updateMethod))
 	if err != nil {
-		return updateInfo{}, err
+		return updateInfo{}, &ui.CommandError{
+			Message: "could not identify how Fe was installed",
+			Cause:   err,
+			Hint:    "check the installation method or pass --method when you know which package manager installed Fe",
+		}
 	}
 	release, err := update.Latest(cmd.Context(), updateChannel)
 	if err != nil {
-		return updateInfo{}, err
+		return updateInfo{}, &ui.CommandError{
+			Message: "could not check the latest Fe release",
+			Cause:   err,
+			Hint:    "check your network connection and GitHub availability, then retry fe update check",
+		}
 	}
 
 	info := updateInfo{install: install, release: release}
