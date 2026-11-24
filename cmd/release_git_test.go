@@ -1,11 +1,14 @@
 package cmd
 
 import (
+	"errors"
 	"os"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/flushwhy/fe/internal/ui"
 )
 
 func initReleaseGitRepo(t *testing.T) string {
