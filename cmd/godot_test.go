@@ -374,3 +374,31 @@ func TestActivateProjectGodotPathIsTemporary(t *testing.T) {
 		t.Fatal("PATH was not restored after project command")
 	}
 }
+func TestGodotExtensionInitDoesNotFollowManifestSymlink(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation may require elevated privileges")
+	}
+	project := t.TempDir()
+	if err := os.WriteFile(filepath.Join(project, "project.godot"), []byte("config_version=5\n"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	outside := filepath.Join(t.TempDir(), "important.txt")
+	if err := os.WriteFile(outside, []byte("keep this file"), 0o600); err != nil {
+		t.Fatal(err)
+	}
+	if err := os.Symlink(outside, filepath.Join(project, "fe_godot_extension.gdextension")); err != nil {
+		t.Fatal(err)
+	}
+	t.Chdir(project)
+
+	if err := godotExtensionInitCmd.RunE(godotExtensionInitCmd, nil); err == nil {
+		t.Fatal("expected scaffold creation to reject an existing manifest symlink")
+	}
+	got, err := os.ReadFile(outside)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "keep this file" {
+		t.Fatalf("symlink target was modified: %q", got)
+	}
+}
