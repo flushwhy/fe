@@ -360,6 +360,14 @@ butler:
         <div class="release-grid" id="release-downloads" aria-live="polite">
           <article class="release-card clay"><p class="release-status">Loading GitHub Releases…</p></article>
         </div>
+        <article class="clay release-card" style="margin-top:20px">
+          <h3>Prefer your package manager?</h3>
+          <p class="release-status">macOS · <code>brew tap flushwhy/tap && brew install fe</code></p>
+          <p class="release-status">Debian / Ubuntu · download the matching <code>.deb</code>, then run <code>sudo apt install ./fe_VERSION_amd64.deb</code>.</p>
+          <p class="release-status">Windows · use <code>choco install fe</code> when the package is available from your Chocolatey source; otherwise use the Windows executable above.</p>
+          <p class="release-status">Fe does not add package-manager sources for you. Package-manager updates are for supported stable installations; direct binaries can be checked but are not replaced automatically.</p>
+          <div class="release-links"><a href="https://github.com/flushwhy/fe/blob/master/readme.md" target="_blank" rel="noreferrer">Full install instructions ↗</a></div>
+        </article>
       </div>
     </section>
 
@@ -382,6 +390,7 @@ butler:
           <article class="command" data-search="blender addon plugin"><code>fe blender</code><p>Support Blender add-on project workflows.</p></article>
           <article class="command" data-search="pack spritesheet image assets"><code>fe pack</code><p>Pack source sprites into configured sprite sheets.</p></article>
           <article class="command" data-search="transcode ffmpeg audio video mp4 webm"><code>fe transcode</code><p>Convert audio and video through FFmpeg, including game-friendly MP4 and WebM defaults.</p></article>
+          <article class="command" data-search="get install odin package repository url"><code>fe get</code><p>Alias for installing an Odin package from a repository URL.</p></article>
           <article class="command" data-search="install library tool"><code>fe install</code><p>Download an Odin source package into your local package directory. Existing destinations are never overwritten.</p></article>
           <article class="command" data-search="add dependency library"><code>fe add</code><p>Write editor and language-server configuration for tools such as clangd, OLS, ZLS, and gopls.</p></article>
           <article class="command" data-search="check static analysis lint code quality"><code>fe check [path]</code><p>Run available static analyzers for supported languages and explain missing tools.</p></article>
@@ -595,6 +604,7 @@ butler:
         "fe blender": { about:"Validate and package Blender add-on projects without executing add-on code.", subcommands:[["validate [path]","Check the add-on structure and metadata."],["package [path]","Create an installable ZIP archive."]], examples:["fe blender validate","fe blender package ./my-addon"] },
         "fe pack": { about:"Pack PNG sprites into one or more spritesheets.", options:["--input <directory>  Directory containing PNG sprites.","--output <path>  Output spritesheet path."], examples:["fe pack"] },
         "fe transcode": { about:"Convert audio and video files through FFmpeg using Fe's configured options and sensible game-oriented defaults.", examples:["fe transcode --help"] },
+        "fe get": { about:"Install an Odin package from an HTTPS repository URL. This is an alias for the URL form of fe install.", usage:["fe get <repository-url>"], examples:["fe get https://github.com/owner/package"] },
         "fe install": { about:"Download an Odin source package by alias or HTTPS repository URL. Existing package destinations are never overwritten.", usage:["fe install <package>","fe get <repository-url>"], options:["--dir <path>  Package destination (defaults to mylibs or packages.directory)."], examples:["fe install ltdk","fe get https://github.com/owner/package"] }, 
         "fe add": { about:"Write or patch editor and language-server configuration for the current project. It does not install the language server.", usage:["fe add <tool>"], examples:["fe add clangd","fe add ols","fe add zls","fe add gopls"] }, 
         "fe inspect [path]": { about:"Detect project types and ecosystem markers. This is an inspection command; it does not scaffold or rewrite files.", usage:["fe inspect [path]"], examples:["fe inspect","fe inspect ./game"] },
