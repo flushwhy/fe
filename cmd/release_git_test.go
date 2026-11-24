@@ -2,10 +2,13 @@ package cmd
 
 import (
 	"os"
+	"errors"
 	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/flushwhy/fe/internal/ui"
 )
 
 func initReleaseGitRepo(t *testing.T) string {
@@ -72,5 +75,60 @@ func TestInspectReleaseGitUntrackedFilesAreDirty(t *testing.T) {
 	err = validateReleaseGit(state, false, true)
 	if err == nil || !strings.Contains(err.Error(), "new.txt") {
 		t.Fatalf("expected dirty-tree blocker to list new.txt, got %v", err)
+	}
+}
+
+func TestValidateReleaseGitProvidesDirtyTreeDetailsAndRecoveryHint(t *testing.T) {
+	state := releaseGitState{
+		IsRepo:     true,
+		Dirty:      true,
+		DirtyFiles: []string{"M tracked.txt", "?? new file.txt"},
+	}
+	err := validateReleaseGit(state, false, true)
+	if err == nil {
+		t.Fatal("expected dirty working tree to block release")
+	}
+	var commandErr *ui.CommandError
+	if !errors.As(err, &commandErr) {
+		t.Fatalf("expected ui.CommandError, got %T: %v", err, err)
+	}
+	if commandErr.Message != "release blocked: Git working tree is not clean" {
+		t.Fatalf("unexpected summary: %q", commandErr.Message)
+	}
+	if strings.Join(commandErr.Details, "|") != "M tracked.txt|?? new file.txt" {
+		t.Fatalf("unexpected dirty-file details: %#v", commandErr.Details)
+	}
+	if !strings.Contains(commandErr.Hint, "--allow-dirty") {
+		t.Fatalf("recovery hint should explain the explicit override: %q", commandErr.Hint)
+	}
+}
+
+func TestValidateReleaseGitExplainsUnpushedCommits(t *testing.T) {
+	state := releaseGitState{IsRepo: true, UnpushedKnown: true, Unpushed: 3}
+	err := validateReleaseGit(state, true, false)
+	if err == nil {
+		t.Fatal("expected unpushed commits to block release")
+	}
+	var commandErr *ui.CommandError
+	if !errors.As(err, &commandErr) {
+		t.Fatalf("expected ui.CommandError, got %T: %v", err, err)
+	}
+	if !strings.Contains(commandErr.Message, "3 commit(s)") || !strings.Contains(commandErr.Hint, "push") {
+		t.Fatalf("unexpected unpushed-commit guidance: %#v", commandErr)
+	}
+}
+
+func TestValidateReleaseGitExplainsUnknownRemoteState(t *testing.T) {
+	state := releaseGitState{IsRepo: true}
+	err := validateReleaseGit(state, true, false)
+	if err == nil {
+		t.Fatal("expected unknown remote state to block release")
+	}
+	var commandErr *ui.CommandError
+	if !errors.As(err, &commandErr) {
+		t.Fatalf("expected ui.CommandError, got %T: %v", err, err)
+	}
+	if !strings.Contains(commandErr.Message, "cannot verify") || !strings.Contains(commandErr.Hint, "upstream") {
+		t.Fatalf("unexpected remote-state guidance: %#v", commandErr)
 	}
 }
