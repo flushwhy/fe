@@ -231,6 +231,12 @@ For a project another developer or CI agent can rebuild:
 
 Fe is a helper around your project—not a replacement for its source files or native build system.
 
+## Updating Fe
+
+Run `fe update check` to inspect the latest release and your detected installation method. Package-managed stable installations can be updated through their package manager when that source has caught up with GitHub Releases. Direct binaries can be checked but are not replaced by Fe yet. Rolling-channel checks are available, but rolling updates are not automated.
+
+Use the release page to install a newer direct binary manually. Do not assume `fe update` can replace a binary installed outside a supported package manager.
+
 ## Command reference
 
 Run `fe --help` for the full command tree, or `fe <command> --help` for flags and examples. The website's [command explorer](https://flushwhy.github.io/fe/#commands) provides a searchable overview.
