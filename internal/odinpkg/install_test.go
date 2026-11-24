@@ -53,6 +53,10 @@ func TestCleanArchivePath(t *testing.T) {
 		{"repo\\\\outside.odin", "", false},
 		{"repo//main.odin", "", false},
 		{"repo/./main.odin", "", false},
+		{"repo/CON", "", false},
+		{"repo/file:stream", "", false},
+		{"repo/trailing.", "", false},
+		{"repo/trailing ", "", false},
 	}
 	for _, tt := range tests {
 		got, err := cleanArchivePath(tt.name)

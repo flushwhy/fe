@@ -12,6 +12,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"github.com/flushwhy/fe/internal/archivepath"
 )
 
 const maxArchiveSize = 50 << 20
@@ -205,6 +207,9 @@ func cleanArchivePath(name string) (string, error) {
 	clean := path.Clean(strings.TrimSuffix(name, "/"))
 	if clean == "." || clean == ".." || strings.HasPrefix(clean, "../") || clean != strings.TrimSuffix(name, "/") {
 		return "", fmt.Errorf("archive path escapes or is not canonical: %q", name)
+	}
+	if err := archivepath.Validate(clean); err != nil {
+		return "", fmt.Errorf("archive path %q is not portable: %w", name, err)
 	}
 	return clean, nil
 }
