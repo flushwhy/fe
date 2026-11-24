@@ -310,20 +310,92 @@ func parseAPTCandidate(out []byte) (string, error) {
 func CompareVersions(a, b string) int {
 	a = strings.TrimPrefix(strings.TrimSpace(a), "v")
 	b = strings.TrimPrefix(strings.TrimSpace(b), "v")
-	parse := func(value string) ([]int, string) {
-		base, suffix, _ := strings.Cut(value, "-")
+	parse := func(value string) ([3]string, string) {
+		base, prerelease, _ := strings.Cut(value, "-")
 		base, _, _ = strings.Cut(base, "+")
 		fields := strings.Split(base, ".")
-		numbers := make([]int, 3)
-		for i := 0; i < len(fields) && i < 3; i++ { numbers[i], _ = strconv.Atoi(fields[i]) }
-		return numbers, suffix
+		var numbers [3]string
+		for i := 0; i < len(fields) && i < len(numbers); i++ {
+			numbers[i] = fields[i]
+		}
+		return numbers, prerelease
 	}
-	av, apre := parse(a); bv, bpre := parse(b)
-	for i := range av { if av[i] < bv[i] { return -1 }; if av[i] > bv[i] { return 1 } }
-	if apre == bpre { return 0 }
-	if apre == "" { return 1 }
-	if bpre == "" { return -1 }
-	return strings.Compare(apre, bpre)
+	av, apre := parse(a)
+	bv, bpre := parse(b)
+	for i := range av {
+		if comparison := compareNumericIdentifiers(av[i], bv[i]); comparison != 0 {
+			return comparison
+		}
+	}
+	if apre == bpre {
+		return 0
+	}
+	if apre == "" {
+		return 1
+	}
+	if bpre == "" {
+		return -1
+	}
+	return comparePrerelease(apre, bpre)
+}
+
+// comparePrerelease follows SemVer identifier ordering: numeric identifiers
+// compare numerically, numeric identifiers sort before non-numeric ones, and
+// otherwise identifiers compare lexically.
+func comparePrerelease(a, b string) int {
+	left, right := strings.Split(a, "."), strings.Split(b, ".")
+	for i := 0; i < len(left) && i < len(right); i++ {
+		if left[i] == right[i] {
+			continue
+		}
+		leftNumeric := isNumericIdentifier(left[i])
+		rightNumeric := isNumericIdentifier(right[i])
+		switch {
+		case leftNumeric && rightNumeric:
+			if comparison := compareNumericIdentifiers(left[i], right[i]); comparison != 0 {
+				return comparison
+			}
+		case leftNumeric:
+			return -1
+		case rightNumeric:
+			return 1
+		default:
+			return strings.Compare(left[i], right[i])
+		}
+	}
+	if len(left) < len(right) {
+		return -1
+	}
+	if len(left) > len(right) {
+		return 1
+	}
+	return 0
+}
+
+func isNumericIdentifier(value string) bool {
+	if value == "" {
+		return false
+	}
+	for _, r := range value {
+		if r < '0' || r > '9' {
+			return false
+		}
+	}
+	return true
+}
+
+// compareNumericIdentifiers compares non-negative decimal strings without
+// converting to a fixed-width integer.
+func compareNumericIdentifiers(a, b string) int {
+	a = strings.TrimLeft(a, "0")
+	b = strings.TrimLeft(b, "0")
+	if len(a) < len(b) {
+		return -1
+	}
+	if len(a) > len(b) {
+		return 1
+	}
+	return strings.Compare(a, b)
 }
 
 // ComparePackageVersions accounts for Debian epochs and package revisions.
