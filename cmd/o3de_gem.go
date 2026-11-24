@@ -3,9 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/flushwhy/fe/internal/o3de"
@@ -135,7 +133,7 @@ func runO3DECLI(cmd *cobra.Command, args ...string) error {
 	if cliPath == "" {
 		return fmt.Errorf("could not find O3DE CLI for engine %q", engine.Path)
 	}
-	executable, cliArgs, err := o3de.CLIInvocation(runtime.GOOS, cliPath, args)
+	child, err := o3de.NewCLICommand(cmd.Context(), cliPath, args)
 	if err != nil {
 		return &ui.CommandError{
 			Message: "could not safely start the O3DE command",
@@ -143,7 +141,6 @@ func runO3DECLI(cmd *cobra.Command, args ...string) error {
 			Hint:    "remove percent signs, quotation marks, or line breaks from Windows batch arguments, then retry",
 		}
 	}
-	child := exec.CommandContext(cmd.Context(), executable, cliArgs...)
 	child.Stdout = os.Stdout
 	child.Stderr = os.Stderr
 	child.Stdin = os.Stdin
