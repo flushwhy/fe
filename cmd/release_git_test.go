@@ -48,7 +48,7 @@ func TestValidateReleaseGitProvidesDirtyTreeDetailsAndRecoveryHint(t *testing.T)
 		t.Fatalf("expected ui.CommandError, got %T: %v", err, err)
 	}
 	for _, file := range []string{"M tracked.txt", "?? new file.txt"} {
-		if !containsString(commandErr.Details, file) {
+		if !strings.Contains(strings.Join(commandErr.Details, "\n"), file) {
 			t.Errorf("release error details %#v do not include %q", commandErr.Details, file)
 		}
 	}
