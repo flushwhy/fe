@@ -14,36 +14,9 @@ fe release --dry-run  preview the release plan without side effects
 fe export --list-presets  inspect Godot export presets and output paths
 fe manifest       write artifact inventory and SHA-256 checksums
 fe changelog      generate Markdown release notes from Git history and tags
-fe validate       pre-flight config & path check\nfe check [path]   run available static analyzers
+fe validate       pre-flight config & path check
 fe doctor         diagnose local toolchain and config issues
-fe tui            interactive terminal UI (local only)
 ```
-
-For Open 3D Engine (O3DE) workflows, fe also provides engine discovery and build helpers:
-
-```sh
-fe o3de doctor
-fe o3de find engines
-fe o3de find projects
-fe o3de find gems
-fe o3de find templates
-fe o3de build --build-dir <configured-build-directory>
-# Multi-config generators and selected targets:
-fe o3de build --build-dir build --config Profile --target MyProject
-```
-
-## Smart static checker
-
-`fe check` detects supported source languages and runs their local static analyzers when available. Missing tools are reported with setup instructions; Fe does not install them automatically.
-
-| Language | Checker | Enable it |
-|---|---|---|
-| Go | `go vet ./...` | Install Go from [go.dev/dl](https://go.dev/dl/) |
-| C/C++ | `clang-tidy` | Install clang-tidy and configure CMake with `-DCMAKE_EXPORT_COMPILE_COMMANDS=ON` |
-| Python | Ruff | `python -m pip install ruff` |
-| JavaScript/TypeScript | ESLint | `npm install --save-dev eslint` |
-
-Example: `fe check .`. Generated folders such as `node_modules`, `build`, and `dist` are excluded.
 
 ## Install
 
@@ -69,11 +42,6 @@ sudo mv fe /usr/local/bin/
 
 # Linux ARM64
 curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-arm64 -o fe
-chmod +x fe
-sudo mv fe /usr/local/bin/
-
-# Linux RISC-V 64-bit (native riscv64)
-curl -L https://github.com/flushwhy/fe/releases/latest/download/fe-linux-riscv64 -o fe
 chmod +x fe
 sudo mv fe /usr/local/bin/
 
@@ -244,42 +212,6 @@ For Godot projects, configure export presets in Godot and commit `export_presets
 
 Godot presets for Windows Desktop, Linux, and macOS are placed in `windows-x64/`, `linux-x64/`, and `macos-arm64/` respectively, ready for the existing Butler folder convention. Adjust `godot.output_dir` in `.fe.yaml` if you use a different build root. `fe release` automatically exports presets when run from a directory containing `project.godot`; non-Godot projects continue to use `build.targets`.
 
-## Open 3D Engine (O3DE)
-
-The `fe o3de` commands help locate local O3DE resources and work with an already configured CMake build directory. They are discovery/build helpers, not a replacement for installing or configuring O3DE.
-
-### Diagnose your setup
-
-```sh
-fe o3de doctor
-```
-
-Checks the local O3DE setup and reports useful information about the detected environment.
-
-### Find engines, projects, gems, and templates
-
-```sh
-fe o3de find engines
-fe o3de find projects
-fe o3de find gems
-fe o3de find templates
-```
-
-Discovery uses registered O3DE manifest entries and bounded local filesystem search. Use `--path` to choose a search root, `--depth` to limit how far discovery descends, and `--registered-only` to restrict results to manifest-registered resources. For example:
-
-```sh
-fe o3de find projects --path ~/dev --depth 3
-fe o3de find engines --registered-only
-```
-
-### Build an existing configured build directory
-
-```sh
-fe o3de build --build-dir /path/to/build
-```
-
-Pass the existing CMake build directory for your O3DE project. Use `--config Debug`, `--config Profile`, or `--config Release` with multi-config generators, and repeat `--target` to build selected targets. Fe invokes CMake and summarizes common failures; configure the project/build directory with the O3DE workflow first.
-
 ## Builds directory convention
 
 `fe bmp` and `fe release` look for platform folders inside `builds/`:
@@ -298,25 +230,6 @@ Supported arches: `x64`, `x32`, `arm64`, `arm32`
 ## Release checklist
 
 Before publishing a stable version, use the [release checklist](docs/releasing.md) to verify CI, release assets, installation smoke tests, and the deployed documentation site.
-
-## TUI
-
-Run `fe tui` from an interactive terminal to open the Bubble Tea menu for common project, shipping, doctor, and configuration workflows. The TUI requires both keyboard input and terminal output, so it does not start in a non-interactive CI environment.
-
-- While a command is running, press **Ctrl+C** to cancel that command and return to the TUI.
-- When the TUI is idle, press **Ctrl+C** or **q** to exit.
-
-The TUI calls the existing `fe` commands, so command behavior remains consistent with using the CLI directly.
-
-## Watch mode
-
-Run `fe watch` to monitor supported project files and trigger the configured development actions. Pass multiple directory names after one `--ignore-dir` flag to exclude extra directories, such as generated output or asset caches:
-
-```sh
-fe watch --ignore-dir generated cache
-```
-
-The directory names are collected until the next flag (starting with `--`), so you can still add other options afterward. Custom ignored directory names are matched case-insensitively and apply to nested directories, including matching directories created while watch mode is running.
 
 ## Release preview and artifact manifest
 
@@ -337,31 +250,9 @@ fe wraps existing tools — you need them installed separately:
 | `fe bmp` | [butler](https://itch.io/docs/butler/) |
 | `fe transcode` | [ffmpeg](https://ffmpeg.org/) |
 | `fe build` | whatever compiler your targets use |
-| `fe o3de build` | an O3DE project with an existing configured CMake build directory |
 
 ## License
 
 GPL-3.0
 
 
-## Archive packages
-
-Use `fe package` to create a portable archive from the configured build directory:
-
-```sh
-fe package --format zip
-fe package --dir builds/linux-x64 --format tar.gz --version 1.2.0
-```
-
-The command writes a versioned archive under `dist/` by default. ZIP and gzip-compressed TAR are supported; symlinks and non-regular files are excluded.
-
-## Release orchestration
-
-`fe release --dry-run` inspects the configured build/export targets, sprite packing, and itch.io publishing requirements without running commands or uploading anything. Optional release stages can generate notes and package artifacts:
-
-```sh
-fe release --changelog-output dist/RELEASE-NOTES.md --package-format zip
-fe release --dry-run --changelog-output dist/RELEASE-NOTES.md --package-format tar.gz
-```
-
-Packaging and changelog generation are opt-in; omitting these flags preserves the existing release behavior.
