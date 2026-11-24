@@ -68,3 +68,47 @@ jobs:
           test "$(command -v fe)" = "/usr/bin/fe"
           fe --help >/dev/null
           fe o3de --help >/dev/null
+  docs-site:
+    name: Validate documentation site
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Validate HTML and embedded JavaScript
+        run: |
+          python3 - <<'PY'
+          from html.parser import HTMLParser
+          from pathlib import Path
+
+          class SiteParser(HTMLParser):
+              def __init__(self):
+                  super().__init__(convert_charrefs=True)
+                  self.scripts = []
+                  self.in_script = False
+                  self.current = []
+
+              def handle_starttag(self, tag, attrs):
+                  if tag == "script":
+                      self.in_script = True
+                      self.current = []
+
+              def handle_endtag(self, tag):
+                  if tag == "script" and self.in_script:
+                      self.scripts.append("\\n".join(self.current))
+                      self.in_script = False
+
+              def handle_data(self, data):
+                  if self.in_script:
+                      self.current.append(data)
+
+          source = Path("docs/site/index.html").read_text(encoding="utf-8")
+          parser = SiteParser()
+          parser.feed(source)
+          parser.close()
+          if not parser.scripts:
+              raise SystemExit("No embedded JavaScript block found")
+          Path("/tmp/fe-site.js").write_text("\\n".join(parser.scripts), encoding="utf-8")
+          print("HTML parsed; embedded JavaScript extracted.")
+          PY
+          node --check /tmp/fe-site.js
