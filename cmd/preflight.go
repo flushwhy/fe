@@ -70,6 +70,7 @@ func runPreflight(cfg *config.Config, stage string) error {
 			Details: details,
 			Hint:    "resolve the failed checks above, then rerun fe preflight",
 		}
+	}
 	return nil
 }
 
