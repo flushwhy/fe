@@ -125,6 +125,7 @@ func TestCompareVersions(t *testing.T) {
 		{"1.0.0-alpha", "1.0.0-1", 1},
 		{"1.0.0-rc.1", "1.0.0-rc.1.1", -1},
 		{"1.0.0+build.2", "1.0.0+build.1", 0},
+		{"1.0.0-rc.1+build.2", "1.0.0-rc.1+build.1", 0},
 	}
 	for _, test := range tests {
 		if got := CompareVersions(test.a, test.b); got != test.want {
