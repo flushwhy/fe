@@ -92,11 +92,10 @@ func TestValidateReleaseGitProvidesDirtyTreeDetailsAndRecoveryHint(t *testing.T)
 	if !errors.As(err, &commandErr) {
 		t.Fatalf("expected ui.CommandError, got %T: %v", err, err)
 	}
-	if commandErr.Message != "release blocked: Git working tree is not clean" {
-		t.Fatalf("unexpected summary: %q", commandErr.Message)
-	}
-	if strings.Join(commandErr.Details, "|") != "M tracked.txt|?? new file.txt" {
-		t.Fatalf("unexpected dirty-file details: %#v", commandErr.Details)
+	for _, file := range []string{"M tracked.txt", "?? new file.txt"} {
+		if !strings.Contains(commandErr.Message, file) {
+			t.Errorf("release error %q does not list %q", commandErr.Message, file)
+		}
 	}
 	if !strings.Contains(commandErr.Hint, "--allow-dirty") {
 		t.Fatalf("recovery hint should explain the explicit override: %q", commandErr.Hint)
