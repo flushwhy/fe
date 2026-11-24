@@ -104,7 +104,7 @@ func TestCLIInvocationQuotesWindowsBatchArguments(t *testing.T) {
 }
 
 func TestCLIInvocationRejectsBatchArgumentsThatCannotBeSafelyQuoted(t *testing.T) {
-	for _, value := range []string{"100%ready", `quoted"name`, "line\nbreak", "line\rbreak"} {
+	for _, value := range []string{"100%ready", `quoted"name`, "line\nbreak", "line\rbreak", "tab\tbreak"} {
 		t.Run(value, func(t *testing.T) {
 			_, _, err := CLIInvocation("windows", `C:\O3DE\scripts\o3de.bat`, []string{"register", "--project-name", value})
 			if err == nil {
