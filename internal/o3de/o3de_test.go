@@ -60,11 +60,14 @@ func TestFindEngineReadsEngineManifest(t *testing.T) {
 
 func TestCLIInvocationUsesCommandInterpreterForWindowsBatchFiles(t *testing.T) {
 	for _, path := range []string{`C:\Program Files\O3DE\scripts\o3de.bat`, `C:\Tools\o3de.cmd`} {
-		executable, args := CLIInvocation("windows", path, []string{"register", "--engine-path", `C:\My Engine`})
+		executable, args, err := CLIInvocation("windows", path, []string{"register", "--engine-path", `C:\My Engine`})
+		if err != nil {
+			t.Fatal(err)
+		}
 		if executable != "cmd.exe" {
 			t.Fatalf("expected cmd.exe for %q, got %q", path, executable)
 		}
-		want := []string{"/d", "/c", "call", path, "register", "--engine-path", `C:\My Engine`}
+		want := []string{"/d", "/v:off", "/s", "/c", `""` + path + `" "register" "--engine-path" "C:\My Engine""`}
 		if !reflect.DeepEqual(args, want) {
 			t.Fatalf("unexpected command args: got %#v, want %#v", args, want)
 		}
@@ -73,12 +76,47 @@ func TestCLIInvocationUsesCommandInterpreterForWindowsBatchFiles(t *testing.T) {
 
 func TestCLIInvocationRunsNonBatchScriptsDirectly(t *testing.T) {
 	for _, goos := range []string{"linux", "darwin", "windows"} {
-		executable, args := CLIInvocation(goos, "/opt/o3de/scripts/o3de.sh", []string{"find", "engines"})
+		executable, args, err := CLIInvocation(goos, "/opt/o3de/scripts/o3de.sh", []string{"find", "engines"})
+		if err != nil {
+			t.Fatal(err)
+		}
 		if executable != "/opt/o3de/scripts/o3de.sh" {
 			t.Fatalf("unexpected executable for %s: %q", goos, executable)
 		}
 		if !reflect.DeepEqual(args, []string{"find", "engines"}) {
 			t.Fatalf("unexpected args for %s: %#v", goos, args)
 		}
+	}
+}
+
+func TestCLIInvocationQuotesWindowsBatchArguments(t *testing.T) {
+	executable, args, err := CLIInvocation("windows", `C:\Program Files\O3DE\scripts\o3de.bat`, []string{"register", "--project-name", "Game & Tools"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if executable != "cmd.exe" {
+		t.Fatalf("expected cmd.exe, got %q", executable)
+	}
+	want := []string{"/d", "/v:off", "/s", "/c", `""C:\Program Files\O3DE\scripts\o3de.bat" "register" "--project-name" "Game & Tools""`}
+	if !reflect.DeepEqual(args, want) {
+		t.Fatalf("unexpected command args: got %#v, want %#v", args, want)
+	}
+}
+
+func TestCLIInvocationRejectsBatchArgumentsThatCannotBeSafelyQuoted(t *testing.T) {
+	for _, value := range []string{"100%ready", `quoted"name`, "line\nbreak", "line\rbreak"} {
+		t.Run(value, func(t *testing.T) {
+			_, _, err := CLIInvocation("windows", `C:\O3DE\scripts\o3de.bat`, []string{"register", "--project-name", value})
+			if err == nil {
+				t.Fatalf("CLIInvocation accepted unsafe batch argument %q", value)
+			}
+		})
+	}
+}
+
+func TestCLIInvocationRejectsBatchScriptPathWithPercent(t *testing.T) {
+	_, _, err := CLIInvocation("windows", `C:\O3DE%BUILD%\scripts\o3de.bat`, nil)
+	if err == nil {
+		t.Fatal("CLIInvocation accepted a batch script path containing percent expansion")
 	}
 }
