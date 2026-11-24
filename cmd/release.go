@@ -239,8 +239,7 @@ CI example:
 		if !skipBmp {
 			if errs := cfg.Validate("bmp"); len(errs) > 0 {
 				return &ui.CommandError{
-					Message: "release publishing configuration is invalid",
-					Details: errs,
+					Message: "release publishing configuration is invalid:\n - " + strings.Join(errs, "\n - "),
 					Hint:    "correct the itch.io and Butler settings in .fe.yaml, then run fe validate",
 				}
 			}
