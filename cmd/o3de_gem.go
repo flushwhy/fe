@@ -153,6 +153,7 @@ func runO3DECLI(cmd *cobra.Command, args ...string) error {
 			Cause:   err,
 			Hint:    "run `fe o3de doctor` to check the engine setup and review the O3DE output above",
 		}
+	}
 	return nil
 }
 
