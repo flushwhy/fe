@@ -3,8 +3,8 @@
 package o3de
 
 import (
+	"context"
 	"os"
-	"os/exec"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -20,11 +20,10 @@ func TestCLIInvocationPassesShellMetacharactersAsLiteralBatchArguments(t *testin
 	}
 
 	malicious := "Game & echo INJECTED > pwned.txt & rem"
-	executable, args, err := CLIInvocation("windows", script, []string{"register", malicious})
+	cmd, err := NewCLICommand(context.Background(), script, []string{"register", malicious})
 	if err != nil {
 		t.Fatal(err)
 	}
-	cmd := exec.Command(executable, args...)
 	cmd.Dir = dir
 	if combined, err := cmd.CombinedOutput(); err != nil {
 		t.Fatalf("O3DE batch invocation failed: %v\n%s", err, combined)
