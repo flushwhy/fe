@@ -47,7 +47,7 @@ jobs:
 
               def handle_endtag(self, tag):
                   if tag == "script" and self.in_script:
-                      self.scripts.append("\\n".join(self.current))
+                      self.scripts.append("\n".join(self.current))
                       self.in_script = False
 
               def handle_data(self, data):
@@ -60,7 +60,7 @@ jobs:
           parser.close()
           if not parser.scripts:
               raise SystemExit("No embedded JavaScript block found")
-          Path("/tmp/fe-site.js").write_text("\\n".join(parser.scripts), encoding="utf-8")
+          Path("/tmp/fe-site.js").write_text("\n".join(parser.scripts), encoding="utf-8")
           print("HTML parsed; embedded JavaScript extracted.")
           PY
           node --check /tmp/fe-site.js
