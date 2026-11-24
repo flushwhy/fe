@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"os/exec"
 	"strings"
 
+	"github.com/flushwhy/fe/internal/ui"
 	"github.com/flushwhy/fe/internal/update"
 	"github.com/flushwhy/fe/internal/version"
 	"github.com/spf13/cobra"
@@ -188,9 +190,27 @@ func runFeUpdate(cmd *cobra.Command, _ []string) error {
 	process.Stdin = cmd.InOrStdin()
 	process.Stdout = out
 	process.Stderr = cmd.ErrOrStderr()
-	return process.Run()
+	if err := process.Run(); err != nil {
+		return updateProcessError(command.Name, err)
+	}
+	return nil
 }
 
+func updateProcessError(manager string, err error) *ui.CommandError {
+	var exitErr *exec.ExitError
+	if errors.As(err, &exitErr) {
+		return &ui.CommandError{
+			Message: fmt.Sprintf("package manager %s update exited with exit code %d", manager, exitErr.ExitCode()),
+			Cause:   err,
+			Hint:    "review the package manager output above and resolve its reported issue before retrying",
+		}
+	}
+	return &ui.CommandError{
+		Message: fmt.Sprintf("could not start %s update", manager),
+		Cause:   err,
+		Hint:    "verify that the package manager is installed and available in PATH",
+	}
+}
 func inspectFeUpdate(cmd *cobra.Command) (updateInfo, error) {
 	install, err := update.Detect(cmd.Context(), update.Method(updateMethod))
 	if err != nil {
