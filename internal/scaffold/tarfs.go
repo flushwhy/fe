@@ -47,9 +47,9 @@ func (m memFS) Open(name string) (fs.File, error) {
 }
 
 func (m memFS) ReadDir(name string) ([]fs.DirEntry, error) {
-	prefix := name
-	if prefix != "." {
-		prefix += "/"
+	prefix := ""
+	if name != "." {
+		prefix = name + "/"
 	}
 
 	seen := map[string]bool{}
@@ -57,7 +57,7 @@ func (m memFS) ReadDir(name string) ([]fs.DirEntry, error) {
 
 	for path := range m {
 		rel := path
-		if prefix != "./" {
+		if prefix != "" {
 			if !strings.HasPrefix(path, prefix) {
 				continue
 			}
