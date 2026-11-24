@@ -106,8 +106,7 @@ func validateReleaseGit(state releaseGitState, allowDirty, allowUnpushed bool) e
 	}
 	if state.Dirty && !allowDirty {
 		return &ui.CommandError{
-			Message: "release blocked: Git working tree is not clean",
-			Details: state.DirtyFiles,
+			Message: "release blocked: Git working tree is not clean:\n" + strings.Join(state.DirtyFiles, "\n"),
 			Hint:    "commit or stash these changes before releasing; use --allow-dirty only when you intentionally want to publish from a dirty tree",
 		}
 	}
