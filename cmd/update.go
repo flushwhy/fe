@@ -211,6 +211,7 @@ func updateProcessError(manager string, err error) *ui.CommandError {
 		Hint:    "verify that the package manager is installed and available in PATH",
 	}
 }
+
 func inspectFeUpdate(cmd *cobra.Command) (updateInfo, error) {
 	install, err := update.Detect(cmd.Context(), update.Method(updateMethod))
 	if err != nil {
