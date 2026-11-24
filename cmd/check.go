@@ -57,7 +57,7 @@ func runCheck(cmd *cobra.Command, args []string) error {
 		fmt.Printf("SKIP  %s\n", message)
 	}
 	if len(tasks) == 0 {
-		return fmt.Errorf("no static analyzer could run; install a supported analyzer or configure the project first")
+		return &ui.CommandError{Message: "no static analyzer could run", Hint: "install a supported analyzer for the detected language or configure the project before running fe check"}
 	}
 
 	failed := 0
