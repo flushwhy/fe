@@ -145,3 +145,31 @@ func TestCleanupEmptyCacheDirsRemovesOnlyEmptyChildren(t *testing.T) {
 		t.Fatalf("shared cache root should remain: %v", err)
 	}
 }
+func TestExtractArchiveRejectsNonPortableNames(t *testing.T) {
+	for _, name := range []string{"CON", "file:stream", "trailing."} {
+		t.Run(name, func(t *testing.T) {
+			archive := filepath.Join(t.TempDir(), "bad.zip")
+			file, err := os.Create(archive)
+			if err != nil {
+				t.Fatal(err)
+			}
+			writer := zip.NewWriter(file)
+			entry, err := writer.Create(name)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if _, err := entry.Write([]byte("bad")); err != nil {
+				t.Fatal(err)
+			}
+			if err := writer.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if err := file.Close(); err != nil {
+				t.Fatal(err)
+			}
+			if err := extractArchive(archive, filepath.Join(t.TempDir(), "engine")); err == nil {
+				t.Fatalf("archive entry %q should be rejected", name)
+			}
+		})
+	}
+}
