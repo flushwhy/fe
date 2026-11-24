@@ -1,6 +1,9 @@
 package build
 
 import (
+	"os"
+	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 
@@ -30,5 +33,25 @@ func TestRunContainerRejectsUnknownRuntime(t *testing.T) {
 	err := RunContainer(config.ContainerBuild{Image: "example:latest", Command: "true"}, "nerdctl")
 	if err == nil || !strings.Contains(err.Error(), "choose docker or podman") {
 		t.Fatalf("RunContainer() error = %v, want unsupported runtime error", err)
+	}
+}
+
+func TestRunContainerReportsRuntimeExitCode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses a POSIX test executable")
+	}
+	dir := t.TempDir()
+	docker := filepath.Join(dir, "docker")
+	if err := os.WriteFile(docker, []byte("#!/bin/sh\nexit 19\n"), 0755); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("PATH", dir)
+
+	err := RunContainer(config.ContainerBuild{Image: "example:latest", Command: "true"}, "docker")
+	if err == nil {
+		t.Fatal("expected container runtime failure")
+	}
+	if !strings.Contains(err.Error(), "docker run exited with code 19") {
+		t.Fatalf("RunContainer() error = %q, want runtime name and exit code", err)
 	}
 }
