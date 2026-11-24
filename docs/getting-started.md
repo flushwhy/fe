@@ -185,7 +185,7 @@ Other useful workflows include:
 
 - `fe watch` — watch supported project files and rebuild supported C++ changes.
 - `fe add clangd` — write or update editor/LSP configuration for clangd.
-- `fe fix compile-commands` — repair a C/C++ compilation database for clangd.
+- `fe fix compile-commands` — repair a CMake-generated C/C++ compilation database for clangd. For Make-based projects, use Bear with your normal build command instead.
 - `fe godot` — inspect and work with Godot engines, exports, and native extensions.
 - `fe o3de` — discover and manage O3DE engines, projects, Gems, and builds.
 - `fe pack` — pack PNG sprites into spritesheets.
