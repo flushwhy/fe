@@ -6,12 +6,13 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"path"
 	"path/filepath"
 	"regexp"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/flushwhy/fe/internal/archivepath"
 )
 
 const templateRepoAPI = "https://api.github.com/repos/flushwhy/fe-templates"
@@ -195,6 +196,14 @@ func cachedTemplateIsSafe(cacheRoot, id string) bool {
 	return err == nil && dir.IsDir() && dir.Mode()&os.ModeSymlink == 0
 }
 
+
+// validateRemoteTemplatePath applies the same cross-platform path rules used
+// when Fe creates or extracts archives. Remote templates must be safe on
+// Windows as well as on the host that downloads them.
+func validateRemoteTemplatePath(name string) error {
+	return archivepath.Validate(name)
+}
+
 func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 	client := &http.Client{Timeout: 20 * time.Second}
 	req, err := http.NewRequest(http.MethodGet, templateRepoAPI+"/git/trees/main?recursive=1", nil)
@@ -222,8 +231,8 @@ func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 	for _, item := range tree.Tree {
 		if item.Type == "blob" && strings.HasPrefix(item.Path, prefix) {
 			rel := strings.TrimPrefix(item.Path, prefix)
-			if rel == "" || path.IsAbs(rel) || path.Clean(rel) != rel || rel == ".." || strings.HasPrefix(rel, "../") || strings.Contains(rel, "\\") {
-				return "", fmt.Errorf("unsafe path in template repository: %q", item.Path)
+			if err := validateRemoteTemplatePath(rel); err != nil {
+				return "", fmt.Errorf("unsafe path in template repository: %q: %w", item.Path, err)
 			}
 			files = append(files, rel)
 		}
