@@ -67,7 +67,37 @@ func TestCLIInvocationUsesCommandInterpreterForWindowsBatchFiles(t *testing.T) {
 		if executable != "cmd.exe" {
 			t.Fatalf("expected cmd.exe for %q, got %q", path, executable)
 		}
-		want := []string{"/d", "/v:off", "/s", "/c", `""C:\Program Files\O3DE\scripts\o3de.bat" "register" "--project-name" "Game & Tools""`}
+		want := []string{"/d", "/v:off", "/s", "/c", `""` + path + `" "register" "--engine-path" "C:\My Engine""`}
+		if !reflect.DeepEqual(args, want) {
+			t.Fatalf("unexpected command args: got %#v, want %#v", args, want)
+		}
+	}
+}
+
+func TestCLIInvocationRunsNonBatchScriptsDirectly(t *testing.T) {
+	for _, goos := range []string{"linux", "darwin", "windows"} {
+		executable, args, err := CLIInvocation(goos, "/opt/o3de/scripts/o3de.sh", []string{"find", "engines"})
+		if err != nil {
+			t.Fatal(err)
+		}
+		if executable != "/opt/o3de/scripts/o3de.sh" {
+			t.Fatalf("unexpected executable for %s: %q", goos, executable)
+		}
+		if !reflect.DeepEqual(args, []string{"find", "engines"}) {
+			t.Fatalf("unexpected args for %s: %#v", goos, args)
+		}
+	}
+}
+
+func TestCLIInvocationQuotesWindowsBatchArguments(t *testing.T) {
+	executable, args, err := CLIInvocation("windows", `C:\Program Files\O3DE\scripts\o3de.bat`, []string{"register", "--project-name", "Game & Tools"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if executable != "cmd.exe" {
+		t.Fatalf("expected cmd.exe, got %q", executable)
+	}
+	want := []string{"/d", "/v:off", "/s", "/c", `""C:\Program Files\O3DE\scripts\o3de.bat" "register" "--project-name" "Game & Tools""`}
 	if !reflect.DeepEqual(args, want) {
 		t.Fatalf("unexpected command args: got %#v, want %#v", args, want)
 	}
