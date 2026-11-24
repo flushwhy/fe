@@ -127,7 +127,11 @@ CI example:
 		if !skipBuild {
 			if _, statErr := os.Stat("project.godot"); statErr == nil {
 				if err := godot.Export(".", cfg.Godot.Executable, cfg.Godot.OutputDir, "", exec.Command); err != nil {
-					return fmt.Errorf("Godot export step failed: %w", err)
+					return &ui.CommandError{
+						Message: "Godot export failed during the release",
+						Cause:   err,
+						Hint:    "check export_presets.cfg, install the required export templates, and run fe godot doctor",
+					}
 				}
 			} else if len(cfg.Build.Targets) == 0 {
 				ui.Warn("No build targets defined — skipping build step")
@@ -141,7 +145,11 @@ CI example:
 					}
 				}
 				if err := ui.RunSteps(steps); err != nil {
-					return fmt.Errorf("build step failed: %w", err)
+					return &ui.CommandError{
+						Message: "release build step failed",
+						Cause:   err,
+						Hint:    "review the failed target and compiler output above; run fe doctor to check the toolchain",
+					}
 				}
 			}
 		} else {
@@ -170,7 +178,11 @@ CI example:
 				return pack.Run(cfg.Pack)
 			})
 			if err != nil {
-				return fmt.Errorf("pack step failed; refusing to publish an incomplete release: %w", err)
+				return &ui.CommandError{
+					Message: "sprite packing failed; Fe stopped before publishing the release",
+					Cause:   err,
+					Hint:    "check pack.input and pack.sheets in .fe.yaml and verify the sprite files are readable",
+				}
 			}
 		}
 
@@ -186,7 +198,11 @@ CI example:
 		}
 		if gumroadRequested {
 			if err := gumroad.CheckProduct(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable, exec.Command); err != nil {
-				return err
+				return &ui.CommandError{
+					Message: "Gumroad release preflight failed",
+					Cause:   err,
+					Hint:    "verify the stable product mapping and Gumroad authentication; no Gumroad upload has been started",
+				}
 			}
 		}
 
@@ -208,7 +224,11 @@ CI example:
 				return fmt.Errorf("create package output directory: %w", err)
 			}
 			if err := archivepkg.Create(cfg.Butler.Directory, packageOutput, packageFormat); err != nil {
-				return fmt.Errorf("package build artifacts: %w", err)
+				return &ui.CommandError{
+					Message: "could not package release artifacts",
+					Cause:   err,
+					Hint:    "check the build output directory and package destination; publishing has not started",
+				}
 			}
 			ui.OK("Created %s", packageOutput)
 		}
@@ -218,10 +238,11 @@ CI example:
 		ui.Step(stepNumber, totalSteps, "Push to itch.io")
 		if !skipBmp {
 			if errs := cfg.Validate("bmp"); len(errs) > 0 {
-				for _, e := range errs {
-					ui.Fail("%s", e)
+				return &ui.CommandError{
+					Message: "release publishing configuration is invalid",
+					Details: errs,
+					Hint:    "correct the itch.io and Butler settings in .fe.yaml, then run fe validate",
 				}
-				return fmt.Errorf("cannot push — fix config errors above")
 			}
 			logger := log.New(os.Stdout, "", 0)
 			err := ui.RunSpinner(
@@ -239,7 +260,11 @@ CI example:
 				},
 			)
 			if err != nil {
-				return fmt.Errorf("push step failed: %w", err)
+				return &ui.CommandError{
+					Message: "itch.io upload failed",
+					Cause:   err,
+					Hint:    "check Butler authentication, the itch.io username/game/channel settings, and the upload output above",
+				}
 			}
 		} else {
 			ui.Dim("skipped")
@@ -251,7 +276,11 @@ CI example:
 			if err := ui.RunSpinner("Uploading stable release to Gumroad", func() error {
 				return gumroad.Publish(cfg.Butler.Userversion, cfg.Butler.Directory, cfg.Gumroad.Stable, exec.Command)
 			}); err != nil {
-				return fmt.Errorf("Gumroad publish step failed: %w", err)
+				return &ui.CommandError{
+					Message: "Gumroad upload failed",
+					Cause:   err,
+					Hint:    "check Gumroad authentication, the configured stable product, and the upload output above",
+				}
 			}
 		}
 
