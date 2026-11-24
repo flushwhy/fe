@@ -5,6 +5,7 @@ import (
 
 	"github.com/flushwhy/fe/internal/config"
 	"github.com/flushwhy/fe/internal/preflight"
+	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -54,8 +55,21 @@ func runPreflight(cfg *config.Config, stage string) error {
 		}
 	}
 	if failed > 0 {
-		return fmt.Errorf("preflight found %d problem(s)", failed)
-	}
+		details := make([]string, 0, failed)
+		for _, result := range results {
+			if !result.OK {
+				detail := result.Name + ": " + result.Message
+				if result.Fix != "" {
+					detail += " (fix: " + result.Fix + ")"
+				}
+				details = append(details, detail)
+			}
+		}
+		return &ui.CommandError{
+			Message: fmt.Sprintf("preflight found %d problem(s)", failed),
+			Details: details,
+			Hint:    "resolve the failed checks above, then rerun fe preflight",
+		}
 	return nil
 }
 
