@@ -1,7 +1,9 @@
 package o3de
 
 import (
+	"context"
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"unicode"
@@ -36,4 +38,11 @@ func CLIInvocation(goos, cliPath string, args []string) (string, []string, error
 	// commands, and /v:off prevents delayed expansion of exclamation marks.
 	command = `"` + command + `"`
 	return "cmd.exe", []string{"/d", "/v:off", "/s", "/c", command}, nil
+}
+
+// NewCLICommand creates an O3DE process using platform-appropriate invocation
+// rules. Windows batch files need a raw CreateProcess command line because
+// cmd.exe does not follow the normal Windows argv quoting rules.
+func NewCLICommand(ctx context.Context, cliPath string, args []string) (*exec.Cmd, error) {
+	return newPlatformCLICommand(ctx, cliPath, args)
 }
