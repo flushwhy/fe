@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 	"strings"
+	"unicode"
 )
 
 // CLIInvocation returns the executable and arguments needed to run an O3DE CLI
@@ -20,7 +21,7 @@ func CLIInvocation(goos, cliPath string, args []string) (string, []string, error
 	values = append(values, cliPath)
 	values = append(values, args...)
 	for _, value := range values {
-		if strings.ContainsAny(value, "%\"\r\n\x00") {
+		if strings.Contains(value, "%") || strings.ContainsRune(value, '"' ) || strings.IndexFunc(value, unicode.IsControl) >= 0 {
 			return "", nil, fmt.Errorf("cannot safely pass %q to the O3DE Windows batch script: percent signs, quotes, and control characters are not supported", value)
 		}
 	}
