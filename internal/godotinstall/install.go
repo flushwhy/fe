@@ -15,6 +15,8 @@ import (
 	"strings"
 	"time"
 
+	"github.com/flushwhy/fe/internal/archivepath"
+
 	"github.com/flushwhy/fe/internal/projectstate"
 )
 
@@ -384,7 +386,11 @@ func extractArchive(archivePath, destination string) error {
 	defer root.Close()
 	var total uint64
 	for _, entry := range reader.File {
-		rawName := filepath.FromSlash(entry.Name)
+		name := strings.TrimSuffix(entry.Name, "/")
+		if err := archivepath.Validate(name); err != nil {
+			return fmt.Errorf("archive contains unsafe path %q: %w", entry.Name, err)
+		}
+		rawName := filepath.FromSlash(name)
 		if !filepath.IsLocal(rawName) {
 			return fmt.Errorf("archive contains unsafe path %q", entry.Name)
 		}
