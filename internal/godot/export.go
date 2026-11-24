@@ -7,6 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/flushwhy/fe/internal/archivepath"
+
 	"gopkg.in/ini.v1"
 )
 
@@ -152,6 +154,9 @@ func ExpectedOutputPath(projectDir, outputDir string, preset Preset) (string, er
 		case "web", "macos-arm64":
 			filename += ".zip"
 		}
+	}
+	if err := archivepath.Validate(filename); err != nil {
+		return "", fmt.Errorf("invalid Godot export filename %q: %w", filename, err)
 	}
 	return filepath.Join(outputDir, platformDir, filename), nil
 }
