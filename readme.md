@@ -88,7 +88,7 @@ Configuration values can also be supplied through environment variables. Environ
 | Command | Purpose |
 |---|---|
 | `fe init` | Create a project from a template. |
-| `fe setup` | Set up supported project tools. |
+| `fe setup` | Read-only check of required and optional project tools. |
 | `fe build` | Run configured build targets. |
 | `fe export` | Export configured Godot presets. |
 | `fe pack` | Pack sprites into a spritesheet. |
@@ -97,6 +97,17 @@ Configuration values can also be supplied through environment variables. Environ
 | `fe release` | Run the configured release workflow. |
 | `fe validate` | Validate project configuration. |
 | `fe doctor` | Diagnose local tools and configuration. |
+| `fe inspect` | Detect project types and ecosystem markers. |
+| `fe preflight` | Inspect toolchains and run configured checks. |
+| `fe sync` | Sync Fe-managed project files and required local tools. |
+| `fe clean` | Remove Fe-managed files and registrations. |
+| `fe add` | Configure editor and language-server tooling. |
+| `fe install` | Install Odin source packages. |
+| `fe check` | Run available language-aware static analyzers. |
+| `fe manifest` | Write an artifact inventory and SHA-256 checksums. |
+| `fe package` | Archive build artifacts as ZIP or tar.gz. |
+| `fe changelog` | Generate release notes from Git history and tags. |
+| `fe fix compile-commands` | Repair C/C++ compilation databases for clangd. |
 
 Run `fe --help` or `fe <command> --help` for the available options.
 
@@ -135,7 +146,7 @@ Fe uses existing tools rather than replacing them. Install the tools required by
 
 ## Releases
 
-See the [release checklist](docs/releasing.md) for the stable release process.
+See the [getting started guide](docs/getting-started.md) for a rebuildable project workflow, and the [release checklist](docs/releasing.md) for the stable release process.
 
 ## License
 
