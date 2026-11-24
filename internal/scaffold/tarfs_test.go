@@ -45,3 +45,25 @@ func TestExtractTarGzRejectsAmbiguousPaths(t *testing.T) {
 		t.Fatal("extractTarGz accepted a path containing a backslash")
 	}
 }
+func TestMemFSReadDirRoot(t *testing.T) {
+	files := memFS{
+		"main.odin":       []byte("package main"),
+		"src/game.odin":   []byte("package game"),
+	}
+
+	entries, err := files.ReadDir(".")
+	if err != nil {
+		t.Fatalf("ReadDir root: %v", err)
+	}
+	if len(entries) != 2 {
+		t.Fatalf("root entries = %d, want 2", len(entries))
+	}
+
+	nested, err := files.ReadDir("src")
+	if err != nil {
+		t.Fatalf("ReadDir nested directory: %v", err)
+	}
+	if len(nested) != 1 || nested[0].Name() != "game.odin" {
+		t.Fatalf("nested entries = %#v, want game.odin", nested)
+	}
+}
