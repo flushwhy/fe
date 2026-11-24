@@ -67,7 +67,7 @@ func TestAnalyzerFailureDetailReportsExitCode(t *testing.T) {
 		t.Fatal("expected analyzer process to fail")
 	}
 	got := analyzerFailureDetail("go vet ./...", err)
-	if !strings.Contains(got, "go vet ./...") || !strings.Contains(got, "exit code 12") {
+	if !strings.Contains(got, "go vet ./...") || !strings.Contains(got, "exited with code 12") {
 		t.Fatalf("analyzerFailureDetail() = %q, want task and exit code", got)
 	}
 }
