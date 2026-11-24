@@ -310,8 +310,8 @@ func CompareVersions(a, b string) int {
 	a = strings.TrimPrefix(strings.TrimSpace(a), "v")
 	b = strings.TrimPrefix(strings.TrimSpace(b), "v")
 	parse := func(value string) ([3]string, string) {
+		value, _, _ = strings.Cut(value, "+")
 		base, prerelease, _ := strings.Cut(value, "-")
-		base, _, _ = strings.Cut(base, "+")
 		fields := strings.Split(base, ".")
 		var numbers [3]string
 		for i := 0; i < len(fields) && i < len(numbers); i++ {
