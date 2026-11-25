@@ -354,11 +354,20 @@ butler:
         <div class="section-head reveal">
           <div class="kicker">Get Fe</div>
           <h2>Pick your build.<br>Get back to work.</h2>
-          <p>Download the latest stable release, or try the rolling build for the newest changes. Links are loaded directly from GitHub Releases.</p>
+          <p>Stable releases are versioned builds. Rolling is the newest development build and may change without notice. Choose the asset for your OS and CPU, then verify it with <code>SHA256SUMS</code>.</p><p class="release-status">Binaries: Windows x64; macOS x64 and ARM64; Linux x64, ARM64, and RISC-V 64; FreeBSD x64. Linux also has Debian and RPM packages for x64 and ARM64.</p>
         </div>
+        <p class="release-status">Downloads are fetched from GitHub Releases. If the live list does not load, use the <a href="https://github.com/flushwhy/fe/releases" target="_blank" rel="noreferrer">release archive</a> and its <code>SHA256SUMS</code> file.</p>
         <div class="release-grid" id="release-downloads" aria-live="polite">
           <article class="release-card clay"><p class="release-status">Loading GitHub Releases…</p></article>
         </div>
+        <article class="clay release-card" style="margin-top:20px">
+          <h3>Prefer your package manager?</h3>
+          <p class="release-status">macOS · <code>brew tap flushwhy/tap && brew install fe</code></p>
+          <p class="release-status">Debian / Ubuntu · download the matching <code>.deb</code>, then run <code>sudo apt install ./fe_VERSION_amd64.deb</code>.</p>
+          <p class="release-status">Windows · use <code>choco install fe</code> when the package is available from your Chocolatey source; otherwise use the Windows executable above.</p>
+          <p class="release-status">Fe does not add package-manager sources for you. Package-manager updates are for supported stable installations; direct binaries can be checked but are not replaced automatically.</p>
+          <div class="release-links"><a href="https://github.com/flushwhy/fe/blob/master/readme.md" target="_blank" rel="noreferrer">Full install instructions ↗</a></div>
+        </article>
       </div>
     </section>
 
@@ -372,7 +381,7 @@ butler:
           <article class="command" data-search="init create project template scaffold"><code>fe init</code><p>Create a project from a language default or named template.</p></article>
           <article class="command" data-search="template list discover browse"><code>fe template list</code><p>List available remote project templates.</p></article>
           <article class="command" data-search="template update refresh cache"><code>fe template update &lt;template-id&gt;</code><p>Refresh a named template in the local cache.</p></article>
-          <article class="command" data-search="setup dependencies environment"><code>fe setup</code><p>Prepare project tooling and dependencies where supported by the project configuration.</p></article>
+          <article class="command" data-search="setup dependencies environment"><code>fe setup</code><p>Read-only check: detect the project’s required and optional tools. It does not install software or change files.</p></article>
           <article class="command" data-search="build compile platform target"><code>fe build</code><p>Run configured build targets, optionally selecting a platform.</p></article>
           <article class="command" data-search="watch development files reload"><code>fe watch</code><p>Watch supported project files and run the configured development steps.</p></article>
           <article class="command" data-search="godot engine export presets native extension"><code>fe godot</code><p>Godot discovery, diagnostics, export, and native extension helpers.</p></article>
@@ -381,9 +390,16 @@ butler:
           <article class="command" data-search="blender addon plugin"><code>fe blender</code><p>Support Blender add-on project workflows.</p></article>
           <article class="command" data-search="pack spritesheet image assets"><code>fe pack</code><p>Pack source sprites into configured sprite sheets.</p></article>
           <article class="command" data-search="transcode ffmpeg audio video mp4 webm"><code>fe transcode</code><p>Convert audio and video through FFmpeg, including game-friendly MP4 and WebM defaults.</p></article>
-          <article class="command" data-search="install library tool"><code>fe install</code><p>Install supported development tools and libraries.</p></article>
-          <article class="command" data-search="add dependency library"><code>fe add</code><p>Add supported project dependencies or integrations.</p></article>
+          <article class="command" data-search="get install odin package repository url"><code>fe get</code><p>Alias for installing an Odin package from a repository URL.</p></article>
+          <article class="command" data-search="install library tool"><code>fe install</code><p>Download an Odin source package into your local package directory. Existing destinations are never overwritten.</p></article>
+          <article class="command" data-search="add dependency library"><code>fe add</code><p>Write editor and language-server configuration for tools such as clangd, OLS, ZLS, and gopls.</p></article>
           <article class="command" data-search="check static analysis lint code quality"><code>fe check [path]</code><p>Run available static analyzers for supported languages and explain missing tools.</p></article>
+          <article class="command" data-search="inspect detect project type markers ecosystem"><code>fe inspect [path]</code><p>Detect project types and ecosystem markers without changing the project.</p></article>
+          <article class="command" data-search="preflight tools checks validation build"><code>fe preflight</code><p>Inspect toolchains and run the checks configured for this project.</p></article>
+          <article class="command" data-search="sync synchronize project tools files registrations"><code>fe sync [path]</code><p>Sync Fe-managed project files and required local tools on this machine.</p></article>
+          <article class="command" data-search="clean remove managed files registrations dry run"><code>fe clean [path]</code><p>Remove Fe-managed files and registrations, with a dry-run preview available.</p></article>
+          <article class="command" data-search="fix compile commands clangd cmake compilation database"><code>fe fix compile-commands</code><p>Repair or generate a usable C/C++ compilation database for clangd.</p></article>
+          <article class="command" data-search="gumroad release upload stable product"><code>fe gumroad release</code><p>Upload a stable release to the configured Gumroad product.</p></article>
           <article class="command" data-search="doctor diagnostics toolchain config"><code>fe doctor</code><p>Diagnose local toolchain and project configuration issues.</p></article>
           <article class="command" data-search="validate config paths preflight"><code>fe validate</code><p>Check project configuration and paths before running a workflow.</p></article>
           <article class="command" data-search="manifest artifact inventory checksum sha256"><code>fe manifest</code><p>Write an artifact inventory with SHA-256 checksums and build metadata.</p></article>
@@ -393,7 +409,7 @@ butler:
           <article class="command" data-search="release publish itch io butler"><code>fe release</code><p>Run the configured build, packaging, and publishing workflow.</p></article>
           <article class="command" data-search="bmp butler itch io upload push"><code>fe bmp</code><p>Push builds to itch.io through Butler.</p></article>
           <article class="command" data-search="tui terminal interface interactive"><code>fe tui</code><p>Open the local interactive terminal interface.</p></article>
-          <article class="command" data-search="update updater package manager"><code>fe update</code><p>Check for and apply updates using the supported installation method.</p></article>
+          <article class="command" data-search="update updater package manager"><code>fe update</code><p>Check stable or rolling releases. Stable package-manager updates are supported; direct-binary and rolling installs are not updated automatically.</p></article>
         </div>
         <p class="no-results" id="no-results" hidden>No matching commands. Try a different search.</p>
       </div>
@@ -429,7 +445,7 @@ butler:
     </section>
   </main>
 
-  <footer><div class="wrap footer-inner"><span>© Fe · Open-source project toolkit</span><nav class="footer-links" aria-label="Footer"><a href="#quickstart">Get started</a><a href="https://github.com/flushwhy/fe/blob/master/docs" target="_blank" rel="noreferrer">Guides</a><a href="https://github.com/flushwhy/fe/issues" target="_blank" rel="noreferrer">Issues</a><a href="https://github.com/flushwhy/fe-templates" target="_blank" rel="noreferrer">Templates</a><a href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">Source</a></nav></div></footer>
+  <footer><div class="wrap footer-inner"><span>© Fe · Open-source project toolkit</span><nav class="footer-links" aria-label="Footer"><a href="#quickstart">Get started</a><a href="https://github.com/flushwhy/fe/blob/master/docs/getting-started.md" target="_blank" rel="noreferrer">Getting started</a><a href="https://github.com/flushwhy/fe/issues" target="_blank" rel="noreferrer">Issues</a><a href="https://github.com/flushwhy/fe-templates" target="_blank" rel="noreferrer">Templates</a><a href="https://github.com/flushwhy/fe" target="_blank" rel="noreferrer">Source</a></nav></div></footer>
 
   <script>
     (function () {
@@ -579,7 +595,7 @@ butler:
         "fe init": { about:"Create a new project from a language starter or a reusable Fe template.", usage:["fe init [language] --name <project>","fe init --template <template-id> --name <project>"], options:["--name <project>  Project name and directory.","--module <path>  Go module path (Go projects only).","--template <id>  Select a named template from fe-templates."], examples:["fe init cpp --name starfall","fe init --template cpp-raylib-xmake --name starfall"] },
         "fe template list": { about:"Browse the remote templates published in the Fe templates repository.", examples:["fe template list"] },
         "fe template update <template-id>": { about:"Download or refresh one template in Fe's local cache.", examples:["fe template update cpp-raylib-xmake"] },
-        "fe setup": { about:"Inspect the current project and show the tools and dependencies needed to work with it.", usage:["fe setup [path]"], examples:["fe setup","fe setup ./game"] },
+        "fe setup": { about:"Read-only inspection of the current project’s required and optional toolchains. It does not install software or modify project files.", usage:["fe setup [path]"], examples:["fe setup","fe setup ./game"] }, 
         "fe build": { about:"Build all configured targets, or choose a target by its name or platform.", options:["--target <name>  Build one configured target.","--platform <platform>  Build all targets for one platform.","--list-targets  List configured targets without building.","--container  Build inside a temporary container.","--runtime <docker|podman>  Choose the container runtime."], examples:["fe build","fe build --platform linux-x64"] },
         "fe watch": { about:"Watch a workspace and automate its development loop, including supported C++ rebuilds.", examples:["fe watch"] },
         "fe godot": { about:"Godot-specific helpers for engine discovery, opening projects, exporting, and native extensions.", subcommands:[["engines","List detected Godot installations and versions."],["open","Open the current project with a matching engine; optionally choose --version."],["export","Export with --preset and --output; --debug selects a debug export."],["doctor","Check the current Godot project and native-extension prerequisites."],["extension (ex, ext)","Manage a Godot 4 C++ GDExtension scaffold."]], examples:["fe godot engines","fe godot open --version 4.3","fe godot extension init"] },
@@ -588,8 +604,15 @@ butler:
         "fe blender": { about:"Validate and package Blender add-on projects without executing add-on code.", subcommands:[["validate [path]","Check the add-on structure and metadata."],["package [path]","Create an installable ZIP archive."]], examples:["fe blender validate","fe blender package ./my-addon"] },
         "fe pack": { about:"Pack PNG sprites into one or more spritesheets.", options:["--input <directory>  Directory containing PNG sprites.","--output <path>  Output spritesheet path."], examples:["fe pack"] },
         "fe transcode": { about:"Convert audio and video files through FFmpeg using Fe's configured options and sensible game-oriented defaults.", examples:["fe transcode --help"] },
-        "fe install": { about:"Install an Odin package by a supported alias or repository URL.", usage:["fe install <package>"], examples:["fe install ltdk","fe install https://github.com/owner/package"] },
-        "fe add": { about:"Wire up language-server or editor tooling for the current project.", usage:["fe add <tool>"], examples:["fe add clangd","fe add ols","fe add gopls"] },
+        "fe get": { about:"Install an Odin package from an HTTPS repository URL. This is an alias for the URL form of fe install.", usage:["fe get <repository-url>"], examples:["fe get https://github.com/owner/package"] },
+        "fe install": { about:"Download an Odin source package by alias or HTTPS repository URL. Existing package destinations are never overwritten.", usage:["fe install <package>","fe get <repository-url>"], options:["--dir <path>  Package destination (defaults to mylibs or packages.directory)."], examples:["fe install ltdk","fe get https://github.com/owner/package"] }, 
+        "fe add": { about:"Write or patch editor and language-server configuration for the current project. It does not install the language server.", usage:["fe add <tool>"], examples:["fe add clangd","fe add ols","fe add zls","fe add gopls"] }, 
+        "fe inspect [path]": { about:"Detect project types and ecosystem markers. This is an inspection command; it does not scaffold or rewrite files.", usage:["fe inspect [path]"], examples:["fe inspect","fe inspect ./game"] },
+        "fe preflight": { about:"Inspect required toolchains and run the checks configured for the current project before a build or release.", examples:["fe preflight"] },
+        "fe sync [path]": { about:"Synchronize Fe-managed project files and required local tools for a project on this machine. When a Godot project pins a version and no matching global engine exists, sync can install and register a project-managed copy. It is disabled in CI.", usage:["fe sync [path]"], examples:["fe sync","fe sync ./game"] },
+        "fe clean [path]": { about:"Remove only files recorded as Fe-managed and project registrations. Modified files are preserved. Cleanup is for developer machines and is disabled in CI.", usage:["fe clean [path]"], options:["--dry-run  Preview cleanup without changing files.","--all  Clean every registered project.","--yes  Skip the interactive confirmation.","--keep-uninstallers  Retain managed uninstallers."], examples:["fe clean --dry-run","fe clean ./game","fe clean --all --yes"] },
+        "fe fix compile-commands": { about:"Repair C/C++ compilation database setup for clangd. For CMake projects, it can generate a real compile_commands.json rather than an empty placeholder.", usage:["fe fix compile-commands [path]"], examples:["fe fix compile-commands"] },
+        "fe gumroad release": { about:"Upload files from the existing artifact manifest to a pre-created Gumroad product configured for this stable version. Requires the Gumroad CLI to be installed and authenticated.", usage:["fe gumroad release"], options:["--version <version>  Stable release version (defaults to butler.userversion).","--dir <directory>  Artifact directory (defaults to butler.directory).","--dry-run  Validate the product and show the upload plan without uploading."], examples:["fe gumroad release --dry-run","fe gumroad release --version 1.2.3"] },
         "fe check [path]": { about:"Run available language-aware static analyzers against the project or a selected path.", usage:["fe check [path]"], examples:["fe check","fe check ./src"] },
         "fe doctor": { about:"Check whether required tools are installed and whether project configuration is valid.", examples:["fe doctor"] },
         "fe validate": { about:"Run pre-flight checks on project configuration and paths before starting a workflow.", examples:["fe validate"] },
@@ -600,7 +623,7 @@ butler:
         "fe release": { about:"Run the configured build, optional sprite packing, optional changelog and archive stages, then publish through Butler to itch.io.", options:["--dry-run  Print the plan without running the pipeline.","--skip-build  Skip build or export.","--skip-pack  Skip sprite packing.","--skip-bmp  Skip the itch.io upload.","--changelog-output <path>  Write Git-based release notes.","--package-format <zip|tar.gz>  Also archive build artifacts.","--package-output <path>  Choose the archive path.","--userversion <version>  Set the itch.io version.","--channel-suffix <suffix>  Add a suffix to Butler platform channels."], examples:["fe release --dry-run","fe release --package-format zip --skip-bmp"] },
         "fe bmp": { about:"Push the configured build output to itch.io using Butler.", examples:["fe bmp"] },
         "fe tui": { about:"Open Fe's interactive terminal interface in a local terminal.", examples:["fe tui"] },
-        "fe update": { about:"Check for or install Fe updates using the detected package-manager installation method. Direct-binary replacement is not available yet.", subcommands:[["check","Check the installed version and available release without changing anything."]], options:["--channel <stable|rolling>  Select the release channel.","--method <auto|chocolatey|homebrew|apt|direct>  Select or override the detected installation method.","--dry-run  Show the exact package-manager update command without running it."], examples:["fe update check","fe update --dry-run","fe update --channel rolling check"] }
+        "fe update": { about:"Check for Fe releases and update supported package-managed stable installations. Direct binaries can be checked but not replaced; rolling is check-only.", subcommands:[["check","Check the installed version and available release without changing anything."]], options:["--channel <stable|rolling>  Select the release channel.","--method <auto|chocolatey|homebrew|apt|direct>  Select or override the detected installation method.","--dry-run  Show the exact package-manager update command without running it."], examples:["fe update check","fe update --dry-run","fe update --channel rolling check"] }
       };
       function addList(parent, heading, items) {
         if (!items || !items.length) return;
