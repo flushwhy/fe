@@ -5,6 +5,74 @@ All notable changes to this project will be documented in this file. (after 0.0.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/en/2.0.0/).
 
+## [0.9.0](https://github.com/flushwhy/fe/compare/v0.8.0...v0.9.0) (2026-11-25)
+
+
+### Features
+
+* add Blender add-on validation and packaging ([#108](https://github.com/flushwhy/fe/issues/108)) ([a18c6cf](https://github.com/flushwhy/fe/commit/a18c6cf14de85d7e27c680081449c86f0141abcf))
+* add conservative build suggestions to project inspection ([#83](https://github.com/flushwhy/fe/issues/83)) ([699585f](https://github.com/flushwhy/fe/commit/699585f86191a2f0147178a6ef5813d983e46b7d))
+* add named build target selection ([#106](https://github.com/flushwhy/fe/issues/106)) ([fbeca9a](https://github.com/flushwhy/fe/commit/fbeca9a62bbc994acfbbae2091a6b8992b09649b))
+* add O3DE build configuration and target selection ([#111](https://github.com/flushwhy/fe/issues/111)) ([cb11bda](https://github.com/flushwhy/fe/commit/cb11bda6c156dabe968a7afe8d866177f7249b6a))
+* add package-manager-aware Fe updater ([#92](https://github.com/flushwhy/fe/issues/92)) ([ff422ce](https://github.com/flushwhy/fe/commit/ff422ceb81b846bc117668a746f45d42ffb3ee5c))
+* add stable Gumroad CLI releases ([#201](https://github.com/flushwhy/fe/issues/201)) ([ae2e809](https://github.com/flushwhy/fe/commit/ae2e809d47ff099a1fe132b76487d1459e82912c))
+* **clean:** confirm destructive cleanup interactively ([#185](https://github.com/flushwhy/fe/issues/185)) ([7f1e832](https://github.com/flushwhy/fe/commit/7f1e8321189502c45e97930998bec40e447813ae))
+* **cli:** add interactive project and tool setup ([#183](https://github.com/flushwhy/fe/issues/183)) ([47d3e31](https://github.com/flushwhy/fe/commit/47d3e31161e41851343faca9beb4d01fdccfa9ea))
+* **cli:** polish errors and interactive entry point ([#182](https://github.com/flushwhy/fe/issues/182)) ([e186c15](https://github.com/flushwhy/fe/commit/e186c15275b7c3915dc039f4356157bef5343bb9))
+* **errors:** make build, release, and tool failures actionable ([#217](https://github.com/flushwhy/fe/issues/217)) ([c9abcc9](https://github.com/flushwhy/fe/commit/c9abcc9d9fc918263189c7e210d49be8c8184915))
+* extend release orchestration ([#104](https://github.com/flushwhy/fe/issues/104)) ([16e9607](https://github.com/flushwhy/fe/commit/16e960752203c8acc807b1bfd26bf86c1c63b1f5))
+* generate changelogs from Git history ([#102](https://github.com/flushwhy/fe/issues/102)) ([01341a1](https://github.com/flushwhy/fe/commit/01341a122893750d2b4f33d0d17df64f12b32f57))
+* **godot:** discover Linux dedicated-server export presets ([#149](https://github.com/flushwhy/fe/issues/149)) ([c211fb6](https://github.com/flushwhy/fe/commit/c211fb6d8734a8693b541817362ab62aad78bb24))
+* improve template metadata and offline discovery ([#109](https://github.com/flushwhy/fe/issues/109)) ([e1b61d4](https://github.com/flushwhy/fe/commit/e1b61d49dcb083b310f8e359e3de56747a525a38))
+* package build artifacts as archives ([#103](https://github.com/flushwhy/fe/issues/103)) ([391eb46](https://github.com/flushwhy/fe/commit/391eb4658be247f613d29405b4f970d861f567f1))
+* **project:** sync Godot toolchains and reversible cleanup ([#154](https://github.com/flushwhy/fe/issues/154)) ([1894a5d](https://github.com/flushwhy/fe/commit/1894a5da8ff8fd5eff2afbfafbd1a4f779fe5487))
+* **release:** add Git safety guardrails ([#145](https://github.com/flushwhy/fe/issues/145)) ([9fb338c](https://github.com/flushwhy/fe/commit/9fb338c6ee0cd6b6a1817f7f721d44e35adb71ce))
+* repair CMake compilation databases for clangd ([#167](https://github.com/flushwhy/fe/issues/167)) ([f7bb41e](https://github.com/flushwhy/fe/commit/f7bb41e6ef9eb81f3d6eebdb1f9617ee530dac42))
+* **setup:** make toolchain results clearer ([#190](https://github.com/flushwhy/fe/issues/190)) ([6495ad8](https://github.com/flushwhy/fe/commit/6495ad8cf0911f9e65caa0a01495fc04556f36ce))
+* **site:** add expandable command help explorer ([#129](https://github.com/flushwhy/fe/issues/129)) ([793895b](https://github.com/flushwhy/fe/commit/793895bb8764bd331e1b126acfdb41156cb7bb08))
+* **site:** add GitHub release download buttons ([#147](https://github.com/flushwhy/fe/issues/147)) ([d1e4186](https://github.com/flushwhy/fe/commit/d1e4186c381d4d47b57fe458c1a5511dba9912a4))
+* **site:** redesign Fe website with clay UI and terminal intro ([#128](https://github.com/flushwhy/fe/issues/128)) ([682900a](https://github.com/flushwhy/fe/commit/682900a3580472cf2abc1cd72d5df2fec52b2c04))
+* **transcode:** add game-friendly video defaults ([#127](https://github.com/flushwhy/fe/issues/127)) ([12be118](https://github.com/flushwhy/fe/commit/12be1186d1a586dfe70e591c9c470d18f745043b))
+* validate build target configuration ([#107](https://github.com/flushwhy/fe/issues/107)) ([9973d63](https://github.com/flushwhy/fe/commit/9973d634142226a58e4f7d73607f4f70950660ce))
+
+
+### Bug Fixes
+
+* avoid duplicate RPM checksum entries ([#97](https://github.com/flushwhy/fe/issues/97)) ([667b915](https://github.com/flushwhy/fe/commit/667b91508f620183ca45df87b03fa8fffb00fdcc))
+* **blender:** accept extension manifest type arrays ([#141](https://github.com/flushwhy/fe/issues/141)) ([ab77bd2](https://github.com/flushwhy/fe/commit/ab77bd2d5df1c59eceadebe895ad3295240bf41c))
+* **build:** validate target selection before preflight ([#144](https://github.com/flushwhy/fe/issues/144)) ([e2ca61a](https://github.com/flushwhy/fe/commit/e2ca61afc11a952dec99120241935babf07fc2ee))
+* **ci:** allow generated staging files in itch release ([#178](https://github.com/flushwhy/fe/issues/178)) ([cacfd7f](https://github.com/flushwhy/fe/commit/cacfd7f8dc39d1382afb4b35c4b2ed346284c8e1))
+* **ci:** avoid duplicate release checksums ([#189](https://github.com/flushwhy/fe/issues/189)) ([bdd3923](https://github.com/flushwhy/fe/commit/bdd3923d9b611e4cf1ff4f35c6a77c4366fb8524))
+* **ci:** install butler outside checkout in rolling release ([#207](https://github.com/flushwhy/fe/issues/207)) ([674c551](https://github.com/flushwhy/fe/commit/674c551b19130f75b28a80aa6376cda2b39a6349))
+* **ci:** install local Debian packages with apt ([#170](https://github.com/flushwhy/fe/issues/170)) ([1e55c96](https://github.com/flushwhy/fe/commit/1e55c96874fc52a465fd77c51a32d2bcfd236c23))
+* correct template traversal and prerelease ordering ([#209](https://github.com/flushwhy/fe/issues/209)) ([7fad81e](https://github.com/flushwhy/fe/commit/7fad81e6fa9f098e2f5fc199191d2bf6f2fbe162))
+* **godot:** avoid false native extension prerequisite warning ([#140](https://github.com/flushwhy/fe/issues/140)) ([d4e2d65](https://github.com/flushwhy/fe/commit/d4e2d651f85e325818a31b8daa29527e964185e4))
+* **godot:** resolve relative export paths from project root ([#143](https://github.com/flushwhy/fe/issues/143)) ([9622825](https://github.com/flushwhy/fe/commit/962282550414ecc15961ef26aab06b4f2a913535))
+* **godot:** validate export filenames across platforms ([#214](https://github.com/flushwhy/fe/issues/214)) ([26b3511](https://github.com/flushwhy/fe/commit/26b35114575b6e606cceb8b3e80670b359c5726b))
+* **godot:** validate export presets before running ([#148](https://github.com/flushwhy/fe/issues/148)) ([745e6af](https://github.com/flushwhy/fe/commit/745e6af86c7f1b36faec410b9188594137380827))
+* **o3de:** run Windows CLI batch scripts correctly ([#151](https://github.com/flushwhy/fe/issues/151)) ([a2bd289](https://github.com/flushwhy/fe/commit/a2bd2894f02207746cb142fdff1cad7ee873d149))
+* **o3de:** validate project and engine paths ([#152](https://github.com/flushwhy/fe/issues/152)) ([0b547d5](https://github.com/flushwhy/fe/commit/0b547d542c163ca94e26bf6e6fc5075963328bf1))
+* **packaging:** declare correct RPM license ([#139](https://github.com/flushwhy/fe/issues/139)) ([978eab0](https://github.com/flushwhy/fe/commit/978eab091e182dbac7fc675beb7f1aa17dd69784))
+* **pack:** protect existing files when writing spritesheets ([#221](https://github.com/flushwhy/fe/issues/221)) ([6971543](https://github.com/flushwhy/fe/commit/6971543253f88ead99c6cbb9a6b8d4f941e393b4))
+* **release:** detect tag release branch by ancestry ([#191](https://github.com/flushwhy/fe/issues/191)) ([e2aeaa6](https://github.com/flushwhy/fe/commit/e2aeaa6b3ef94a3b33c50c2e018b086b87408c83))
+* **release:** isolate maintenance release publishing ([#134](https://github.com/flushwhy/fe/issues/134)) ([3056f22](https://github.com/flushwhy/fe/commit/3056f22788637bb60e5d6c3f45b4177d3c15b338))
+* **release:** keep Butler download outside checkout ([#195](https://github.com/flushwhy/fe/issues/195)) ([a03c81e](https://github.com/flushwhy/fe/commit/a03c81e3bdfb9da0743e5c7e74ea9146b7b67579))
+* **release:** pass maintenance channel suffix to publishing job ([#210](https://github.com/flushwhy/fe/issues/210)) ([d81d3db](https://github.com/flushwhy/fe/commit/d81d3db5d459413b20140052893ceed40b975e5c))
+* **release:** show files blocking dirty-tree preflight ([#179](https://github.com/flushwhy/fe/issues/179)) ([abfe553](https://github.com/flushwhy/fe/commit/abfe5533780e6e0123dad2cbab37f10957287411))
+* **scaffold:** escape remote template file URLs ([#220](https://github.com/flushwhy/fe/issues/220)) ([4c00130](https://github.com/flushwhy/fe/commit/4c001303ee1e98d6b1cfc87f1b15da827f4bd0a6))
+* **security:** bound archive and image processing ([#113](https://github.com/flushwhy/fe/issues/113)) ([2b717e4](https://github.com/flushwhy/fe/commit/2b717e4f167029748ca1ee149de29b81b1dac8d4))
+* **security:** prevent Godot scaffold symlink writes ([#212](https://github.com/flushwhy/fe/issues/212)) ([4062e15](https://github.com/flushwhy/fe/commit/4062e152178d3cdb4f0a4a047f75d3a13d49460a))
+* **security:** protect filesystem writes and rolling assets ([#125](https://github.com/flushwhy/fe/issues/125)) ([6912caf](https://github.com/flushwhy/fe/commit/6912cafd83a612c71a641895cf704d0447ae501c))
+* **security:** reject non-portable archive paths ([#211](https://github.com/flushwhy/fe/issues/211)) ([e30afc6](https://github.com/flushwhy/fe/commit/e30afc6089e4632d4f443d37e236f5e9b001c6c4))
+* **security:** reject superscript Windows device names ([#215](https://github.com/flushwhy/fe/issues/215)) ([b155af9](https://github.com/flushwhy/fe/commit/b155af91a91cd0d03009ca1e9a08098654d986b2))
+* **security:** safely invoke O3DE batch scripts on Windows ([#216](https://github.com/flushwhy/fe/issues/216)) ([cd9648e](https://github.com/flushwhy/fe/commit/cd9648e5b23c48953ac614a92e1c7d7f5700e090))
+* **security:** update Go to 1.26.11 ([#196](https://github.com/flushwhy/fe/issues/196)) ([57408ff](https://github.com/flushwhy/fe/commit/57408ff43ee0a5b24935761f20b2a457adb5fa84))
+* **security:** validate release tags before publishing ([#112](https://github.com/flushwhy/fe/issues/112)) ([3020903](https://github.com/flushwhy/fe/commit/302090330f537e8f5b488ea79fb7eb0e57487f3e))
+* **security:** validate remote template paths across platforms ([#213](https://github.com/flushwhy/fe/issues/213)) ([580a76c](https://github.com/flushwhy/fe/commit/580a76c1433945eaac9b2e2a1d1432e46299b560))
+* select Godot engines by project compatibility ([#110](https://github.com/flushwhy/fe/issues/110)) ([5160924](https://github.com/flushwhy/fe/commit/5160924634d4b224e546f31b01b9fa4d41e5acf1))
+* **template:** validate list command arguments ([#153](https://github.com/flushwhy/fe/issues/153)) ([95d322b](https://github.com/flushwhy/fe/commit/95d322b1e3c68e81ac68d2445ca15f4c88b1de8d))
+* unblock Debian and stable release publishing ([#93](https://github.com/flushwhy/fe/issues/93)) ([6ed4bb2](https://github.com/flushwhy/fe/commit/6ed4bb2aedfb71ed3d3b8e65dc4d0dcd3be3e499))
+
 ## [0.8.0](https://github.com/flushwhy/fe/compare/v0.7.1...v0.8.0) (2026-10-31)
 
 
