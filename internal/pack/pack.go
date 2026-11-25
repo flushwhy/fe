@@ -226,22 +226,57 @@ func stitch(images []image.Image) *image.RGBA {
 	return canvas
 }
 
-// writePNG encodes canvas as a PNG file at path, replacing any existing file.
+// writePNG encodes to a temporary file before replacing the destination.
 func writePNG(path string, canvas *image.RGBA) error {
-	// Remove existing file first so we never serve a partial write.
+	if err := validatePNGOutputPath(path); err != nil {
+		return err
+	}
+
+	f, err := os.CreateTemp(filepath.Dir(path), ".fe-spritesheet-*.png")
+	if err != nil {
+		return fmt.Errorf("could not create temporary PNG beside %s: %w", path, err)
+	}
+	temp := f.Name()
+	defer os.Remove(temp)
+
+	if err := png.Encode(f, canvas); err != nil {
+		_ = f.Close()
+		return fmt.Errorf("could not encode PNG: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		return fmt.Errorf("could not close temporary PNG: %w", err)
+	}
+	if err := os.Chmod(temp, 0640); err != nil {
+		return fmt.Errorf("could not set PNG permissions: %w", err)
+	}
+
+	// Recheck before replacement so a path changed to a symlink or directory
+	// during encoding is never followed or removed.
+	if err := validatePNGOutputPath(path); err != nil {
+		return err
+	}
 	if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 		return fmt.Errorf("could not remove existing output file: %w", err)
 	}
+	if err := os.Rename(temp, path); err != nil {
+		return fmt.Errorf("could not publish PNG %s: %w", path, err)
+	}
+	return nil
+}
 
-	f, err := os.OpenFile(path, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0640)
+func validatePNGOutputPath(path string) error {
+	info, err := os.Lstat(path)
+	if os.IsNotExist(err) {
+		return nil
+	}
 	if err != nil {
-		return fmt.Errorf("could not create output file %s: %w", path, err)
+		return fmt.Errorf("could not inspect output path %s: %w", path, err)
 	}
-	defer f.Close()
-
-	if err := png.Encode(f, canvas); err != nil {
-		return fmt.Errorf("could not encode PNG: %w", err)
+	if info.Mode()&os.ModeSymlink != 0 {
+		return fmt.Errorf("output path %s is a symlink", path)
 	}
-
+	if !info.Mode().IsRegular() {
+		return fmt.Errorf("output path %s is not a regular file", path)
+	}
 	return nil
 }
