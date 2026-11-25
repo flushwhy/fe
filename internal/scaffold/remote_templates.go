@@ -368,7 +368,6 @@ func decodeRepoTree(body io.Reader) (repoTree, error) {
 	return tree, nil
 }
 
-
 // templateFileURL escapes each filename as URL path data. Template filenames
 // may contain characters such as '#' and '%', which must not become URL
 // fragments or percent-encoded path separators when sent to GitHub.
