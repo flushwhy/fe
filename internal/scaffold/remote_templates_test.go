@@ -3,6 +3,7 @@ package scaffold
 import (
 	"bytes"
 	"os"
+	"net/url"
 	"path/filepath"
 	"strings"
 	"testing"
