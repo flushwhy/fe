@@ -26,10 +26,11 @@ Examples:
 			return err
 		}
 		if errs := cfg.Validate("transcode"); len(errs) > 0 {
-			for _, e := range errs {
-				ui.Fail("config: %s", e)
+			return &ui.CommandError{
+				Message: "transcoding configuration is invalid",
+				Details: errs,
+				Hint:    "correct the transcode settings in .fe.yaml, then run fe validate",
 			}
-			return fmt.Errorf("missing required config")
 		}
 
 		ui.Title("Transcoding  %s → %s", cfg.Transcode.InputFile, cfg.Transcode.OutputFile)
@@ -42,7 +43,11 @@ Examples:
 			},
 		)
 		if err != nil {
-			return err
+			return &ui.CommandError{
+				Message: "media transcoding failed",
+				Cause:   err,
+				Hint:    "check that ffmpeg is installed, the input file is readable, and the selected codec is supported",
+			}
 		}
 
 		ui.Elapsed(start)

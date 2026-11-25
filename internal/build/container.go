@@ -1,6 +1,7 @@
 package build
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -53,7 +54,11 @@ func RunContainer(cfg config.ContainerBuild, runtimeName string) error {
 	cmd.Stderr = os.Stderr
 	cmd.Stdin = os.Stdin
 	if err := cmd.Run(); err != nil {
-		return fmt.Errorf("container build failed: %w", err)
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return fmt.Errorf("%s run exited with code %d: %w", runtimeName, exitErr.ExitCode(), err)
+		}
+		return fmt.Errorf("could not start %s container runtime: %w", runtimeName, err)
 	}
 	fmt.Println("Container build complete")
 	return nil

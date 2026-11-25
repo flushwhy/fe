@@ -138,3 +138,15 @@ func TestExportResolvesRelativeOutputFromProjectRoot(t *testing.T) {
 	}
 }
 
+func TestExpectedOutputPathRejectsNonPortableExportNames(t *testing.T) {
+	for _, filename := range []string{"CON.exe", "bad:name.exe", "trailing.", "trailing "} {
+		t.Run(filename, func(t *testing.T) {
+			_, err := ExpectedOutputPath("/projects/game", "builds", Preset{
+				Name: "Windows Desktop", Platform: "Windows Desktop", ExportPath: filename,
+			})
+			if err == nil {
+				t.Fatalf("ExpectedOutputPath accepted non-portable filename %q", filename)
+			}
+		})
+	}
+}

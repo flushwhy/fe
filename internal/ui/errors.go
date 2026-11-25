@@ -11,6 +11,7 @@ import (
 // CommandError adds a concise explanation and optional recovery hint to a cause.
 type CommandError struct {
 	Message string
+	Details []string
 	Hint    string
 	Cause   error
 }
@@ -39,6 +40,11 @@ func WriteError(w io.Writer, err error) {
 		body = commandErr.Message
 		if body == "" {
 			body = commandErr.Error()
+		}
+		for _, detail := range commandErr.Details {
+			if detail != "" {
+				body += "\n  - " + detail
+			}
 		}
 		if commandErr.Cause != nil && commandErr.Cause.Error() != body {
 			body += "\n" + StyleDim.Render("Cause: "+commandErr.Cause.Error())

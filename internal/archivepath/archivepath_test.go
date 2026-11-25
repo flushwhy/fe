@@ -11,7 +11,7 @@ func TestValidatePortableArchivePaths(t *testing.T) {
 }
 
 func TestValidateRejectsUnsafeArchivePaths(t *testing.T) {
-	for _, name := range []string{"", ".", "../escape", "a/../../escape", "/absolute", "C:/escape", `dir\\file.txt`, "bad:name", "trailing.", "trailing ", "CON.txt", "nested/NUL"} {
+	for _, name := range []string{"", ".", "../escape", "a/../../escape", "/absolute", "C:/escape", `dir\\file.txt`, "bad:name", "trailing.", "trailing ", "CON.txt", "nested/NUL", "COM¹", "COM².log", "LPT³.txt"} {
 		if err := Validate(name); err == nil {
 			t.Errorf("Validate(%q) accepted unsafe path", name)
 		}
