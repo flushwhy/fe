@@ -2,6 +2,7 @@ package scaffold
 
 import (
 	"bytes"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -170,6 +171,22 @@ func TestValidateRemoteTemplatePathAcceptsPortableNames(t *testing.T) {
 	for _, name := range []string{"main.go", "src/game.odin", "assets/player.png"} {
 		if err := validateRemoteTemplatePath(name); err != nil {
 			t.Errorf("validateRemoteTemplatePath(%q): %v", name, err)
+		}
+	}
+}
+
+func TestTemplateFileURLEscapesPathSegments(t *testing.T) {
+	for _, rel := range []string{"assets/hash#name.png", "assets/literal%2e%2e.txt"} {
+		got, err := url.Parse(templateFileURL("go-basic", rel))
+		if err != nil {
+			t.Fatalf("templateFileURL(%q): %v", rel, err)
+		}
+		wantPath := "/flushwhy/fe-templates/main/go-basic/" + rel
+		if got.Path != wantPath {
+			t.Errorf("templateFileURL(%q) path = %q, want %q", rel, got.Path, wantPath)
+		}
+		if got.Fragment != "" || got.RawQuery != "" {
+			t.Errorf("templateFileURL(%q) unexpectedly parsed fragment/query: %#v", rel, got)
 		}
 	}
 }
