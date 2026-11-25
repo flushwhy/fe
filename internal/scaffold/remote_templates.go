@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -256,7 +257,7 @@ func downloadTemplate(id, cacheRoot, dest string) (string, error) {
 
 	var total int64
 	for _, rel := range files {
-		fileURL := "https://raw.githubusercontent.com/flushwhy/fe-templates/main/" + id + "/" + rel
+		fileURL := templateFileURL(id, rel)
 		fileReq, err := http.NewRequest(http.MethodGet, fileURL, nil)
 		if err != nil {
 			return "", err
@@ -365,4 +366,16 @@ func decodeRepoTree(body io.Reader) (repoTree, error) {
 		return tree, err
 	}
 	return tree, nil
+}
+
+
+// templateFileURL escapes each filename as URL path data. Template filenames
+// may contain characters such as '#' and '%', which must not become URL
+// fragments or percent-encoded path separators when sent to GitHub.
+func templateFileURL(id, rel string) string {
+	return (&url.URL{
+		Scheme: "https",
+		Host:   "raw.githubusercontent.com",
+		Path:   "/flushwhy/fe-templates/main/" + id + "/" + rel,
+	}).String()
 }
