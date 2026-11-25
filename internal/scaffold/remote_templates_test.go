@@ -2,8 +2,8 @@ package scaffold
 
 import (
 	"bytes"
-	"os"
 	"net/url"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -174,7 +174,6 @@ func TestValidateRemoteTemplatePathAcceptsPortableNames(t *testing.T) {
 		}
 	}
 }
-
 
 func TestTemplateFileURLEscapesPathSegments(t *testing.T) {
 	for _, rel := range []string{"assets/hash#name.png", "assets/literal%2e%2e.txt"} {
