@@ -1,8 +1,12 @@
 package cmd
 
 import (
+	"errors"
 	"os"
+	"os/exec"
 	"path/filepath"
+	"runtime"
+	"strings"
 	"testing"
 )
 
@@ -51,5 +55,26 @@ func TestFindCompileCommands(t *testing.T) {
 	}
 	if got := findCompileCommands(root); got != build {
 		t.Fatalf("findCompileCommands() = %q, want %q", got, build)
+	}
+}
+
+func TestAnalyzerFailureDetailReportsExitCode(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("uses a POSIX test process")
+	}
+	err := exec.Command("sh", "-c", "exit 12").Run()
+	if err == nil {
+		t.Fatal("expected analyzer process to fail")
+	}
+	got := analyzerFailureDetail("go vet ./...", err)
+	if !strings.Contains(got, "go vet ./...") || !strings.Contains(got, "exited with code 12") {
+		t.Fatalf("analyzerFailureDetail() = %q, want task and exit code", got)
+	}
+}
+
+func TestAnalyzerFailureDetailExplainsStartFailure(t *testing.T) {
+	got := analyzerFailureDetail("ruff check .", errors.New("executable not found"))
+	if !strings.Contains(got, "ruff check .") || !strings.Contains(got, "could not start") {
+		t.Fatalf("analyzerFailureDetail() = %q, want task and start-failure context", got)
 	}
 }

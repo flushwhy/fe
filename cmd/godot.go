@@ -353,7 +353,7 @@ Godot 3 GDNative uses a different API and is not compatible with this scaffold.
 			if err := os.MkdirAll(filepath.Dir(path), 0o750); err != nil {
 				return err
 			}
-			if err := os.WriteFile(path, []byte(data), 0o640); err != nil {
+			if err := writeNewScaffoldFile(path, []byte(data), 0o640); err != nil {
 				return fmt.Errorf("write %s: %w", path, err)
 			}
 		}
@@ -689,4 +689,24 @@ func godotVersionMatches(installed, requested string) bool {
 		return false
 	}
 	return requested != "" && (installed == requested || strings.HasPrefix(installed, requested+"."))
+}
+
+
+// writeNewScaffoldFile creates a new scaffold file without following or
+// replacing an existing file or symlink in the project.
+func writeNewScaffoldFile(path string, data []byte, mode os.FileMode) error {
+	file, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_EXCL, mode)
+	if err != nil {
+		return err
+	}
+	if _, err := file.Write(data); err != nil {
+		_ = file.Close()
+		_ = os.Remove(path)
+		return err
+	}
+	if err := file.Close(); err != nil {
+		_ = os.Remove(path)
+		return err
+	}
+	return nil
 }

@@ -24,6 +24,7 @@ jobs:
     outputs:
       tag: ${{ steps.validate.outputs.tag }}
       commit: ${{ steps.validate.outputs.commit }}
+      itch_channel_suffix: ${{ steps.validate.outputs.itch_channel_suffix }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:

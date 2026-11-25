@@ -1,6 +1,7 @@
 package build
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -21,7 +22,14 @@ var DefaultRunner Runner = func(command string) error {
 	cmd := exec.Command(parts[0], parts[1:]...)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
-	return cmd.Run()
+	if err := cmd.Run(); err != nil {
+		var exitErr *exec.ExitError
+		if errors.As(err, &exitErr) {
+			return fmt.Errorf("command %q exited with code %d: %w", parts[0], exitErr.ExitCode(), err)
+		}
+		return fmt.Errorf("could not start command %q: %w", parts[0], err)
+	}
+	return nil
 }
 
 type Options struct {
@@ -71,7 +79,7 @@ func RunTarget(t config.BuildTarget, runner Runner) error {
 		label = t.Platform
 	}
 	if err := runner(t.Cmd); err != nil {
-		return fmt.Errorf("build failed for %s: %w", label, err)
+		return fmt.Errorf("build target %q (%s) failed while running %q: %w", label, t.Platform, t.Cmd, err)
 	}
 	return nil
 }

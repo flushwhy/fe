@@ -148,3 +148,28 @@ func TestReplaceTemplateCachePreservesPreviousCacheOnFailure(t *testing.T) {
 		t.Fatalf("previous cache was not restored: %v", err)
 	}
 }
+
+func TestValidateRemoteTemplatePathRejectsNonPortableNames(t *testing.T) {
+	for _, name := range []string{
+		"CON",
+		"nested/NUL.txt",
+		"file:stream",
+		"trailing.",
+		"trailing ",
+		"nested/bad?.txt",
+	} {
+		t.Run(name, func(t *testing.T) {
+			if err := validateRemoteTemplatePath(name); err == nil {
+				t.Fatalf("validateRemoteTemplatePath(%q) accepted a non-portable name", name)
+			}
+		})
+	}
+}
+
+func TestValidateRemoteTemplatePathAcceptsPortableNames(t *testing.T) {
+	for _, name := range []string{"main.go", "src/game.odin", "assets/player.png"} {
+		if err := validateRemoteTemplatePath(name); err != nil {
+			t.Errorf("validateRemoteTemplatePath(%q): %v", name, err)
+		}
+	}
+}
