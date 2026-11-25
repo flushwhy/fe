@@ -3,12 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
-	"os/exec"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	"github.com/flushwhy/fe/internal/o3de"
+	"github.com/flushwhy/fe/internal/ui"
 	"github.com/spf13/cobra"
 )
 
@@ -134,13 +133,23 @@ func runO3DECLI(cmd *cobra.Command, args ...string) error {
 	if cliPath == "" {
 		return fmt.Errorf("could not find O3DE CLI for engine %q", engine.Path)
 	}
-	executable, cliArgs := o3de.CLIInvocation(runtime.GOOS, cliPath, args)
-	child := exec.CommandContext(cmd.Context(), executable, cliArgs...)
+	child, err := o3de.NewCLICommand(cmd.Context(), cliPath, args)
+	if err != nil {
+		return &ui.CommandError{
+			Message: "could not safely start the O3DE command",
+			Cause:   err,
+			Hint:    "remove percent signs, quotation marks, or line breaks from Windows batch arguments, then retry",
+		}
+	}
 	child.Stdout = os.Stdout
 	child.Stderr = os.Stderr
 	child.Stdin = os.Stdin
 	if err := child.Run(); err != nil {
-		return fmt.Errorf("O3DE CLI %s: %w", strings.Join(args, " "), err)
+		return &ui.CommandError{
+			Message: fmt.Sprintf("O3DE command failed: %s", strings.Join(args, " ")),
+			Cause:   err,
+			Hint:    "run `fe o3de doctor` to check the engine setup and review the O3DE output above",
+		}
 	}
 	return nil
 }

@@ -112,3 +112,19 @@ jobs:
           print("HTML parsed; embedded JavaScript extracted.")
           PY
           node --check /tmp/fe-site.js
+
+  windows-command-safety:
+    name: Windows command safety
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+
+      - name: Set up Go
+        uses: actions/setup-go@d8cbb8045d7f43706b9177cceb36c1f91a6644d5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - name: Test O3DE Windows batch argument handling
+        run: go test ./internal/o3de -run 'TestCLIInvocation' -count=1
