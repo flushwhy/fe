@@ -162,3 +162,57 @@ func TestValidatePNGFileSizeEnforcesAggregateBudget(t *testing.T) {
 		t.Fatalf("validatePNGFileSize() rejected a small PNG: %v", err)
 	}
 }
+
+
+func TestWritePNGRejectsDirectoryOutputWithoutRemovingIt(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "spritesheet.png")
+	if err := os.Mkdir(output, 0750); err != nil {
+		t.Fatal(err)
+	}
+
+	err := writePNG(output, image.NewRGBA(image.Rect(0, 0, 1, 1)))
+	if err == nil {
+		t.Fatal("writePNG accepted a directory as its output path")
+	}
+	info, statErr := os.Stat(output)
+	if statErr != nil {
+		t.Fatalf("output directory was removed after rejection: %v", statErr)
+	}
+	if !info.IsDir() {
+		t.Fatalf("output path mode = %v, want directory preserved", info.Mode())
+	}
+}
+
+
+func TestWritePNGRejectsSymlinkOutputWithoutModifyingTarget(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation may require elevated privileges on Windows")
+	}
+	target := filepath.Join(t.TempDir(), "target.png")
+	if err := os.WriteFile(target, []byte("keep existing file"), 0640); err != nil {
+		t.Fatal(err)
+	}
+	output := filepath.Join(t.TempDir(), "spritesheet.png")
+	if err := os.Symlink(target, output); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	err := writePNG(output, image.NewRGBA(image.Rect(0, 0, 1, 1)))
+	if err == nil {
+		t.Fatal("writePNG accepted a symlink output path")
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "keep existing file" {
+		t.Fatalf("symlink target changed: %q", got)
+	}
+	info, err := os.Lstat(output)
+	if err != nil {
+		t.Fatalf("output symlink was removed after rejection: %v", err)
+	}
+	if info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("output path mode = %v, want symlink preserved", info.Mode())
+	}
+}
