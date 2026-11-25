@@ -162,3 +162,23 @@ func TestValidatePNGFileSizeEnforcesAggregateBudget(t *testing.T) {
 		t.Fatalf("validatePNGFileSize() rejected a small PNG: %v", err)
 	}
 }
+
+
+func TestWritePNGRejectsDirectoryOutputWithoutRemovingIt(t *testing.T) {
+	output := filepath.Join(t.TempDir(), "spritesheet.png")
+	if err := os.Mkdir(output, 0750); err != nil {
+		t.Fatal(err)
+	}
+
+	err := writePNG(output, image.NewRGBA(image.Rect(0, 0, 1, 1)))
+	if err == nil {
+		t.Fatal("writePNG accepted a directory as its output path")
+	}
+	info, statErr := os.Stat(output)
+	if statErr != nil {
+		t.Fatalf("output directory was removed after rejection: %v", statErr)
+	}
+	if !info.IsDir() {
+		t.Fatalf("output path mode = %v, want directory preserved", info.Mode())
+	}
+}
