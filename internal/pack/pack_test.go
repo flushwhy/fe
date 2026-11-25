@@ -182,3 +182,37 @@ func TestWritePNGRejectsDirectoryOutputWithoutRemovingIt(t *testing.T) {
 		t.Fatalf("output path mode = %v, want directory preserved", info.Mode())
 	}
 }
+
+
+func TestWritePNGRejectsSymlinkOutputWithoutModifyingTarget(t *testing.T) {
+	if runtime.GOOS == "windows" {
+		t.Skip("symlink creation may require elevated privileges on Windows")
+	}
+	target := filepath.Join(t.TempDir(), "target.png")
+	if err := os.WriteFile(target, []byte("keep existing file"), 0640); err != nil {
+		t.Fatal(err)
+	}
+	output := filepath.Join(t.TempDir(), "spritesheet.png")
+	if err := os.Symlink(target, output); err != nil {
+		t.Skipf("symlinks unavailable: %v", err)
+	}
+
+	err := writePNG(output, image.NewRGBA(image.Rect(0, 0, 1, 1)))
+	if err == nil {
+		t.Fatal("writePNG accepted a symlink output path")
+	}
+	got, err := os.ReadFile(target)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(got) != "keep existing file" {
+		t.Fatalf("symlink target changed: %q", got)
+	}
+	info, err := os.Lstat(output)
+	if err != nil {
+		t.Fatalf("output symlink was removed after rejection: %v", err)
+	}
+	if info.Mode()&os.ModeSymlink == 0 {
+		t.Fatalf("output path mode = %v, want symlink preserved", info.Mode())
+	}
+}
